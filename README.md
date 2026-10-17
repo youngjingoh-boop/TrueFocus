@@ -49,11 +49,10 @@ Everything syncs through your private iCloud database. Start on the Mac, see it 
 
 ## Build it
 
-You need a Mac with Xcode 26+, an iPhone on iOS 26+, and a paid Apple Developer account (Screen Time APIs, iCloud and App Groups require one).
+You need a Mac with Xcode 26+, an iPhone on iOS 26+, and a paid Apple Developer account (Screen Time APIs, iCloud and App Groups require one). Signing is preset to the VocaMonkey team (`7CVSS54KS4`) in `Config/Base.xcconfig`.
 
 ```sh
 brew install xcodegen
-cp Config/Local.example.xcconfig Config/Local.xcconfig   # your Team ID and bundle prefix
 xcodegen
 open TrueFocus.xcodeproj
 ```

@@ -1,9 +1,10 @@
 // TrueFocus build configuration.
 //
-// Don't edit this file for your own signing details — copy Local.example.xcconfig
-// to Local.xcconfig (git-ignored) and set them there.
+// Signs with the same Apple Developer team as VocaMonkey. To build under a different
+// team or prefix, copy Local.example.xcconfig to Local.xcconfig (git-ignored) and
+// override them there.
 
-TF_DEVELOPMENT_TEAM =
+TF_DEVELOPMENT_TEAM = 7CVSS54KS4
 TF_BUNDLE_PREFIX = com.youngjingoh
 
 #include? "Local.xcconfig"

@@ -4,15 +4,14 @@ One-time, about ten minutes. Do it in this order.
 
 ## 1. Build and install
 
-1. Install Xcode 26 or newer and sign in with your Apple Developer account (Xcode ▸ Settings ▸ Accounts).
+1. Xcode 26 or newer, signed in with the Apple Developer account that ships VocaMonkey (Xcode ▸ Settings ▸ Accounts). The project already uses that team, `7CVSS54KS4`, and the bundle prefix `com.youngjingoh` (`Config/Base.xcconfig`).
 2. `brew install xcodegen`
-3. `cp Config/Local.example.xcconfig Config/Local.xcconfig` and set:
-   - `TF_DEVELOPMENT_TEAM` — your 10-character Team ID.
-   - `TF_BUNDLE_PREFIX` — a reverse-DNS prefix you own, e.g. `com.yourname`. It names the bundle IDs, the App Group and the iCloud container, so choose once.
-4. `xcodegen` then `open TrueFocus.xcodeproj`.
-5. Pick the **TrueFocus** scheme, your iPhone as destination, Run. Pick **TrueFocusMac**, My Mac, Run.
+3. `xcodegen` then `open TrueFocus.xcodeproj`.
+4. Pick the **TrueFocus** scheme, your iPhone as destination, Run. Pick **TrueFocusMac**, My Mac, Run.
 
-Xcode's automatic signing registers the App IDs, the App Group and the iCloud container the first time. If it asks to enable a capability (Family Controls, iCloud, App Groups, Push, Time Sensitive Notifications), allow it.
+Signing is automatic (unlike VocaMonkey's manual App Store profiles): the first build registers the App IDs, the App Group and the iCloud container under your team. If Xcode asks to enable a capability (Family Controls, iCloud, App Groups, Push, Time Sensitive Notifications), allow it.
+
+To build under another team or prefix, `cp Config/Local.example.xcconfig Config/Local.xcconfig` and set `TF_DEVELOPMENT_TEAM` / `TF_BUNDLE_PREFIX` there. The prefix names the bundle IDs, App Group and iCloud container, so choose it once.
 
 > **Family Controls.** Development builds on your own devices work with the standard *Family Controls (Development)* capability. Only TestFlight / App Store distribution needs Apple's distribution entitlement, which you request at developer.apple.com.
 
