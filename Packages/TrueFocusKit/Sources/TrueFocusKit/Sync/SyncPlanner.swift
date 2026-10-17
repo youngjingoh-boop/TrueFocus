@@ -63,6 +63,13 @@ public struct OutgoingChange: Equatable, Sendable {
     public var payload: Data?
     public var modifiedAt: Date
 
+    public init(id: UUID, kind: RecordKind, payload: Data?, modifiedAt: Date) {
+        self.id = id
+        self.kind = kind
+        self.payload = payload
+        self.modifiedAt = modifiedAt
+    }
+
     public var deleted: Bool { payload == nil }
 }
 
@@ -73,6 +80,13 @@ public struct IncomingChange: Equatable, Sendable {
     /// nil for a deletion.
     public var payload: Data?
     public var modifiedAt: Date
+
+    public init(id: UUID, kind: RecordKind, payload: Data?, modifiedAt: Date) {
+        self.id = id
+        self.kind = kind
+        self.payload = payload
+        self.modifiedAt = modifiedAt
+    }
 
     public var deleted: Bool { payload == nil }
 }
