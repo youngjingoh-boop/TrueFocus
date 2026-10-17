@@ -1,10 +1,10 @@
 # Architecture
 
 ```
-                       ┌────────────── iCloud (private CloudKit DB) ──────────────┐
+                       ┌──────── Supabase (tf_records, encrypted per space) ──────┐
                        │      FocusTask · FlowSegment · DayPlan · Note            │
                        └───────────────▲──────────────────────────▲───────────────┘
-                                       │ SwiftData sync           │
+                                       │ SyncService (HTTPS)      │
                  ┌─────────────────────┴───────┐        ┌─────────┴─────────────────────┐
                  │ iPhone app                  │        │ Mac app                        │
                  │  FocusController ──effects──┤        ├──effects── FocusController     │
@@ -38,9 +38,20 @@ Every number on the scoreboard — focus time, chain, momentum — is replayed f
 | `backToIt()` | `think` → `focus` same task; `rest`/idle → `focus` next task. |
 | `endDay()` | Close everything, mark the plan ended. Nudges stop. |
 
-After each change it saves, refetches, builds a `LiveSnapshot`, writes it to the App Group, reloads widgets, and calls every registered `FocusEffect`. Remote iCloud changes trigger the same path, so the iPhone's shields, Lock Screen and Live Activity follow a session started on the Mac.
+After each change it saves, refetches, builds a `LiveSnapshot`, writes it to the App Group, reloads widgets, and calls every registered `FocusEffect`. Changes pulled by sync trigger the same path, so the iPhone's shields, Lock Screen and Live Activity follow a session started on the Mac.
 
 Auto-continue (start the next task when rest ends) only runs on the device that opened the rest, so two devices never both start it.
+
+## Sync
+
+Each device keeps its own SwiftData store. `Shared/App/Sync/SyncService.swift` carries changes between them through Supabase (`supabase/`), with no user accounts:
+
+- **Spaces.** A device belongs to a *space*, named by a random 256-bit key in its Keychain. Every request sends it in `x-tf-space`; row-level security only shows rows whose `space` equals its SHA-256 (`tf_space()`). A new device joins with a six-digit code from `tf-pair`, single use, ten minutes, rate-limited.
+- **Records.** One row per task, segment, day plan or note: `id`, `kind`, `deleted`, `modified_at`, and the payload sealed with AES-GCM under a key derived from the space key. The server never sees content. Day plans get an ID derived from their day, so two devices' plans for one day are one record.
+- **A sync** (on launch, foreground, every 20 s, 1.5 s after a save, on a silent push): pull rows newer than the cursor, decide each against the ledger (`SyncPlanner.resolve`) — take the server's version unless this device edited the record since the last sync, in which case its edit wins; day plans merge field by field against the last agreed version — then upload what changed here. The server keeps the newer `modified_at` if two uploads race. Deletions are tombstones.
+- **Wake-ups.** After an upload, `tf-notify` sends a silent push to the space's other iPhones (needs the APNs secrets, see SETUP), so they sync in the background.
+
+The decisions (`SyncPlanner`, `PlanPayload.merge`) and the wire client (`TFCloud`) are in TrueFocusKit and unit-tested; `SyncLiveTests` runs them against the real server when `TF_LIVE_SUPABASE_HOST` / `TF_LIVE_SUPABASE_KEY` are set.
 
 ## TrueFocusKit
 
@@ -54,6 +65,7 @@ Foundation-only Swift package shared by every target and extension, tested on Li
 - `BrainDump.swift` — deterministic brain-dump → task list.
 - `Blocklist.swift` — feed sites, short-form paths, respond paths, adult domains.
 - `LiveSnapshot.swift`, `Settings.swift`, `SharedStore.swift` — the App Group contract.
+- `Sync/` — sync payloads, the planner (what to upload, what to apply, merges), and the Supabase client.
 
 ## Enforcement
 

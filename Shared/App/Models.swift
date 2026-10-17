@@ -2,9 +2,9 @@ import Foundation
 import SwiftData
 import TrueFocusKit
 
-// SwiftData models, mirrored to the private iCloud database so iPhone and Mac share
-// one plan. CloudKit rules apply: every property has a default, nothing is unique,
-// and records reference each other by UUID rather than relationships.
+// SwiftData models, kept on each device and synced by `SyncService` so iPhone and Mac
+// share one plan. Records reference each other by UUID rather than relationships, and
+// every field has a mirror in the sync payloads (`SyncMapping`).
 
 /// A task on the plan.
 @Model

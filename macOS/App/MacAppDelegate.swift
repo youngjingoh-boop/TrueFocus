@@ -19,10 +19,12 @@ final class MacAppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationC
         MacNudger.shared.requestAuthorization()
 
         controller.appBecameActive()
+        SyncService.shared.start()
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {
         FocusController.shared.appBecameActive()
+        Task { await SyncService.shared.syncNow() }
     }
 
     /// Clicking the Dock icon with no window open brings the main window back.

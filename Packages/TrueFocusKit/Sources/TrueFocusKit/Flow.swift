@@ -53,7 +53,7 @@ public enum SegmentOutcome: String, Codable, Sendable {
 }
 
 /// A plain-value view of one contiguous block of a single mode.
-/// The app persists these (SwiftData, synced through iCloud); the math below only sees values.
+/// The app persists these (SwiftData, synced through the TrueFocus server); the math below only sees values.
 public struct SegmentRecord: Equatable, Sendable {
     public var mode: FlowMode
     public var taskID: UUID?

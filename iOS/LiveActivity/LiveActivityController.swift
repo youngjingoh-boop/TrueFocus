@@ -7,7 +7,7 @@ import TrueFocusKit
 ///
 /// iOS only lets an app *start* a Live Activity while it's in the foreground, so a session
 /// started on the Mac appears here the next time the iPhone app is opened
-/// (`appDidBecomeActive()`); after that, updates arrive in the background as iCloud syncs.
+/// (`appDidBecomeActive()`); after that, updates arrive in the background as sync pulls them in.
 @MainActor
 final class LiveActivityController: FocusEffect {
     static let shared = LiveActivityController()

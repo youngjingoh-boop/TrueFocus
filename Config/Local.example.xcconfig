@@ -3,7 +3,7 @@
 // TF_DEVELOPMENT_TEAM: your 10-character Team ID
 //   (Xcode ▸ Settings ▸ Accounts, or developer.apple.com ▸ Membership).
 // TF_BUNDLE_PREFIX: a reverse-DNS prefix you own. It names the bundle IDs,
-//   the App Group and the iCloud container, so pick it once and keep it.
+//   and the App Group, so pick it once and keep it.
 
 TF_DEVELOPMENT_TEAM = ABCDE12345
 TF_BUNDLE_PREFIX = com.yourname

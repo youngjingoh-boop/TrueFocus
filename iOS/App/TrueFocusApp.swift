@@ -17,9 +17,23 @@ struct TrueFocusApp: App {
                 }
         }
         .onChange(of: scenePhase) { _, phase in
-            guard phase == .active else { return }
-            FocusController.shared.appBecameActive()
-            LiveActivityController.shared.appDidBecomeActive()
+            switch phase {
+            case .active:
+                FocusController.shared.appBecameActive()
+                LiveActivityController.shared.appDidBecomeActive()
+                Task { await SyncService.shared.syncNow() }
+            case .background:
+                // Get the last edits up before iOS suspends the app.
+                let application = UIApplication.shared
+                var task = UIBackgroundTaskIdentifier.invalid
+                task = application.beginBackgroundTask { application.endBackgroundTask(task) }
+                Task {
+                    await SyncService.shared.syncNow()
+                    application.endBackgroundTask(task)
+                }
+            default:
+                break
+            }
         }
     }
 }
@@ -37,17 +51,20 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
         controller.register(LiveActivityController.shared)
 
-        // iCloud pushes wake the app when the Mac changes the plan, so the
-        // Lock Screen, Live Activity and shields follow along in the background.
+        SyncService.shared.start()
+        // Silent pushes from the sync server wake the app when the Mac changes the plan,
+        // so the Lock Screen, Live Activity and shields follow along in the background.
         application.registerForRemoteNotifications()
         return true
     }
 
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        SyncService.shared.setDeviceToken(deviceToken)
+    }
+
     func application(_ application: UIApplication,
                      didReceiveRemoteNotification userInfo: [AnyHashable: Any]) async -> UIBackgroundFetchResult {
-        // SwiftData imports the change itself; give it a moment, then republish.
-        try? await Task.sleep(for: .seconds(2))
-        FocusController.shared.refresh()
+        await SyncService.shared.syncNow()
         return .newData
     }
 }
