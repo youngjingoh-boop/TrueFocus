@@ -1,0 +1,19 @@
+# Generated
+TrueFocus.xcodeproj/
+*.xcworkspace/
+DerivedData/
+build/
+.build/
+.swiftpm/
+Packages/TrueFocusKit/.build/
+
+# Local signing
+Config/Local.xcconfig
+
+# Web extension
+Extensions/web/node_modules/
+dist/
+
+.DS_Store
+*.xcuserstate
+xcuserdata/

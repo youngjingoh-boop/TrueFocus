@@ -1,0 +1,285 @@
+import SwiftUI
+import TrueFocusKit
+#if os(iOS)
+import UIKit
+#endif
+
+// Small, reusable pieces of the TrueFocus look. App targets only.
+
+/// The Apple Notes–style check circle, in Ember.
+struct CheckCircle: View {
+    var isOn: Bool
+    var tint: Color = TF.Palette.signal
+    var size: CGFloat = 22
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                Circle()
+                    .strokeBorder(isOn ? tint : TF.Palette.ink3, lineWidth: 1.5)
+                Circle()
+                    .fill(tint)
+                    .scaleEffect(isOn ? 1 : 0.2)
+                    .opacity(isOn ? 1 : 0)
+                Image(systemName: "checkmark")
+                    .font(.system(size: size * 0.45, weight: .bold))
+                    .foregroundStyle(TF.Palette.onSignal)
+                    .scaleEffect(isOn ? 1 : 0.4)
+                    .opacity(isOn ? 1 : 0)
+            }
+            .frame(width: size, height: size)
+            .contentShape(Circle().inset(by: -8))
+            .animation(TF.Motion.check, value: isOn)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(isOn ? "Completed" : "Not completed")
+        .accessibilityAddTraits(.isButton)
+    }
+}
+
+/// A live dot with the mode's color. Pulses while working.
+struct ModeDot: View {
+    var mode: FlowMode
+    var size: CGFloat = 8
+    @State private var pulse = false
+
+    var body: some View {
+        Circle()
+            .fill(TF.tint(for: mode))
+            .frame(width: size, height: size)
+            .overlay(
+                Circle()
+                    .stroke(TF.tint(for: mode).opacity(0.5), lineWidth: 1)
+                    .scaleEffect(pulse ? 2.4 : 1)
+                    .opacity(pulse ? 0 : 0.8)
+            )
+            .onAppear {
+                guard mode.isWorking else { return }
+                withAnimation(.easeOut(duration: 1.6).repeatForever(autoreverses: false)) { pulse = true }
+            }
+            .onChange(of: mode) { _, newValue in
+                pulse = false
+                guard newValue.isWorking else { return }
+                withAnimation(.easeOut(duration: 1.6).repeatForever(autoreverses: false)) { pulse = true }
+            }
+            .accessibilityHidden(true)
+    }
+}
+
+/// "● FOCUS" — the mode, as a label.
+struct ModeLabel: View {
+    var mode: FlowMode
+    var text: String? = nil
+
+    var body: some View {
+        HStack(spacing: 7) {
+            ModeDot(mode: mode)
+            Text(text ?? mode.label).tfEyebrowStyle(TF.textTint(for: mode))
+        }
+    }
+}
+
+/// Counts up from a date, once a second, using tabular digits.
+struct ElapsedText: View {
+    var since: Date
+    var base: TimeInterval = 0
+    var font: Font = .tfCaption
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            Text(TFFormat.clock(base + max(0, context.date.timeIntervalSince(since))))
+                .font(font)
+                .contentTransition(.numericText())
+        }
+    }
+}
+
+/// Counts down to a date; shows "+0:12" once it's past.
+struct CountdownText: View {
+    var until: Date
+    var font: Font = .tfCaption
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let remaining = until.timeIntervalSince(context.date)
+            Text(remaining >= 0 ? TFFormat.clock(remaining) : "+" + TFFormat.clock(-remaining))
+                .font(font)
+                .contentTransition(.numericText())
+        }
+    }
+}
+
+/// A thin momentum meter: 0–100.
+struct MomentumBar: View {
+    var value: Int
+    var tint: Color = TF.Palette.signal
+    var height: CGFloat = 3
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule().fill(TF.Palette.hairline)
+                Capsule()
+                    .fill(tint)
+                    .frame(width: proxy.size.width * CGFloat(min(max(value, 0), 100)) / 100)
+                    .animation(TF.Motion.soft, value: value)
+            }
+        }
+        .frame(height: height)
+        .accessibilityElement()
+        .accessibilityLabel("Momentum \(value) of 100")
+    }
+}
+
+/// One dot per task finished in an unbroken chain.
+struct ChainDots: View {
+    var chain: Int
+    var tint: Color = TF.Palette.signal
+    var maxDots = 12
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<min(chain, maxDots), id: \.self) { _ in
+                Circle().fill(tint).frame(width: 5, height: 5)
+            }
+            if chain > maxDots {
+                Text("+\(chain - maxDots)").font(.tfCaption).foregroundStyle(tint)
+            }
+        }
+        .accessibilityElement()
+        .accessibilityLabel("Chain of \(chain)")
+    }
+}
+
+/// A big number with a small label underneath. Used on the scoreboard.
+struct StatTile: View {
+    var value: String
+    var label: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(value)
+                .font(.system(size: 26, weight: .semibold).monospacedDigit())
+                .foregroundStyle(TF.Palette.ink)
+                .contentTransition(.numericText())
+            Text(label).tfEyebrowStyle()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - Buttons
+
+/// Solid ink capsule. The one primary action on a screen.
+struct PrimaryButtonStyle: ButtonStyle {
+    var tint: Color = TF.Palette.ink
+    var foreground: Color = TF.Palette.paper
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 17, weight: .semibold))
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 22)
+            .frame(minHeight: 52)
+            .frame(maxWidth: .infinity)
+            .background(Capsule().fill(tint))
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .opacity(configuration.isPressed ? 0.9 : 1)
+            .animation(TF.Motion.snappy, value: configuration.isPressed)
+    }
+}
+
+/// Hairline capsule for secondary actions.
+struct QuietButtonStyle: ButtonStyle {
+    var foreground: Color = TF.Palette.ink
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 15, weight: .medium))
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 18)
+            .frame(minHeight: 44)
+            .background(Capsule().strokeBorder(foreground.opacity(0.18), lineWidth: 1))
+            .contentShape(Capsule())
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(TF.Motion.snappy, value: configuration.isPressed)
+    }
+}
+
+/// A round icon button used on the immersive focus screen.
+struct OrbButtonStyle: ButtonStyle {
+    var tint: Color
+    var size: CGFloat = 64
+    var filled = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: size * 0.34, weight: .semibold))
+            .foregroundStyle(filled ? Color.black : tint)
+            .frame(width: size, height: size)
+            .background(
+                Circle().fill(filled ? tint : tint.opacity(0.12))
+            )
+            .overlay(Circle().strokeBorder(tint.opacity(filled ? 0 : 0.35), lineWidth: 1))
+            .scaleEffect(configuration.isPressed ? 0.92 : 1)
+            .animation(TF.Motion.snappy, value: configuration.isPressed)
+    }
+}
+
+// MARK: - Surfaces
+
+extension View {
+    /// The raised card used for "Now" and the morning ritual. Liquid Glass on top of paper.
+    func tfCard(cornerRadius: CGFloat = TF.Radius.card, tint: Color? = nil) -> some View {
+        self
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(TF.Palette.surface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .strokeBorder(tint?.opacity(0.35) ?? TF.Palette.hairline, lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.06), radius: 18, x: 0, y: 8)
+    }
+
+    /// Floating glass for controls that sit above content.
+    func tfGlass(cornerRadius: CGFloat = 22) -> some View {
+        self.glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+    }
+
+    /// Standard page background.
+    func tfPage() -> some View {
+        self.background(TF.Palette.paper.ignoresSafeArea())
+    }
+}
+
+/// A one-line hairline separator.
+struct Hairline: View {
+    var body: some View {
+        Rectangle().fill(TF.Palette.hairline).frame(height: 1)
+    }
+}
+
+// MARK: - Haptics
+
+enum TFHaptics {
+    static func success() {
+        #if os(iOS)
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        #endif
+    }
+
+    static func tap() {
+        #if os(iOS)
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        #endif
+    }
+
+    static func warning() {
+        #if os(iOS)
+        UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        #endif
+    }
+}

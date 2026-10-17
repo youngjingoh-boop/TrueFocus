@@ -1,0 +1,498 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/wall.html"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*porn",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 101,
+    "priority": 1,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*porn",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 2,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/wall.html"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*xxx",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 102,
+    "priority": 1,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*xxx",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 3,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/wall.html"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*hentai",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 103,
+    "priority": 1,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*hentai",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 4,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/wall.html"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*xvideo",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 104,
+    "priority": 1,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*xvideo",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 5,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/wall.html"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*xnxx",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 105,
+    "priority": 1,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*xnxx",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 6,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/wall.html"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*xhamster",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 106,
+    "priority": 1,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*xhamster",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 7,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/wall.html"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*nsfw",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 107,
+    "priority": 1,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*nsfw",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 8,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/wall.html"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*onlyfans",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 108,
+    "priority": 1,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*onlyfans",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 9,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/wall.html"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*camgirl",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 109,
+    "priority": 1,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*camgirl",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 10,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/wall.html"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*redtube",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 110,
+    "priority": 1,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*redtube",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 11,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/wall.html"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*youporn",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 111,
+    "priority": 1,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*youporn",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 12,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/wall.html"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*brazzers",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 112,
+    "priority": 1,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*brazzers",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 13,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/wall.html"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*chaturbate",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 113,
+    "priority": 1,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*chaturbate",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 14,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/wall.html"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*stripchat",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 114,
+    "priority": 1,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*stripchat",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 15,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/wall.html"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*livejasmin",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 115,
+    "priority": 1,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*livejasmin",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  },
+  {
+    "id": 16,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/wall.html"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*rule34",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 116,
+    "priority": 1,
+    "action": {
+      "type": "block"
+    },
+    "condition": {
+      "regexFilter": "^https?://[^/?#]*rule34",
+      "isUrlFilterCaseSensitive": false,
+      "resourceTypes": [
+        "sub_frame"
+      ]
+    }
+  }
+]

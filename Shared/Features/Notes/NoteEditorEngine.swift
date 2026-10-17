@@ -1,0 +1,369 @@
+import Foundation
+import TrueFocusKit
+#if os(iOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
+
+/// Platform-neutral editing behaviour for the note editor: it owns the TextKit 1 stack and
+/// implements the Apple Notes rules (checklists continue on Return, end on an empty Return,
+/// lose their circle on Backspace at the start, "[] " converts a line…). The UIKit and AppKit
+/// coordinators only wire their text view into the closures below.
+@MainActor
+final class NoteEditorEngine {
+    let storage = NSTextStorage()
+    let layoutManager = NoteLayoutManager()
+    let textContainer: NSTextContainer
+
+    // Wired by the platform coordinator.
+    var selectedRange: () -> NSRange = { NSRange(location: 0, length: 0) }
+    var setSelectedRange: (NSRange) -> Void = { _ in }
+    var setTypingAttributes: ([NSAttributedString.Key: Any]) -> Void = { _ in }
+    /// Undo-aware character replacement through the text view.
+    var replaceCharacters: (NSRange, String) -> Void = { _, _ in }
+    var hasMarkedText: () -> Bool = { false }
+    /// Redraws regions the text system doesn't know changed (the empty last line's marker).
+    var redraw: () -> Void = {}
+    var onChange: (String) -> Void = { _ in }
+
+    /// The markup last handed to `onChange` (or loaded).
+    private(set) var lastSerialized = ""
+    /// The markup passed to the last `load`, before normalization.
+    private(set) var loadedMarkup = ""
+
+    private var pendingEdited: NSRange?
+    private var pendingNewItem: (location: Int, kind: NoteBlockKind)?
+    private var pendingShortcut: (location: Int, text: String, kind: NoteBlockKind)?
+    private var isInternalEdit = false
+
+    init() {
+        textContainer = NSTextContainer(size: CGSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
+        textContainer.widthTracksTextView = true
+        storage.addLayoutManager(layoutManager)
+        layoutManager.addTextContainer(textContainer)
+    }
+
+    // MARK: Loading and saving
+
+    func load(_ markup: String) {
+        let built = NoteFormatter.attributedString(from: markup)
+        storage.setAttributedString(built.text)
+        layoutManager.extraLineKind = built.trailingKind
+        loadedMarkup = markup
+        lastSerialized = serialize()
+        pendingEdited = nil
+        pendingNewItem = nil
+        pendingShortcut = nil
+        selectionDidChange()
+        redraw()
+    }
+
+    func serialize() -> String {
+        NoteFormatter.markup(from: storage, trailingKind: layoutManager.extraLineKind)
+    }
+
+    private func notifyChanged() {
+        let markup = serialize()
+        lastSerialized = markup
+        onChange(markup)
+    }
+
+    // MARK: Paragraph helpers
+
+    private var string: NSString { storage.string as NSString }
+
+    private var endsWithTerminator: Bool {
+        let length = string.length
+        return length > 0 && NoteFormatter.isParagraphTerminator(string.character(at: length - 1))
+    }
+
+    /// The paragraph containing `location`. A zero-length range at the very end means the
+    /// empty last line after a trailing newline.
+    func paragraphRange(at location: Int) -> NSRange {
+        let length = string.length
+        if length == 0 { return NSRange(location: 0, length: 0) }
+        if location >= length {
+            if endsWithTerminator { return NSRange(location: length, length: 0) }
+            return string.paragraphRange(for: NSRange(location: length - 1, length: 0))
+        }
+        return string.paragraphRange(for: NSRange(location: max(0, location), length: 0))
+    }
+
+    private func contentLength(_ paragraph: NSRange) -> Int {
+        guard paragraph.length > 0 else { return 0 }
+        let last = string.character(at: NSMaxRange(paragraph) - 1)
+        return paragraph.length - (NoteFormatter.isParagraphTerminator(last) ? 1 : 0)
+    }
+
+    func kind(ofParagraph paragraph: NSRange) -> NoteBlockKind {
+        if paragraph.location == 0 { return .title }
+        if paragraph.length == 0 { return layoutManager.extraLineKind ?? .text }
+        let found = NoteFormatter.kind(from: storage.attributes(at: paragraph.location, effectiveRange: nil)) ?? .text
+        return found == .title ? .text : found
+    }
+
+    /// Every paragraph touched by a range (just one for a caret).
+    private func paragraphs(in range: NSRange) -> [NSRange] {
+        var result: [NSRange] = []
+        var cursor = range.location
+        repeat {
+            let paragraph = paragraphRange(at: cursor)
+            result.append(paragraph)
+            if paragraph.length == 0 { break }
+            cursor = NSMaxRange(paragraph)
+        } while cursor < NSMaxRange(range)
+        return result
+    }
+
+    private func caretIsIn(_ paragraph: NSRange) -> Bool {
+        let caret = selectedRange().location
+        if paragraph.length == 0 { return caret == paragraph.location }
+        let content = NSRange(location: paragraph.location, length: contentLength(paragraph))
+        return caret >= content.location && caret <= NSMaxRange(content)
+    }
+
+    /// Restyles one paragraph as `kind`. Attributes only, so the selection never moves.
+    func setKind(_ kind: NoteBlockKind, paragraph: NSRange, notify: Bool) {
+        let resolved: NoteBlockKind = paragraph.location == 0 ? .title : (kind == .title ? .text : kind)
+        if paragraph.length == 0 {
+            layoutManager.extraLineKind = resolved
+            if caretIsIn(paragraph) { setTypingAttributes(NoteFormatter.attributes(for: resolved)) }
+            redraw()
+        } else {
+            storage.beginEditing()
+            storage.setAttributes(NoteFormatter.attributes(for: resolved), range: paragraph)
+            storage.endEditing()
+            if caretIsIn(paragraph) { setTypingAttributes(NoteFormatter.attributes(for: resolved)) }
+        }
+        if notify { notifyChanged() }
+    }
+
+    /// Re-applies each touched paragraph's style uniformly, from its first character.
+    private func normalize(_ range: NSRange) {
+        guard storage.length > 0 else { return }
+        var cursor = min(range.location, storage.length)
+        let end = min(NSMaxRange(range), storage.length)
+        repeat {
+            let paragraph = paragraphRange(at: cursor)
+            if paragraph.length == 0 { break }
+            storage.setAttributes(NoteFormatter.attributes(for: kind(ofParagraph: paragraph)), range: paragraph)
+            cursor = NSMaxRange(paragraph)
+        } while cursor < end
+    }
+
+    /// The first line is always the title; the line after it never is.
+    private func normalizeTitle() {
+        guard storage.length > 0 else { return }
+        let title = paragraphRange(at: 0)
+        normalize(title)
+        if NSMaxRange(title) < storage.length {
+            normalize(NSRange(location: NSMaxRange(title), length: 0))
+        }
+    }
+
+    // MARK: Text view callbacks
+
+    /// Return value: whether the text view should perform the edit itself.
+    func shouldChange(range: NSRange, replacement: String) -> Bool {
+        if isInternalEdit { return true }
+        let inserted = NSRange(location: range.location, length: (replacement as NSString).length)
+        pendingEdited = pendingEdited.map { NSUnionRange($0, inserted) } ?? inserted
+        guard !hasMarkedText() else { return true }
+
+        let paragraph = paragraphRange(at: range.location)
+        let paragraphKind = self.kind(ofParagraph: paragraph)
+        let continued: NoteBlockKind = paragraphKind == .done ? .todo : paragraphKind
+
+        // Return
+        if replacement == "\n" {
+            if paragraphKind.isList {
+                if contentLength(paragraph) == 0 && range.length == 0 {
+                    // Return on an empty item ends the list.
+                    let location = paragraph.location
+                    pendingEdited = nil
+                    Task { @MainActor [weak self] in
+                        guard let self else { return }
+                        self.setKind(.text, paragraph: self.paragraphRange(at: location), notify: true)
+                    }
+                    return false
+                }
+                if range.location == paragraph.location && range.length == 0 {
+                    // Return at the start of an item opens a fresh item above it; this one keeps its state.
+                    pendingNewItem = (paragraph.location, continued)
+                } else {
+                    pendingNewItem = (range.location + 1, continued)
+                }
+            } else if paragraphKind == .title || paragraphKind == .heading {
+                pendingNewItem = (range.location + 1, NoteBlockKind.text)
+            }
+            return true
+        }
+
+        // Backspace at the very start of a list item removes its marker.
+        let selection = selectedRange()
+        if replacement.isEmpty, range.length == 1, selection.length == 0, selection.location == NSMaxRange(range) {
+            let caretParagraph = paragraphRange(at: selection.location)
+            if caretParagraph.location == selection.location, caretParagraph.location > 0,
+               self.kind(ofParagraph: caretParagraph).isList {
+                let location = caretParagraph.location
+                pendingEdited = nil
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.setKind(.text, paragraph: self.paragraphRange(at: location), notify: true)
+                }
+                return false
+            }
+        }
+
+        // Markdown-style shortcuts typed at the start of a line: "[] ", "- [ ] ", "- ", "# ".
+        if replacement == " ", range.length == 0, paragraph.location > 0, paragraph.length > 0,
+           range.location > paragraph.location {
+            let prefix = string.substring(with: NSRange(location: paragraph.location, length: range.location - paragraph.location))
+            var target: NoteBlockKind?
+            switch prefix {
+            case "[]", "[ ]", "- []", "- [ ]", "-[]", "-[ ]": target = .todo
+            case "[x]", "[X]", "- [x]", "- [X]": target = .done
+            case "-", "*", "•": target = paragraphKind == .text ? .bullet : nil
+            case "#", "##": target = paragraphKind == .text ? .heading : nil
+            default: target = nil
+            }
+            if let target {
+                pendingShortcut = (paragraph.location, prefix + " ", target)
+            }
+        }
+        return true
+    }
+
+    func textDidChange() {
+        if hasMarkedText() {
+            notifyChanged()
+            return
+        }
+        storage.beginEditing()
+        if let edited = pendingEdited {
+            normalize(edited)
+        } else {
+            normalize(NSRange(location: selectedRange().location, length: 0))
+        }
+        normalizeTitle()
+        if let item = pendingNewItem {
+            setKind(item.kind, paragraph: paragraphRange(at: item.location), notify: false)
+        }
+        storage.endEditing()
+        pendingEdited = nil
+        pendingNewItem = nil
+        if !endsWithTerminator { layoutManager.extraLineKind = nil }
+
+        if let shortcut = pendingShortcut {
+            pendingShortcut = nil
+            Task { @MainActor [weak self] in self?.applyShortcut(shortcut) }
+        }
+        notifyChanged()
+    }
+
+    func selectionDidChange() {
+        guard !hasMarkedText() else { return }
+        let paragraph = paragraphRange(at: selectedRange().location)
+        setTypingAttributes(NoteFormatter.attributes(for: kind(ofParagraph: paragraph)))
+    }
+
+    private func applyShortcut(_ shortcut: (location: Int, text: String, kind: NoteBlockKind)) {
+        let range = NSRange(location: shortcut.location, length: (shortcut.text as NSString).length)
+        guard NSMaxRange(range) <= string.length, string.substring(with: range) == shortcut.text else { return }
+        isInternalEdit = true
+        replaceCharacters(range, "")
+        isInternalEdit = false
+        setKind(shortcut.kind, paragraph: paragraphRange(at: shortcut.location), notify: false)
+        setSelectedRange(NSRange(location: shortcut.location, length: 0))
+        setTypingAttributes(NoteFormatter.attributes(for: shortcut.kind))
+        notifyChanged()
+    }
+
+    // MARK: Commands
+
+    /// Checklist button: makes the selected lines a checklist, or plain text if they already are.
+    func toggleChecklistForSelection() {
+        let selection = selectedRange()
+        let touched = paragraphs(in: selection).filter { $0.location > 0 }
+        guard !touched.isEmpty else {
+            addChecklistItemBelowTitle()
+            return
+        }
+        let allChecklist = touched.allSatisfy { kind(ofParagraph: $0).isChecklist }
+        storage.beginEditing()
+        for paragraph in touched {
+            let current = kind(ofParagraph: paragraph)
+            let next: NoteBlockKind = allChecklist ? .text : (current == .done ? .done : .todo)
+            setKind(next, paragraph: paragraph, notify: false)
+        }
+        storage.endEditing()
+        notifyChanged()
+    }
+
+    /// "Mark as Checked": flips the selected checklist items.
+    func toggleDoneForSelection() {
+        let touched = paragraphs(in: selectedRange()).filter { kind(ofParagraph: $0).isChecklist }
+        guard !touched.isEmpty else { return }
+        storage.beginEditing()
+        for paragraph in touched {
+            setKind(kind(ofParagraph: paragraph) == .done ? .todo : .done, paragraph: paragraph, notify: false)
+        }
+        storage.endEditing()
+        notifyChanged()
+    }
+
+    /// With the caret in the title, the checklist button starts a list on the next line.
+    private func addChecklistItemBelowTitle() {
+        let title = paragraphRange(at: 0)
+        let insertAt = title.location + contentLength(title)
+        isInternalEdit = true
+        replaceCharacters(NSRange(location: insertAt, length: 0), "\n")
+        isInternalEdit = false
+        normalizeTitle()
+        let item = paragraphRange(at: insertAt + 1)
+        setSelectedRange(NSRange(location: insertAt + 1, length: 0))
+        setKind(.todo, paragraph: item, notify: false)
+        notifyChanged()
+    }
+
+    // MARK: Tapping the circle
+
+    /// The checklist paragraph whose circle is under a point in text-container coordinates.
+    func markerParagraph(atContainerPoint point: CGPoint) -> NSRange? {
+        guard storage.length > 0 else { return nil }
+        let index = layoutManager.characterIndex(for: point, in: textContainer,
+                                                 fractionOfDistanceBetweenInsertionPoints: nil)
+        let paragraph = paragraphRange(at: min(index, storage.length - 1))
+        guard paragraph.length > 0, kind(ofParagraph: paragraph).isChecklist else { return nil }
+        let glyph = layoutManager.glyphIndexForCharacter(at: paragraph.location)
+        let line = layoutManager.lineFragmentRect(forGlyphAt: glyph, effectiveRange: nil)
+        let baseline = line.minY + layoutManager.location(forGlyphAt: glyph).y
+        let marker = NoteLayoutManager.markerRect(lineRect: line, baseline: baseline,
+                                                  padding: textContainer.lineFragmentPadding)
+        // A forgiving target: the whole indent, the height of the first line.
+        let target = CGRect(x: line.minX, y: min(line.minY, marker.minY) - 4,
+                            width: marker.maxX + 8 - line.minX, height: max(line.height, marker.height) + 8)
+        return target.contains(point) ? paragraph : nil
+    }
+
+    /// Toggles the circle under a point. Returns true if it hit one.
+    @discardableResult
+    func handleMarkerTap(atContainerPoint point: CGPoint) -> Bool {
+        guard let paragraph = markerParagraph(atContainerPoint: point) else { return false }
+        let next: NoteBlockKind = kind(ofParagraph: paragraph) == .done ? .todo : .done
+        setKind(next, paragraph: paragraph, notify: true)
+        if next == .done { TFHaptics.success() } else { TFHaptics.tap() }
+        return true
+    }
+}
+
+/// Lets SwiftUI toolbars talk to the live editor.
+@MainActor
+final class NoteEditorHandle {
+    weak var engine: NoteEditorEngine?
+
+    func toggleChecklist() { engine?.toggleChecklistForSelection() }
+    func toggleDone() { engine?.toggleDoneForSelection() }
+    func currentMarkup() -> String? { engine?.serialize() }
+}

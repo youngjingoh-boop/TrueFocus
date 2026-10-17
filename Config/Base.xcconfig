@@ -1,0 +1,22 @@
+// TrueFocus build configuration.
+//
+// Don't edit this file for your own signing details — copy Local.example.xcconfig
+// to Local.xcconfig (git-ignored) and set them there.
+
+TF_DEVELOPMENT_TEAM =
+TF_BUNDLE_PREFIX = com.youngjingoh
+
+#include? "Local.xcconfig"
+
+DEVELOPMENT_TEAM = $(TF_DEVELOPMENT_TEAM)
+
+// One App Group per device, shared by the app and its extensions.
+// macOS wants team-prefixed group names; iOS uses the "group." form.
+TF_APP_GROUP_IOS = group.$(TF_BUNDLE_PREFIX).truefocus
+TF_APP_GROUP_MAC = $(TeamIdentifierPrefix)$(TF_BUNDLE_PREFIX).truefocus
+TF_APP_GROUP[sdk=iphoneos*] = $(TF_APP_GROUP_IOS)
+TF_APP_GROUP[sdk=iphonesimulator*] = $(TF_APP_GROUP_IOS)
+TF_APP_GROUP[sdk=macosx*] = $(TF_APP_GROUP_MAC)
+
+// One iCloud container shared by iPhone and Mac. This is what makes them one app.
+TF_ICLOUD_CONTAINER = iCloud.$(TF_BUNDLE_PREFIX).truefocus
