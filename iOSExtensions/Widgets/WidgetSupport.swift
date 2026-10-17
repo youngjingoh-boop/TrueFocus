@@ -76,7 +76,7 @@ struct FlowTimerText: View {
                     Text(timerInterval: start...end, countsDown: true)
                 } else {
                     // Past the planned end: count the overrun up from it.
-                    Text("+") + Text(end, style: .timer)
+                    Text("+\(Text(end, style: .timer))")
                 }
             } else {
                 Text("0:00")

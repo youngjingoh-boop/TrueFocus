@@ -11,7 +11,7 @@ import WidgetKit
 /// The one source of truth for the working day, on every device.
 ///
 /// Views read its state and call its verbs (`start`, `complete`, `stuck`, …). Every change
-/// is written to SwiftData (synced through iCloud), condensed into a `LiveSnapshot` for
+/// is written to SwiftData (synced by `SyncService`), condensed into a `LiveSnapshot` for
 /// widgets and extensions, and fanned out to the platform's `FocusEffect`s.
 @MainActor
 @Observable
@@ -490,7 +490,7 @@ final class FocusController {
         })
     }
 
-    /// Coalesces bursts of iCloud import notifications into one refresh.
+    /// Coalesces bursts of store change notifications into one refresh.
     private func scheduleRefresh() {
         guard !refreshScheduled else { return }
         refreshScheduled = true

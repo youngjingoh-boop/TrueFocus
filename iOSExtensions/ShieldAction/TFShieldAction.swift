@@ -8,17 +8,11 @@ import TrueFocusKit
 final class TFShieldAction: ShieldActionDelegate {
     override func handle(action: ShieldAction, for application: ApplicationToken,
                          completionHandler: @escaping (ShieldActionResponse) -> Void) {
-        switch action {
-        case .primaryButtonPressed:
-            completionHandler(.close)
-        case .secondaryButtonPressed:
-            if GuardReactions.grantReplyPass(for: application) {
-                // The token is no longer shielded; deferring re-evaluates and lets you in.
-                completionHandler(.defer)
-            } else {
-                completionHandler(.close)
-            }
-        @unknown default:
+        // Anything but "Reply" (the primary button, or a button added later) closes the app.
+        if action == .secondaryButtonPressed, GuardReactions.grantReplyPass(for: application) {
+            // The token is no longer shielded; deferring re-evaluates and lets you in.
+            completionHandler(.defer)
+        } else {
             completionHandler(.close)
         }
     }

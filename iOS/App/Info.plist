@@ -41,8 +41,10 @@
 	<true/>
 	<key>TFAppGroup</key>
 	<string>$(TF_APP_GROUP)</string>
-	<key>TFCloudContainer</key>
-	<string>$(TF_ICLOUD_CONTAINER)</string>
+	<key>TFSupabaseHost</key>
+	<string>$(TF_SUPABASE_HOST)</string>
+	<key>TFSupabaseKey</key>
+	<string>$(TF_SUPABASE_ANON_KEY)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

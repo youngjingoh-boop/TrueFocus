@@ -81,14 +81,13 @@ targets:
           - CFBundleURLName: app.truefocus
             CFBundleURLSchemes: [truefocus]
         TFAppGroup: $(TF_APP_GROUP)
-        TFCloudContainer: $(TF_ICLOUD_CONTAINER)
+        TFSupabaseHost: $(TF_SUPABASE_HOST)
+        TFSupabaseKey: $(TF_SUPABASE_ANON_KEY)
     entitlements:
       path: iOS/App/TrueFocus.entitlements
       properties:
         com.apple.developer.family-controls: true
         com.apple.security.application-groups: [$(TF_APP_GROUP)]
-        com.apple.developer.icloud-container-identifiers: [$(TF_ICLOUD_CONTAINER)]
-        com.apple.developer.icloud-services: [CloudKit]
         aps-environment: development
         com.apple.developer.usernotifications.time-sensitive: true
     scheme:
@@ -277,14 +276,12 @@ targets:
           - CFBundleURLName: app.truefocus
             CFBundleURLSchemes: [truefocus]
         TFAppGroup: $(TF_APP_GROUP)
-        TFCloudContainer: $(TF_ICLOUD_CONTAINER)
+        TFSupabaseHost: $(TF_SUPABASE_HOST)
+        TFSupabaseKey: $(TF_SUPABASE_ANON_KEY)
     entitlements:
       path: macOS/App/TrueFocus.entitlements
       properties:
         com.apple.security.application-groups: [$(TF_APP_GROUP)]
-        com.apple.developer.icloud-container-identifiers: [$(TF_ICLOUD_CONTAINER)]
-        com.apple.developer.icloud-services: [CloudKit]
-        com.apple.developer.aps-environment: development
     scheme:
       gatherCoverageData: false
 

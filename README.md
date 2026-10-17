@@ -28,7 +28,7 @@ Hold up to three tasks **in play** for parallel work and switch with one tap. Ea
 | **Control Center & Action Button** | "Done" and "Next Task" controls; Siri: "Done in TrueFocus". |
 | **The shield** | When a blocked app opens: "Wake up. You're 23 min into ‘Investor update’." |
 
-Everything syncs through your private iCloud database. Start on the Mac, see it on the iPhone Lock Screen.
+Everything syncs through the TrueFocus server, end-to-end encrypted, no account and no iCloud storage. Link your devices once with a six-digit code, then start on the Mac and see it on the iPhone Lock Screen.
 
 ## Cutting out distractions
 
@@ -49,7 +49,7 @@ Everything syncs through your private iCloud database. Start on the Mac, see it 
 
 ## Build it
 
-You need a Mac with Xcode 26+, an iPhone on iOS 26+, and a paid Apple Developer account (Screen Time APIs, iCloud and App Groups require one). Signing is preset to the VocaMonkey team (`7CVSS54KS4`) in `Config/Base.xcconfig`.
+You need a Mac with Xcode 26+, an iPhone on iOS 26+, and a paid Apple Developer account (Screen Time APIs and App Groups require one). Signing is preset to the VocaMonkey team (`7CVSS54KS4`) in `Config/Base.xcconfig`.
 
 ```sh
 brew install xcodegen
@@ -57,7 +57,7 @@ xcodegen
 open TrueFocus.xcodeproj
 ```
 
-Run **TrueFocus** on your iPhone and **TrueFocusMac** on your Mac. Then follow [docs/SETUP.md](docs/SETUP.md) — ten minutes of one-time switches (Screen Time access, the Safari extension, the Focus filter).
+Run **TrueFocus** on your iPhone and **TrueFocusMac** on your Mac. Then follow [docs/SETUP.md](docs/SETUP.md) — ten minutes of one-time switches (Screen Time access, the Safari extension, the Focus filter, linking devices). To put it on a partner's or friend's phone without the App Store, see [docs/SHARING.md](docs/SHARING.md).
 
 ## Inside
 
@@ -68,6 +68,7 @@ iOS/                    iPhone app shell, Screen Time guard, nudges, Live Activi
 iOSExtensions/          Widgets + Live Activity + Controls, Device Activity monitor, shield UI and actions.
 macOS/                  Menu bar, window, wake-up overlay, distraction guard, scroll watch, hotkeys.
 Extensions/web          One Manifest V3 extension for Safari (bundled) and Chrome (load unpacked).
+supabase/               Sync server: tables + row-level security, device-link and wake-up edge functions.
 ```
 
 More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/DESIGN.md](docs/DESIGN.md).

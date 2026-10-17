@@ -18,6 +18,7 @@ struct FlowSettingsView<Extra: View>: View {
                 rhythm
                 scrolling
                 web
+                SyncSettingsSection()
                 extra
             }
             .padding(.horizontal, TF.Space.page)
