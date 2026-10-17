@@ -266,10 +266,10 @@ struct BrainDumpView: View {
         TFHaptics.success()
         dismiss()
         #if os(iOS)
-        let controller = controller
+        let focus = controller
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(450))
-            controller.isFocusScreenPresented = true
+            focus.isFocusScreenPresented = true
         }
         #endif
     }
