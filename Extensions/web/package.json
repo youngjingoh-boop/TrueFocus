@@ -1,0 +1,13 @@
+{
+  "name": "truefocus-web-extension",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TrueFocus for Safari and Chrome: no short-form, a doom-scroll guard, an adult-content filter.",
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "rules": "node test/generate-rules.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

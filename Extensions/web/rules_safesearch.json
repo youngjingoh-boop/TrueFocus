@@ -1,0 +1,99 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "transform": {
+          "queryTransform": {
+            "addOrReplaceParams": [
+              {
+                "key": "safe",
+                "value": "active"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "condition": {
+      "requestDomains": [
+        "google.com",
+        "google.co.uk",
+        "google.ca",
+        "google.com.au",
+        "google.de",
+        "google.fr",
+        "google.es",
+        "google.it",
+        "google.nl",
+        "google.co.jp",
+        "google.co.kr",
+        "google.com.br",
+        "google.co.in",
+        "google.com.mx"
+      ],
+      "urlFilter": "/search?",
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 2,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "transform": {
+          "queryTransform": {
+            "addOrReplaceParams": [
+              {
+                "key": "adlt",
+                "value": "strict"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "condition": {
+      "requestDomains": [
+        "bing.com"
+      ],
+      "urlFilter": "/search?",
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 3,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "transform": {
+          "queryTransform": {
+            "addOrReplaceParams": [
+              {
+                "key": "kp",
+                "value": "1"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "condition": {
+      "requestDomains": [
+        "duckduckgo.com"
+      ],
+      "urlFilter": "q=",
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  }
+]

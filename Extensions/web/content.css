@@ -1,0 +1,56 @@
+/*
+ * TrueFocus — hides short-form surfaces before the page paints.
+ * content.js keeps the classes on <html> in sync with your settings.
+ *
+ * Selectors are deliberately defensive: sites change their markup often.
+ * Plain selectors and :has() selectors are kept in separate rules, because one
+ * unsupported selector invalidates its whole rule.
+ */
+
+/* Plain selectors. */
+html.tf-hide-shorts ytd-reel-shelf-renderer,
+html.tf-hide-shorts ytd-rich-shelf-renderer[is-shorts],
+html.tf-hide-shorts ytd-mini-guide-entry-renderer[aria-label="Shorts"],
+html.tf-hide-shorts yt-tab-shape[tab-title="Shorts"],
+html.tf-hide-shorts ytd-reel-video-renderer,
+html.tf-hide-shorts ytm-reel-shelf-renderer,
+html.tf-hide-shorts ytm-shorts-lockup-view-model,
+html.tf-hide-shorts a[href="/reels/"],
+html.tf-hide-shorts a[href^="/reels/"],
+html.tf-hide-shorts a[href="/explore/"],
+html.tf-hide-shorts a[href^="/explore/"],
+html.tf-hide-shorts a[href^="/reel/"],
+html.tf-hide-shorts a[href*="facebook.com/reel/"],
+html.tf-hide-shorts a[href="/watch/"],
+html.tf-hide-shorts a[href*="facebook.com/watch/"],
+html.tf-hide-shorts a[aria-label="Reels"],
+html.tf-hide-shorts div[aria-label="Reels and short videos"],
+html.tf-hide-shorts div[aria-label="Reels"],
+html.tf-hide-shorts a[href^="/spotlight"] {
+  display: none !important;
+}
+
+/* :has() selectors — the card or shelf around a short. */
+html.tf-hide-shorts ytd-rich-section-renderer:has(ytd-rich-shelf-renderer[is-shorts]),
+html.tf-hide-shorts ytd-rich-item-renderer:has(a[href^="/shorts"]),
+html.tf-hide-shorts ytd-video-renderer:has(a[href^="/shorts"]),
+html.tf-hide-shorts ytd-grid-video-renderer:has(a[href^="/shorts"]),
+html.tf-hide-shorts ytd-compact-video-renderer:has(a[href^="/shorts"]),
+html.tf-hide-shorts ytd-guide-entry-renderer:has(a[href^="/shorts"]),
+html.tf-hide-shorts ytd-guide-entry-renderer:has(a[title="Shorts"]),
+html.tf-hide-shorts ytd-mini-guide-entry-renderer:has(a[href^="/shorts"]),
+html.tf-hide-shorts grid-shelf-view-model:has(a[href^="/shorts"]),
+html.tf-hide-shorts ytm-rich-section-renderer:has(ytm-shorts-lockup-view-model),
+html.tf-hide-shorts ytm-rich-section-renderer:has(a[href^="/shorts"]),
+html.tf-hide-shorts ytm-video-with-context-renderer:has(a[href^="/shorts"]),
+html.tf-hide-shorts ytm-pivot-bar-item-renderer:has(.pivot-shorts),
+html.tf-hide-shorts ytm-pivot-bar-item-renderer:has(a[href^="/shorts"]),
+html.tf-hide-shorts article:has(a[href*="/reel/"]) {
+  display: none !important;
+}
+
+/* Instagram, messages only: story rings and "suggested" rails. */
+html.tf-ig-dm-only a[href^="/stories/"],
+html.tf-ig-dm-only div[aria-label*="Suggested"] {
+  display: none !important;
+}

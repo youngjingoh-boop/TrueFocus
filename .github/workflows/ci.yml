@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kit:
+    name: TrueFocusKit tests (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.2-noble
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: swift test --package-path Packages/TrueFocusKit
+
+  web:
+    name: Web extension tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test
+        working-directory: Extensions/web
+        run: npm test
+
+  apple:
+    name: Build iPhone + Mac apps
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        run: |
+          ls -d /Applications/Xcode*.app
+          XCODE=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      - name: Generate project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Build iPhone app (simulator, unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project TrueFocus.xcodeproj -scheme TrueFocus \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee ios.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || (grep -E "error:" ios.log | sort -u | head -150; exit 1)
+
+      - name: Build Mac app (unsigned)
+        if: always()
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project TrueFocus.xcodeproj -scheme TrueFocusMac \
+            -destination 'generic/platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee mac.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || (grep -E "error:" mac.log | sort -u | head -150; exit 1)
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: "*.log"
+          if-no-files-found: ignore
