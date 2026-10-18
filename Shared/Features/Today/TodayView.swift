@@ -136,20 +136,31 @@ struct TodayView: View {
                 Text("Today")
                     .font(.tfDisplay)
                     .foregroundStyle(TF.Palette.ink)
+                DayProgressBar(done: controller.doneToday.count,
+                               total: controller.doneToday.count + controller.openTasks.count)
+                    .frame(width: 120)
+                    .padding(.top, 2)
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 6) {
-                HStack(spacing: 10) {
+                HStack(spacing: 2) {
                     Button { showReview = true } label: {
                         Image(systemName: "chart.bar.xaxis")
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
                     .help("Today's scoreboard")
+                    .accessibilityLabel("Scoreboard")
                     #if os(iOS)
                     Button { showSettings = true } label: {
                         Image(systemName: "slider.horizontal.3")
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
+                    .accessibilityLabel("Settings")
                     #endif
                 }
+                .padding(.trailing, -12)
                 .buttonStyle(.plain)
                 .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(TF.Palette.ink2)

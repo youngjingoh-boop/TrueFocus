@@ -13,6 +13,10 @@ struct CheckCircle: View {
     var size: CGFloat = 22
     var action: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var burst = false
+    @State private var burstVisible = false
+
     var body: some View {
         Button(action: action) {
             ZStack {
@@ -29,12 +33,52 @@ struct CheckCircle: View {
                     .opacity(isOn ? 1 : 0)
             }
             .frame(width: size, height: size)
+            // Crossing off sends a ring out from the circle, once.
+            .background(
+                Circle()
+                    .stroke(tint, lineWidth: 2)
+                    .scaleEffect(burst ? 2.1 : 1)
+                    .opacity(burst ? 0 : (burstVisible ? 0.6 : 0))
+            )
             .contentShape(Circle().inset(by: -8))
             .animation(TF.Motion.check, value: isOn)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(isOn ? "Completed" : "Not completed")
         .accessibilityAddTraits(.isButton)
+        .onChange(of: isOn) { wasOn, nowOn in
+            guard nowOn, !wasOn, !reduceMotion else { return }
+            burstVisible = true
+            burst = false
+            withAnimation(.easeOut(duration: 0.55)) { burst = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                burstVisible = false
+                burst = false
+            }
+        }
+    }
+}
+
+/// Today's progress as one thin line: crossed off over planned.
+struct DayProgressBar: View {
+    var done: Int
+    var total: Int
+
+    var body: some View {
+        let fraction = total > 0 ? CGFloat(done) / CGFloat(total) : 0
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule().fill(TF.Palette.hairline)
+                Capsule()
+                    .fill(TF.Palette.signal)
+                    .frame(width: max(fraction > 0 ? 4 : 0, proxy.size.width * fraction))
+            }
+        }
+        .frame(height: 4)
+        .animation(TF.Motion.soft, value: fraction)
+        .opacity(total > 0 ? 1 : 0)
+        .accessibilityElement()
+        .accessibilityLabel("\(done) of \(total) done")
     }
 }
 
