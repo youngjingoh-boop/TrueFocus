@@ -18,20 +18,30 @@ public enum Blocklist {
         public var safePaths: [String]
         /// The whole site is short-form (TikTok): everything except `safePaths` is blocked.
         public var allShortForm: Bool
+        /// Subdomains that are work tools, not the feed (Ads Manager, Business Suite). Never
+        /// guarded, shielded or cooled down, even while the feed itself is blocked.
+        public var workHosts: [String]
 
         public init(name: String, hosts: [String], shortFormPaths: [String] = [],
-                    respondPath: String? = nil, safePaths: [String] = [], allShortForm: Bool = false) {
+                    respondPath: String? = nil, safePaths: [String] = [], allShortForm: Bool = false,
+                    workHosts: [String] = []) {
             self.name = name
             self.hosts = hosts
             self.shortFormPaths = shortFormPaths
             self.respondPath = respondPath
             self.safePaths = safePaths
             self.allShortForm = allShortForm
+            self.workHosts = workHosts
         }
 
         public func matches(host: String) -> Bool {
             let h = host.lowercased()
-            return hosts.contains { h == $0 || h.hasSuffix("." + $0) }
+            if workHosts.contains(where: { Self.host(h, isOrIsUnder: $0) }) { return false }
+            return hosts.contains { Self.host(h, isOrIsUnder: $0) }
+        }
+
+        private static func host(_ host: String, isOrIsUnder suffix: String) -> Bool {
+            host == suffix || host.hasSuffix("." + suffix)
         }
 
         public func isShortForm(path: String) -> Bool {
@@ -47,15 +57,22 @@ public enum Blocklist {
     public static let feedSites: [FeedSite] = [
         FeedSite(name: "Instagram", hosts: ["instagram.com"],
                  shortFormPaths: ["/reels", "/reel", "/explore"],
-                 respondPath: "/direct/inbox/", safePaths: ["/direct", "/accounts", "/create"]),
+                 respondPath: "/direct/inbox/", safePaths: ["/direct", "/accounts", "/create"],
+                 workHosts: ["business.instagram.com", "accountscenter.instagram.com", "help.instagram.com"]),
         FeedSite(name: "YouTube", hosts: ["youtube.com", "youtu.be"],
                  shortFormPaths: ["/shorts"], safePaths: ["/upload", "/account"]),
         FeedSite(name: "TikTok", hosts: ["tiktok.com"],
                  respondPath: "/messages", safePaths: ["/messages", "/upload", "/tiktokstudio", "/login", "/setting"],
                  allShortForm: true),
+        // Meta's business tools stay open for running ads: Business Suite and Business Manager
+        // (business.facebook.com), Ads Manager, Events and Commerce Manager, the Ad Library.
         FeedSite(name: "Facebook", hosts: ["facebook.com"],
                  shortFormPaths: ["/reel", "/reels", "/watch"],
-                 respondPath: "/messages/", safePaths: ["/messages", "/settings"]),
+                 respondPath: "/messages/",
+                 safePaths: ["/messages", "/settings", "/adsmanager", "/ads/", "/business", "/events_manager",
+                             "/commerce_manager", "/billing_hub", "/ad_center", "/help"],
+                 workHosts: ["business.facebook.com", "adsmanager.facebook.com", "developers.facebook.com",
+                             "accountscenter.facebook.com"]),
         FeedSite(name: "X", hosts: ["x.com", "twitter.com"],
                  respondPath: "/messages", safePaths: ["/messages", "/compose", "/settings"]),
         FeedSite(name: "Threads", hosts: ["threads.net", "threads.com"]),

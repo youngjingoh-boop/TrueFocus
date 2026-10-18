@@ -335,6 +335,18 @@ final class BlocklistTests: XCTestCase {
         XCTAssertNil(Blocklist.feedSite(forHost: "notion.so"))
     }
 
+    func testMetaBusinessToolsAreNotTheFeed() throws {
+        XCTAssertNil(Blocklist.feedSite(forHost: "business.facebook.com"))
+        XCTAssertNil(Blocklist.feedSite(forHost: "adsmanager.facebook.com"))
+        XCTAssertNil(Blocklist.feedSite(forHost: "accountscenter.instagram.com"))
+        let fb = try XCTUnwrap(Blocklist.feedSite(forHost: "www.facebook.com"))
+        XCTAssertTrue(fb.isSafe(path: "/adsmanager/manage/campaigns"))
+        XCTAssertTrue(fb.isSafe(path: "/ads/library/"))
+        XCTAssertTrue(fb.isSafe(path: "/events_manager2/list"))
+        XCTAssertFalse(fb.isSafe(path: "/"))
+        XCTAssertTrue(fb.isShortForm(path: "/reel/1"))
+    }
+
     func testAdultDomainsAreUniqueAndLowercase() {
         XCTAssertEqual(Set(Blocklist.adultDomains).count, Blocklist.adultDomains.count)
         XCTAssertTrue(Blocklist.adultDomains.allSatisfy { $0 == $0.lowercased() && !$0.hasPrefix("www.") })

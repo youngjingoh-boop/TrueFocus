@@ -87,6 +87,7 @@ test('feed sites equal Blocklist.feedSites', () => {
     assert.deepEqual(list(entry, 'hosts'), site.hosts, `${site.name} hosts`);
     assert.deepEqual(list(entry, 'shortFormPaths'), site.shortFormPaths, `${site.name} shortFormPaths`);
     assert.deepEqual(list(entry, 'safePaths'), site.safePaths, `${site.name} safePaths`);
+    assert.deepEqual(list(entry, 'workHosts'), site.workHosts || [], `${site.name} workHosts`);
     const respond = entry.match(/respondPath: "([^"]+)"/);
     assert.equal(respond ? respond[1] : null, site.respondPath, `${site.name} respondPath`);
     assert.equal(/allShortForm: true/.test(entry), site.allShortForm, `${site.name} allShortForm`);
