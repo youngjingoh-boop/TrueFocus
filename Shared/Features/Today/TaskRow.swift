@@ -18,7 +18,8 @@ struct TaskRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            CheckCircle(isOn: task.isDone, tint: isNow ? TF.tint(for: controller.mode) : TF.Palette.signal) {
+            CheckCircle(isOn: task.isDone, tint: isNow ? TF.tint(for: controller.mode) : TF.Palette.signal,
+                        label: task.title) {
                 TFHaptics.success()
                 withAnimation(TF.Motion.snappy) { controller.toggleDone(task) }
             }
@@ -102,10 +103,12 @@ struct TaskRow: View {
                 Image(systemName: "bolt.fill")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(TF.Palette.ink3)
-                    .frame(width: 30, height: 30)
+                    .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .padding(.vertical, -10)
+            .padding(.trailing, -8)
             .accessibilityLabel("Start \(task.title)")
             .help("Focus on this")
         }
@@ -135,6 +138,7 @@ struct TaskRow: View {
     }
 
     private func commit() {
+        guard task.isLive else { return }
         let clean = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         if clean.isEmpty {
             // An emptied line disappears, like deleting a checklist line in Notes.

@@ -129,6 +129,7 @@ private struct WakeUpView: View {
     let onPrimary: @MainActor () -> Void
     let onSnooze: @MainActor () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var appeared = false
     @State private var glow = false
 
@@ -202,11 +203,13 @@ private struct WakeUpView: View {
             }
             .padding(64)
             .opacity(appeared ? 1 : 0)
-            .scaleEffect(appeared ? 1 : 0.985)
+            .scaleEffect(appeared || reduceMotion ? 1 : 0.985)
         }
         .environment(\.colorScheme, .dark)
         .onAppear {
-            withAnimation(.easeOut(duration: 0.5)) { appeared = true }
+            withAnimation(reduceMotion ? .easeOut(duration: 0.2) : .easeOut(duration: 0.5)) { appeared = true }
+            // A slow breathing glow, unless motion is reduced.
+            guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) { glow = true }
         }
     }

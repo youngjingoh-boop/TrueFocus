@@ -98,13 +98,19 @@ struct BrainDumpView: View {
                 Button("Back") { step = .dump }
                     .buttonStyle(QuietButtonStyle())
                     .frame(width: 96)
-                Button("Pick the win") {
-                    if outcome.isEmpty, let first = kept.first { outcome = first }
-                    step = .win
+                if candidates.isEmpty {
+                    Button("Back to Today") { dismiss() }
+                        .buttonStyle(PrimaryButtonStyle())
+                        .keyboardShortcut(.return, modifiers: .command)
+                } else {
+                    Button("Pick the win") {
+                        if outcome.isEmpty, let first = kept.first { outcome = first }
+                        step = .win
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .disabled(kept.isEmpty)
+                    .keyboardShortcut(.return, modifiers: .command)
                 }
-                .buttonStyle(PrimaryButtonStyle())
-                .disabled(kept.isEmpty)
-                .keyboardShortcut(.return, modifiers: .command)
             }
         case .win:
             HStack(spacing: 12) {
@@ -167,11 +173,17 @@ struct BrainDumpView: View {
                  : "Untick anything that isn't today. Drag the order later.")
                 .font(.body)
                 .foregroundStyle(TF.Palette.ink2)
+            if candidates.isEmpty {
+                Text("Nothing new in there — it's all on the plan already.")
+                    .font(.body)
+                    .foregroundStyle(TF.Palette.ink3)
+                    .padding(.top, TF.Space.l)
+            }
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach($candidates) { $candidate in
                         HStack(alignment: .top, spacing: 12) {
-                            CheckCircle(isOn: candidate.keep, tint: TF.Palette.signal) {
+                            CheckCircle(isOn: candidate.keep, tint: TF.Palette.signal, label: candidate.title) {
                                 TFHaptics.tap()
                                 candidate.keep.toggle()
                             }

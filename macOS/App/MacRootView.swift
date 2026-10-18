@@ -48,7 +48,7 @@ struct MacRootView: View {
         case .notes:
             NotesHomeView()
         case .review:
-            ReviewView()
+            ReviewView(isSheet: false)
         }
     }
 }

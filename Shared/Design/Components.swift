@@ -11,7 +11,13 @@ struct CheckCircle: View {
     var isOn: Bool
     var tint: Color = TF.Palette.signal
     var size: CGFloat = 22
+    /// What's being checked, for VoiceOver ("Reply to Sam").
+    var label: String? = nil
     var action: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var burst = false
+    @State private var burstVisible = false
 
     var body: some View {
         Button(action: action) {
@@ -29,12 +35,54 @@ struct CheckCircle: View {
                     .opacity(isOn ? 1 : 0)
             }
             .frame(width: size, height: size)
-            .contentShape(Circle().inset(by: -8))
+            // Crossing off sends a ring out from the circle, once.
+            .background(
+                Circle()
+                    .stroke(tint, lineWidth: 2)
+                    .scaleEffect(burst ? 2.1 : 1)
+                    .opacity(burst ? 0 : (burstVisible ? 0.6 : 0))
+            )
+            // 44 pt to the finger, whatever the drawn size.
+            .contentShape(Circle().inset(by: -max(11, (44 - size) / 2)))
             .animation(TF.Motion.check, value: isOn)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(isOn ? "Completed" : "Not completed")
-        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel(label ?? "Done")
+        .accessibilityValue(isOn ? "Completed" : "Not completed")
+        .accessibilityAddTraits(isOn ? [.isButton, .isSelected] : .isButton)
+        .onChange(of: isOn) { wasOn, nowOn in
+            guard nowOn, !wasOn, !reduceMotion else { return }
+            burstVisible = true
+            burst = false
+            withAnimation(.easeOut(duration: 0.55)) { burst = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                burstVisible = false
+                burst = false
+            }
+        }
+    }
+}
+
+/// Today's progress as one thin line: crossed off over planned.
+struct DayProgressBar: View {
+    var done: Int
+    var total: Int
+
+    var body: some View {
+        let fraction = total > 0 ? CGFloat(done) / CGFloat(total) : 0
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule().fill(TF.Palette.hairline)
+                Capsule()
+                    .fill(TF.Palette.signal)
+                    .frame(width: max(fraction > 0 ? 4 : 0, proxy.size.width * fraction))
+            }
+        }
+        .frame(height: 4)
+        .animation(TF.Motion.soft, value: fraction)
+        .opacity(total > 0 ? 1 : 0)
+        .accessibilityElement()
+        .accessibilityLabel("\(done) of \(total) done")
     }
 }
 
@@ -42,6 +90,7 @@ struct CheckCircle: View {
 struct ModeDot: View {
     var mode: FlowMode
     var size: CGFloat = 8
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
 
     var body: some View {
@@ -55,12 +104,12 @@ struct ModeDot: View {
                     .opacity(pulse ? 0 : 0.8)
             )
             .onAppear {
-                guard mode.isWorking else { return }
+                guard mode.isWorking, !reduceMotion else { return }
                 withAnimation(.easeOut(duration: 1.6).repeatForever(autoreverses: false)) { pulse = true }
             }
             .onChange(of: mode) { _, newValue in
                 pulse = false
-                guard newValue.isWorking else { return }
+                guard newValue.isWorking, !reduceMotion else { return }
                 withAnimation(.easeOut(duration: 1.6).repeatForever(autoreverses: false)) { pulse = true }
             }
             .accessibilityHidden(true)

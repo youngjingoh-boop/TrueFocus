@@ -71,10 +71,35 @@ struct FocusScreen: View {
                     .foregroundStyle(TF.Palette.nightInk2)
                     .frame(width: 36, height: 36)
                     .background(Circle().fill(Color.white.opacity(0.06)))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .keyboardShortcut(.cancelAction)
             .accessibilityLabel("Close focus screen")
+
+            if snapshot.mode.isActive {
+                Menu {
+                    if snapshot.mode == .focus {
+                        Button("Waiting on It", systemImage: "hourglass") { controller.waitOnCurrent() }
+                    }
+                    Button("Stop the Clock", systemImage: "stop.circle") {
+                        controller.stopForNow()
+                        close()
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(TF.Palette.nightInk2)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .menuStyle(.button)
+                .buttonStyle(.plain)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .accessibilityLabel("More")
+            }
 
             Spacer()
 
@@ -103,12 +128,23 @@ struct FocusScreen: View {
     private func actionRow(_ snapshot: LiveSnapshot) -> some View {
         switch snapshot.mode {
         case .focus:
-            HStack(spacing: 28) {
+            HStack(spacing: 18) {
                 VStack(spacing: 8) {
                     Button { controller.stuck() } label: { Image(systemName: "brain") }
-                        .buttonStyle(OrbButtonStyle(tint: TF.Palette.think, size: 60))
+                        .buttonStyle(OrbButtonStyle(tint: TF.Palette.think, size: 56))
                         .keyboardShortcut(".", modifiers: .command)
+                        .accessibilityLabel("Stuck")
                     caption("Stuck")
+                }
+                VStack(spacing: 8) {
+                    Button {
+                        TFHaptics.tap()
+                        withAnimation(TF.Motion.snappy) { controller.waitOnCurrent() }
+                    } label: { Image(systemName: "hourglass") }
+                        .buttonStyle(OrbButtonStyle(tint: TF.Palette.nightInk2, size: 56))
+                        .accessibilityLabel("Waiting on it")
+                        .accessibilityHint("Keeps this task juggled and moves to the next one")
+                    caption("Waiting")
                 }
                 VStack(spacing: 8) {
                     Button {
@@ -117,11 +153,13 @@ struct FocusScreen: View {
                     } label: { Image(systemName: "checkmark") }
                         .buttonStyle(OrbButtonStyle(tint: TF.Palette.signal, size: 84, filled: true))
                         .keyboardShortcut(.return, modifiers: .command)
+                        .accessibilityLabel("Done")
                     caption("Done")
                 }
                 VStack(spacing: 8) {
                     Button { showSwitcher = true } label: { Image(systemName: "arrow.left.arrow.right") }
-                        .buttonStyle(OrbButtonStyle(tint: TF.Palette.nightInk, size: 60))
+                        .buttonStyle(OrbButtonStyle(tint: TF.Palette.nightInk, size: 56))
+                        .accessibilityLabel("Switch task")
                     caption("Switch")
                 }
             }
@@ -132,6 +170,7 @@ struct FocusScreen: View {
                     .keyboardShortcut(.return, modifiers: .command)
                 Button { showSwitcher = true } label: { Image(systemName: "arrow.left.arrow.right") }
                     .buttonStyle(OrbButtonStyle(tint: TF.Palette.nightInk, size: 52))
+                    .accessibilityLabel("Switch task")
             }
         case .rest:
             HStack(spacing: 12) {
@@ -143,12 +182,20 @@ struct FocusScreen: View {
                 .keyboardShortcut(.return, modifiers: .command)
                 Button { showSwitcher = true } label: { Image(systemName: "list.bullet") }
                     .buttonStyle(OrbButtonStyle(tint: TF.Palette.nightInk, size: 52))
+                    .accessibilityLabel("Choose the next task")
             }
         case .idle:
             if controller.nextTask != nil {
-                Button("Start next") {
+                Button("Attack") {
                     TFHaptics.success()
                     controller.startNext()
+                }
+                .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: TF.Palette.onSignal))
+                .keyboardShortcut(.return, modifiers: .command)
+            } else if let waiting = controller.longestWaiting {
+                Button("Pick It Back Up") {
+                    TFHaptics.success()
+                    controller.start(waiting)
                 }
                 .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: TF.Palette.onSignal))
                 .keyboardShortcut(.return, modifiers: .command)
@@ -310,6 +357,16 @@ private struct IdleStage: View {
                     .font(.system(size: 30, weight: .semibold))
                     .foregroundStyle(TF.Palette.nightInk)
                     .multilineTextAlignment(.center)
+            } else if let waiting = controller.longestWaiting {
+                Text("All waiting").tfEyebrowStyle(TF.Palette.nightInk2)
+                Text(waiting.title)
+                    .font(.system(size: 30, weight: .semibold))
+                    .foregroundStyle(TF.Palette.nightInk)
+                    .multilineTextAlignment(.center)
+                Text("Waiting \(TFFormat.short(Date().timeIntervalSince(waiting.waitingSince ?? Date()))). Nudge it or add something new.")
+                    .font(.callout)
+                    .foregroundStyle(TF.Palette.nightInk2)
+                    .multilineTextAlignment(.center)
             } else if !controller.doneToday.isEmpty {
                 Text("Cleared.")
                     .font(.system(size: 54, weight: .thin))
@@ -374,14 +431,16 @@ private struct BreadcrumbField: View {
 /// A slow, soft pulse in the middle of the rest ring: breathe with it.
 private struct BreathingDot: View {
     var tint: Color
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var expanded = false
 
     var body: some View {
         Circle()
             .fill(tint.opacity(0.10))
             .frame(width: 200, height: 200)
-            .scaleEffect(expanded ? 1 : 0.72)
+            .scaleEffect(expanded || reduceMotion ? 1 : 0.72)
             .onAppear {
+                guard !reduceMotion else { return }
                 withAnimation(.easeInOut(duration: 4).repeatForever(autoreverses: true)) { expanded = true }
             }
             .accessibilityHidden(true)

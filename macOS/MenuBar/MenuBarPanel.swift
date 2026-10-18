@@ -131,7 +131,7 @@ private struct NowSection: View {
     @ViewBuilder
     private func working(_ snapshot: LiveSnapshot) -> some View {
         HStack {
-            ModeLabel(mode: snapshot.mode, text: snapshot.mode == .think ? "Think" : "Now")
+            ModeLabel(mode: snapshot.mode, text: snapshot.mode == .think ? "Thinking" : "Now")
             Spacer()
             MusicQuickButton()
             if let start = snapshot.modeStartedAt {
@@ -202,7 +202,7 @@ private struct NowSection: View {
         Button {
             controller.backToIt()
         } label: {
-            Label("Start now", systemImage: "bolt.fill")
+            Label("Go now", systemImage: "bolt.fill")
         }
         .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.ink, foreground: TF.Palette.paper))
         .disabled(snapshot.nextTaskTitle == nil)
@@ -226,9 +226,36 @@ private struct NowSection: View {
             Button {
                 controller.startNext()
             } label: {
-                Label("Attack it", systemImage: "bolt.fill")
+                Label("Attack", systemImage: "bolt.fill")
             }
             .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: .black))
+        } else if let waiting = controller.longestWaiting {
+            ModeLabel(mode: .idle, text: "All waiting")
+            Text(waiting.title)
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundStyle(TF.Palette.ink)
+                .lineLimit(3)
+            Text("Everything left is waiting on someone. Nudge it, or add something new below.")
+                .font(.system(size: 13))
+                .foregroundStyle(TF.Palette.ink2)
+                .fixedSize(horizontal: false, vertical: true)
+            Button {
+                controller.start(waiting)
+            } label: {
+                Label("Pick it back up", systemImage: "hourglass.bottomhalf.filled")
+            }
+            .buttonStyle(QuietButtonStyle())
+        } else if snapshot.doneToday > 0 {
+            ModeLabel(mode: .rest, text: "Cleared")
+            Text("\(snapshot.doneToday) done. That's the day.")
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundStyle(TF.Palette.ink)
+            Button {
+                controller.endDay()
+            } label: {
+                Label("Shut down the day", systemImage: "moon.zzz.fill")
+            }
+            .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.rest, foreground: .black))
         } else {
             ModeLabel(mode: .idle, text: "Today")
             Text("Empty your head. Plan the day.")
@@ -282,7 +309,7 @@ private struct UpNextRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            CheckCircle(isOn: task.isDone, size: 18) {
+            CheckCircle(isOn: task.isDone, size: 18, label: task.title) {
                 controller.toggleDone(task)
             }
             Text(task.title)

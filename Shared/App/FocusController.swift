@@ -46,6 +46,10 @@ final class FocusController {
     @ObservationIgnored private var statsTimer: Timer?
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
     @ObservationIgnored private var refreshScheduled = false
+    /// The day `refresh` last ran for, so a Mac left running rolls over at 4 am.
+    @ObservationIgnored private var refreshedDay = Date.distantPast
+    /// "Do Next": this task goes next, ahead of the juggle.
+    private var pinnedNextID: UUID?
 
     init(inMemory: Bool = false) {
         container = TFStore.makeContainer(inMemory: inMemory)
@@ -56,8 +60,13 @@ final class FocusController {
         // Once a minute: live momentum decay, and boot-outs the browser extension recorded.
         statsTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             Task { @MainActor in
-                self?.drainSharedQueues()
-                self?.publish()
+                guard let self else { return }
+                self.drainSharedQueues()
+                if self.dayStart != self.refreshedDay {
+                    self.refresh()
+                } else {
+                    self.publish()
+                }
             }
         }
     }
@@ -74,12 +83,28 @@ final class FocusController {
         return task(id: id)
     }
 
-    /// What comes next: the next juggled task that isn't waiting, else the first open task
-    /// that isn't the current one (preferring ones you aren't waiting on).
+    /// What comes next, never a task you're waiting on: the one you chose with Do Next, else
+    /// the one a rest is leading into, else the next juggled task round from the current one,
+    /// else the first ready task on the plan. Nil when everything left is waiting.
     var nextTask: FocusTask? {
-        if let juggled = nextJuggled(after: nowTask) { return juggled }
         let nowID = nowTask?.id
-        return openTasks.first { $0.id != nowID && $0.waitingSince == nil } ?? openTasks.first { $0.id != nowID }
+        func ready(_ id: UUID?) -> FocusTask? {
+            guard let id, id != nowID, let task = task(id: id), !task.isDone, task.waitingSince == nil else { return nil }
+            return task
+        }
+        if let pinned = ready(pinnedNextID) { return pinned }
+        if mode == .rest, let upcoming = ready(current?.taskID) { return upcoming }
+        if let juggled = nextJuggled(after: nowTask) { return juggled }
+        return openTasks.first { $0.id != nowID && $0.waitingSince == nil }
+    }
+
+    /// Nothing ready, but tasks are parked waiting: the one that has waited longest.
+    var longestWaiting: FocusTask? {
+        guard nextTask == nil else { return nil }
+        let nowID = nowTask?.id
+        return openTasks
+            .filter { $0.id != nowID && $0.waitingSince != nil }
+            .min { ($0.waitingSince ?? .distantFuture) < ($1.waitingSince ?? .distantFuture) }
     }
 
     /// The tasks you're juggling, in the order they joined (the current one included).
@@ -176,16 +201,19 @@ final class FocusController {
     }
 
     func rename(_ task: FocusTask, to title: String) {
-        guard task.title != title else { return }
+        guard task.isLive, task.title != title else { return }
         task.title = title
         if let current, current.taskID == task.id { current.taskTitle = title }
         commit()
     }
 
     func delete(_ task: FocusTask) {
+        // A row can ask twice (swipe, then its text field losing focus); the second is a no-op.
+        guard task.isLive else { return }
         if let current, current.taskID == task.id {
             close(current, at: Date(), outcome: .ended)
         }
+        if pinnedNextID == task.id { pinnedNextID = nil }
         context.delete(task)
         commit()
     }
@@ -205,6 +233,8 @@ final class FocusController {
     func makeNext(_ task: FocusTask) {
         let first = openTasks.first { $0.id != nowTask?.id }?.order ?? 1
         task.order = first - 1
+        task.waitingSince = nil
+        pinnedNextID = task.id
         commit()
     }
 
@@ -317,6 +347,7 @@ final class FocusController {
         }
         // Back on it, so no longer waiting.
         task.waitingSince = nil
+        if pinnedNextID == task.id { pinnedNextID = nil }
         open(.focus, task: task, at: now)
         if !task.inPlay {
             task.inPlay = true
@@ -342,6 +373,10 @@ final class FocusController {
         let now = Date()
         let focusThisStint = current.mode == .focus ? current.duration(now: now) : 0
         let totalOnTask = task.focusSeconds + focusThisStint
+        // Where the rest leads, worked out while this task still holds its juggle slot.
+        let pinned = pinnedNextID.flatMap { self.task(id: $0) }.flatMap { $0.id != task.id && !$0.isDone && $0.waitingSince == nil ? $0 : nil }
+        let upcoming = pinned ?? nextJuggled(after: task)
+            ?? openTasks.first { $0.id != task.id && $0.waitingSince == nil }
         close(current, at: now, outcome: .completed)
         task.isDone = true
         task.doneAt = now
@@ -349,11 +384,12 @@ final class FocusController {
         task.inPlayAt = nil
         task.waitingSince = nil
 
-        if openTasks.contains(where: { $0.id != task.id }) {
+        // A rest only when there's something ready to go back to.
+        if let upcoming {
             let planned = RestPolicy.plannedRest(afterFocus: totalOnTask,
                                                  base: settings.restBaseSeconds,
                                                  adaptive: settings.adaptiveRest)
-            open(.rest, task: nil, at: now, planned: planned)
+            open(.rest, task: upcoming, at: now, planned: planned)
         }
         commit()
     }
@@ -382,6 +418,7 @@ final class FocusController {
     /// Shut the day down. Nudges stop; unfinished tasks roll to tomorrow.
     func endDay() {
         if let current { close(current, at: Date(), outcome: .ended) }
+        dropFinishedJuggle()
         ensurePlan().endedAt = Date()
         isFocusScreenPresented = false
         commit()
@@ -471,6 +508,15 @@ final class FocusController {
         if current?.id == segment.id { current = nil }
     }
 
+    /// Ends the day's juggle: everything but the tasks you're still waiting on leaves it.
+    private func dropFinishedJuggle() {
+        pinnedNextID = nil
+        for task in openTasks where task.inPlay && task.waitingSince == nil {
+            task.inPlay = false
+            task.inPlayAt = nil
+        }
+    }
+
     /// Keeps the juggle within the limit. The oldest tasks you aren't waiting on go first;
     /// `keep` and the current task always stay.
     private func trimInPlay(keeping keep: FocusTask) {
@@ -544,12 +590,24 @@ final class FocusController {
         }
         // A segment left running overnight is closed where the day ended.
         if let open = openSegments.first, open.startedAt < start {
-            open.endedAt = min(open.startedAt.addingTimeInterval(3 * 3600), start)
-            open.outcomeRaw = SegmentOutcome.ended.rawValue
+            close(open, at: min(open.startedAt.addingTimeInterval(3 * 3600), start), outcome: .ended)
             openSegments = []
             repaired = true
         }
+        // A new day starts with an empty juggle; tasks you're still waiting on stay in it.
+        for task in openTasks where task.inPlay && task.waitingSince == nil
+            && (task.inPlayAt ?? .distantPast) < start && task.id != openSegments.first?.taskID {
+            task.inPlay = false
+            task.inPlayAt = nil
+            repaired = true
+        }
+        refreshedDay = start
         current = openSegments.first
+        // A rest with nothing left to go back to (the rest got crossed off or deleted) ends.
+        if let rest = current, rest.mode == .rest, nextTask == nil {
+            close(rest, at: Date(), outcome: .ended)
+            repaired = true
+        }
 
         let dayDescriptor = FetchDescriptor<FlowSegment>(
             predicate: #Predicate { $0.startedAt >= start },
