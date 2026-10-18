@@ -38,14 +38,21 @@ public struct BootEvent: Codable, Equatable, Sendable {
 public struct RemoteCommand: Codable, Equatable, Sendable {
     public enum Kind: String, Codable, Sendable {
         case complete, stuck, backToIt, startNext, endDay
+        /// Switch to the juggled task `taskID`.
+        case switchTo
+        /// Mark the current task as waiting and move to the next juggled one.
+        case wait
     }
 
     public var kind: Kind
     public var at: Date
+    /// The task a `switchTo` is about.
+    public var taskID: UUID?
 
-    public init(kind: Kind, at: Date = Date()) {
+    public init(kind: Kind, at: Date = Date(), taskID: UUID? = nil) {
         self.kind = kind
         self.at = at
+        self.taskID = taskID
     }
 }
 

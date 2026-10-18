@@ -18,9 +18,9 @@ struct MenuBarPanel: View {
             NowSection()
                 .padding(.horizontal, 12)
 
-            InPlayChips()
+            JugglePanel()
                 .padding(.horizontal, 18)
-                .padding(.top, 14)
+                .padding(.top, 10)
 
             UpNextList()
                 .padding(.top, 14)
@@ -163,6 +163,14 @@ private struct NowSection: View {
             if snapshot.mode == .focus {
                 Button("Stuck") { controller.stuck() }
                     .buttonStyle(QuietButtonStyle())
+                Button {
+                    withAnimation(TF.Motion.snappy) { controller.waitOnCurrent() }
+                } label: {
+                    Image(systemName: "hourglass")
+                        .accessibilityLabel("Waiting on it")
+                }
+                .buttonStyle(QuietButtonStyle())
+                .help("Waiting on it — keep it juggled and move to the next task")
             } else {
                 Button("Back to it") { controller.backToIt() }
                     .buttonStyle(QuietButtonStyle())
@@ -234,53 +242,13 @@ private struct NowSection: View {
     }
 }
 
-// MARK: - In play
-
-/// Tasks held for fast switching. One click moves the focus.
-private struct InPlayChips: View {
-    @Environment(FocusController.self) private var controller
-
-    var body: some View {
-        let held = controller.inPlayTasks.filter { $0.id != controller.nowTask?.id }
-        if !held.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("In play").tfEyebrowStyle()
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 6) {
-                        ForEach(held) { task in
-                            Button {
-                                controller.start(task)
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "arrow.left.arrow.right")
-                                        .font(.system(size: 9, weight: .bold))
-                                        .foregroundStyle(TF.Palette.ink3)
-                                    Text(TFFormat.truncate(task.title, to: 22))
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundStyle(TF.Palette.ink)
-                                }
-                                .padding(.horizontal, 10)
-                                .frame(height: 26)
-                                .background(Capsule().fill(TF.Palette.surface2))
-                                .contentShape(Capsule())
-                            }
-                            .buttonStyle(.plain)
-                            .help(task.breadcrumb.isEmpty ? "Switch to this task" : "↳ \(task.breadcrumb)")
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
 // MARK: - Up next
 
 private struct UpNextList: View {
     @Environment(FocusController.self) private var controller
 
     var body: some View {
-        let upcoming = Array(controller.openTasks.filter { $0.id != controller.nowTask?.id }.prefix(3))
+        let upcoming = Array(controller.openTasks.filter { $0.id != controller.nowTask?.id && !$0.inPlay }.prefix(3))
         if !upcoming.isEmpty {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Up next").tfEyebrowStyle()
@@ -289,7 +257,7 @@ private struct UpNextList: View {
                 ForEach(upcoming) { task in
                     UpNextRow(task: task)
                 }
-                let more = controller.openTasks.count - upcoming.count - (controller.nowTask == nil ? 0 : 1)
+                let more = controller.juggleCandidates.count - upcoming.count
                 if more > 0 {
                     Button("+\(more) more") {
                         MacUIState.shared.section = .today
@@ -322,6 +290,19 @@ private struct UpNextRow: View {
                 .lineLimit(1)
             Spacer(minLength: 6)
             if hovering {
+                if controller.mode.isWorking && controller.canJuggleMore {
+                    Button {
+                        withAnimation(TF.Motion.snappy) { _ = controller.juggle(task) }
+                    } label: {
+                        Image(systemName: "square.stack.3d.up")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(TF.Palette.ink2)
+                            .frame(width: 24, height: 24)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Juggle this alongside the current task")
+                }
                 Image(systemName: "bolt.fill")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(TF.Palette.signal)

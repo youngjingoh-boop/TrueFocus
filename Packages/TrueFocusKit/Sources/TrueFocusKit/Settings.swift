@@ -11,6 +11,10 @@ public struct TFSettings: Codable, Equatable, Sendable {
     /// Start the next task automatically when the micro-rest ends.
     public var autoContinue: Bool = true
     public var thinkNudgeMinutes: Double = 5
+    /// How many tasks you can juggle at once, the current one included.
+    public var juggleLimit: Int = 4
+    /// Superseded by `juggleLimit` (its old default of 3 left no room to juggle three
+    /// tasks beside the current one). Kept so older settings still decode.
     public var maxInPlay: Int = 3
 
     // Doom-scroll guard
@@ -58,6 +62,7 @@ public struct TFSettings: Codable, Equatable, Sendable {
         autoContinue = try c.decodeIfPresent(Bool.self, forKey: .autoContinue) ?? d.autoContinue
         thinkNudgeMinutes = try c.decodeIfPresent(Double.self, forKey: .thinkNudgeMinutes) ?? d.thinkNudgeMinutes
         maxInPlay = try c.decodeIfPresent(Int.self, forKey: .maxInPlay) ?? d.maxInPlay
+        juggleLimit = try c.decodeIfPresent(Int.self, forKey: .juggleLimit) ?? d.juggleLimit
         doomScroll = try c.decodeIfPresent(DoomScrollConfig.self, forKey: .doomScroll) ?? d.doomScroll
         shieldDuringFocus = try c.decodeIfPresent(Bool.self, forKey: .shieldDuringFocus) ?? d.shieldDuringFocus
         scrollBudgetMinutes = try c.decodeIfPresent(Int.self, forKey: .scrollBudgetMinutes) ?? d.scrollBudgetMinutes
@@ -95,6 +100,7 @@ public struct TFSettings: Codable, Equatable, Sendable {
         restBaseSeconds = min(max(restBaseSeconds, 5), 600)
         thinkNudgeMinutes = min(max(thinkNudgeMinutes, 1), 60)
         maxInPlay = min(max(maxInPlay, 1), 5)
+        juggleLimit = min(max(juggleLimit, 1), Juggle.maxLimit)
         scrollBudgetMinutes = min(max(scrollBudgetMinutes, 1), 120)
         scrollCooldownMinutes = min(max(scrollCooldownMinutes, 15), 240)
         respondPassMinutes = min(max(respondPassMinutes, 1), 10)

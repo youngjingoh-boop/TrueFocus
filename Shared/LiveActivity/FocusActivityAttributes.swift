@@ -7,6 +7,13 @@ import TrueFocusKit
 /// Dynamic Island. Compiled into the iOS app (which starts and updates it) and the
 /// widget extension (which draws it).
 struct FocusActivityAttributes: ActivityAttributes {
+    /// Another task being juggled, small enough for the Lock Screen.
+    struct JuggledTask: Codable, Hashable, Identifiable {
+        var id: UUID
+        var title: String
+        var waiting: Bool
+    }
+
     struct ContentState: Codable, Hashable {
         var modeRaw: String
         var title: String?
@@ -20,10 +27,13 @@ struct FocusActivityAttributes: ActivityAttributes {
         var plannedToday: Int
         var chain: Int
         var momentum: Int
+        /// The other tasks in the air, in slot order. Optional so older states decode.
+        var juggling: [JuggledTask]?
 
         init(modeRaw: String, title: String? = nil, nextTitle: String? = nil, breadcrumb: String? = nil,
              modeStartedAt: Date? = nil, taskFocusBefore: Double = 0, plannedRestEnd: Date? = nil,
-             doneToday: Int = 0, plannedToday: Int = 0, chain: Int = 0, momentum: Int = 0) {
+             doneToday: Int = 0, plannedToday: Int = 0, chain: Int = 0, momentum: Int = 0,
+             juggling: [JuggledTask]? = nil) {
             self.modeRaw = modeRaw
             self.title = title
             self.nextTitle = nextTitle
@@ -35,6 +45,7 @@ struct FocusActivityAttributes: ActivityAttributes {
             self.plannedToday = plannedToday
             self.chain = chain
             self.momentum = momentum
+            self.juggling = juggling
         }
 
         init(snapshot: LiveSnapshot) {
@@ -48,10 +59,15 @@ struct FocusActivityAttributes: ActivityAttributes {
                       doneToday: snapshot.doneToday,
                       plannedToday: snapshot.plannedToday,
                       chain: snapshot.chain,
-                      momentum: snapshot.momentum)
+                      momentum: snapshot.momentum,
+                      juggling: snapshot.juggledOthers.map {
+                          JuggledTask(id: $0.id, title: $0.title, waiting: $0.isWaiting)
+                      })
         }
 
         var mode: FlowMode { FlowMode(rawValue: modeRaw) ?? .idle }
+
+        var juggled: [JuggledTask] { juggling ?? [] }
 
         /// The task title worth showing: the current task, or the next one while resting.
         var headline: String {

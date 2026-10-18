@@ -42,7 +42,7 @@ struct MenuBarLabel: View {
         let showTimer = controller.settings.menuBarShowsTimer
         switch snapshot.mode {
         case .focus:
-            let title = TFFormat.truncate(snapshot.taskTitle ?? "Focus", to: 26)
+            let title = TFFormat.truncate(snapshot.taskTitle ?? "Focus", to: 26) + juggled(snapshot)
             guard showTimer else { return title }
             return "\(title) · \(minutes(snapshot.taskElapsed(now: now)))"
         case .think:
@@ -59,6 +59,12 @@ struct MenuBarLabel: View {
             if let next = snapshot.nextTaskTitle { return "Next: \(TFFormat.truncate(next, to: 24))" }
             return "Plan today"
         }
+    }
+
+    /// " +2" while two other tasks are being juggled.
+    private func juggled(_ snapshot: LiveSnapshot) -> String {
+        let others = snapshot.juggledOthers.count
+        return others > 0 ? " +\(others)" : ""
     }
 
     private func minutes(_ seconds: TimeInterval) -> String {

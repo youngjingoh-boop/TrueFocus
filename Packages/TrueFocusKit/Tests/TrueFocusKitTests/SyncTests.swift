@@ -135,6 +135,14 @@ final class SyncPlannerTests: XCTestCase {
         XCTAssertEqual(out[0].modifiedAt.timeIntervalSince1970, 1_800_000_000.124, accuracy: 0.000_001)
     }
 
+    func testTaskPayloadsFromOlderBuildsStillDecode() throws {
+        let old = #"{"breadcrumb":"","createdAt":1800000000,"focusSeconds":0,"inPlay":true,"isDone":false,"order":1,"title":"A"}"#
+        let task = try PayloadCoding.decode(TaskPayload.self, from: Data(old.utf8))
+        XCTAssertNil(task.waitingSince)
+        // Not waiting encodes exactly as before, so existing records don't look changed.
+        XCTAssertEqual(try PayloadCoding.encode(task), Data(old.utf8))
+    }
+
     func testPlanIDsAreStablePerDay() {
         let day = Date(timeIntervalSince1970: 1_792_224_000)
         XCTAssertEqual(RecordID.plan(day: day), RecordID.plan(day: day))

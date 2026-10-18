@@ -43,7 +43,7 @@ struct FocusScreen: View {
                 actionRow(snapshot)
                     .padding(.horizontal, TF.Space.page)
 
-                InPlayStrip(onDark: true)
+                JugglePanel(onDark: true)
                     .padding(.horizontal, TF.Space.page)
                     .padding(.top, 22)
                     .padding(.bottom, 12)
@@ -437,7 +437,7 @@ struct TaskSwitcher: View {
                     let held = controller.inPlayTasks.filter { $0.id != nowID }
                     let rest = controller.openTasks.filter { $0.id != nowID && !$0.inPlay }
                     if !held.isEmpty {
-                        Text("In play").tfEyebrowStyle().padding(.bottom, 4)
+                        Text("Juggling").tfEyebrowStyle().padding(.bottom, 4)
                         ForEach(held, id: \.id) { row($0) }
                         Spacer().frame(height: 16)
                     }
@@ -469,7 +469,7 @@ struct TaskSwitcher: View {
             dismiss()
         } label: {
             HStack(alignment: .top, spacing: 12) {
-                Image(systemName: task.inPlay ? "square.stack.3d.up.fill" : "circle")
+                Image(systemName: task.waitingSince != nil ? "hourglass" : task.inPlay ? "square.stack.3d.up.fill" : "circle")
                     .font(.system(size: 15))
                     .foregroundStyle(task.inPlay ? TF.Palette.think : TF.Palette.ink3)
                     .frame(width: 22)

@@ -74,15 +74,33 @@ final class FocusController {
         return task(id: id)
     }
 
-    /// What comes next: the first open task that isn't the current one.
+    /// What comes next: the next juggled task that isn't waiting, else the first open task
+    /// that isn't the current one (preferring ones you aren't waiting on).
     var nextTask: FocusTask? {
+        if let juggled = nextJuggled(after: nowTask) { return juggled }
         let nowID = nowTask?.id
-        return openTasks.first { $0.id != nowID }
+        return openTasks.first { $0.id != nowID && $0.waitingSince == nil } ?? openTasks.first { $0.id != nowID }
     }
 
-    /// Tasks held for fast switching, oldest first.
+    /// The tasks you're juggling, in the order they joined (the current one included).
     var inPlayTasks: [FocusTask] {
         openTasks.filter(\.inPlay).sorted { ($0.inPlayAt ?? .distantPast) < ($1.inPlayAt ?? .distantPast) }
+    }
+
+    /// How many tasks can be in the air at once, the current one included.
+    var juggleLimit: Int { max(1, settings.juggleLimit) }
+
+    var canJuggleMore: Bool { inPlayTasks.count < juggleLimit }
+
+    /// Open tasks that could join the juggle.
+    var juggleCandidates: [FocusTask] { openTasks.filter { !$0.inPlay } }
+
+    /// The juggled task to move to after `task`: next slot round, skipping waiting ones.
+    private func nextJuggled(after task: FocusTask?) -> FocusTask? {
+        let held = inPlayTasks
+        let items = held.map { LiveSnapshot.Item(id: $0.id, title: $0.title, waitingSince: $0.waitingSince) }
+        guard let id = Juggle.next(after: task?.id, in: items)?.id else { return nil }
+        return held.first { $0.id == id }
     }
 
     var dayEnded: Bool { plan?.endedAt != nil }
@@ -203,6 +221,7 @@ final class FocusController {
             task.isDone = true
             task.doneAt = Date()
             task.inPlay = false
+            task.waitingSince = nil
             commit()
         }
     }
@@ -215,8 +234,56 @@ final class FocusController {
     func setInPlay(_ task: FocusTask, _ inPlay: Bool) {
         task.inPlay = inPlay
         task.inPlayAt = inPlay ? Date() : nil
-        if inPlay { trimInPlay(keeping: task) }
+        if inPlay { trimInPlay(keeping: task) } else { task.waitingSince = nil }
         commit()
+    }
+
+    // MARK: Juggling
+
+    /// Adds a task to the juggle without switching to it. False when the juggle is full.
+    @discardableResult
+    func juggle(_ task: FocusTask) -> Bool {
+        if task.inPlay { return true }
+        guard canJuggleMore, !task.isDone else { return false }
+        setInPlay(task, true)
+        return true
+    }
+
+    /// Takes a task out of the juggle. It stays on the plan.
+    func drop(_ task: FocusTask) {
+        setInPlay(task, false)
+    }
+
+    func setWaiting(_ task: FocusTask, _ waiting: Bool) {
+        task.waitingSince = waiting ? (task.waitingSince ?? Date()) : nil
+        if waiting && !task.inPlay {
+            task.inPlay = true
+            task.inPlayAt = Date()
+            trimInPlay(keeping: task)
+        }
+        commit()
+    }
+
+    /// The current task is waiting on someone: mark it, keep it in the juggle, and move to
+    /// the next juggled task (or the next one on the plan). With nothing else to do, stop.
+    func waitOnCurrent() {
+        guard let task = nowTask else { return }
+        task.waitingSince = Date()
+        if !task.inPlay {
+            task.inPlay = true
+            task.inPlayAt = Date()
+        }
+        if let next = nextJuggled(after: task) ?? openTasks.first(where: { $0.id != task.id && $0.waitingSince == nil }) {
+            start(next)
+        } else {
+            if let current { close(current, at: Date(), outcome: .switched) }
+            commit()
+        }
+    }
+
+    /// Moves to the next juggled task that isn't waiting.
+    func switchToNextJuggled() {
+        if let next = nextJuggled(after: nowTask) { start(next) }
     }
 
     func setOutcome(_ text: String) {
@@ -248,6 +315,8 @@ final class FocusController {
             task.isDone = false
             task.doneAt = nil
         }
+        // Back on it, so no longer waiting.
+        task.waitingSince = nil
         open(.focus, task: task, at: now)
         if !task.inPlay {
             task.inPlay = true
@@ -278,6 +347,7 @@ final class FocusController {
         task.doneAt = now
         task.inPlay = false
         task.inPlayAt = nil
+        task.waitingSince = nil
 
         if openTasks.contains(where: { $0.id != task.id }) {
             let planned = RestPolicy.plannedRest(afterFocus: totalOnTask,
@@ -330,12 +400,19 @@ final class FocusController {
     }
 
     func apply(_ command: RemoteCommand.Kind) {
-        switch command {
+        apply(RemoteCommand(kind: command))
+    }
+
+    func apply(_ command: RemoteCommand) {
+        switch command.kind {
         case .complete: complete()
         case .stuck: stuck()
         case .backToIt: backToIt()
         case .startNext: startNext()
         case .endDay: endDay()
+        case .switchTo:
+            if let id = command.taskID, let task = task(id: id), !task.isDone { start(task) }
+        case .wait: waitOnCurrent()
         }
     }
 
@@ -362,7 +439,7 @@ final class FocusController {
         let boots = sharedStore.drainBoots()
         if !boots.isEmpty { recordBoots(boots) }
         for command in sharedStore.drainCommands() where Date().timeIntervalSince(command.at) < 6 * 3600 {
-            apply(command.kind)
+            apply(command)
         }
     }
 
@@ -394,16 +471,21 @@ final class FocusController {
         if current?.id == segment.id { current = nil }
     }
 
+    /// Keeps the juggle within the limit. The oldest tasks you aren't waiting on go first;
+    /// `keep` and the current task always stay.
     private func trimInPlay(keeping keep: FocusTask) {
-        let limit = max(1, settings.maxInPlay)
+        let limit = juggleLimit
         var held = inPlayTasks
         if !held.contains(where: { $0.id == keep.id }) { held.append(keep) }
         guard held.count > limit else { return }
-        for task in held where task.id != keep.id && task.id != nowTask?.id {
+        let droppable = held
+            .filter { $0.id != keep.id && $0.id != nowTask?.id }
+            .sorted { ($0.waitingSince == nil ? 0 : 1, $0.inPlayAt ?? .distantPast)
+                    < ($1.waitingSince == nil ? 0 : 1, $1.inPlayAt ?? .distantPast) }
+        for task in droppable.prefix(held.count - limit) {
             task.inPlay = false
             task.inPlayAt = nil
-            held.removeAll { $0.id == task.id }
-            if held.count <= limit { break }
+            task.waitingSince = nil
         }
     }
 
@@ -527,7 +609,8 @@ final class FocusController {
             snap.nextTaskTitle = next.title
         }
         snap.inPlay = inPlayTasks.map {
-            LiveSnapshot.Item(id: $0.id, title: $0.title, breadcrumb: $0.breadcrumb.isEmpty ? nil : $0.breadcrumb)
+            LiveSnapshot.Item(id: $0.id, title: $0.title, breadcrumb: $0.breadcrumb.isEmpty ? nil : $0.breadcrumb,
+                              waitingSince: $0.waitingSince)
         }
         snap.doneToday = doneToday.count
         snap.plannedToday = doneToday.count + openTasks.count

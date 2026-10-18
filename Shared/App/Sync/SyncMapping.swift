@@ -140,7 +140,8 @@ enum SyncMapping {
 extension FocusTask {
     var syncPayload: TaskPayload {
         TaskPayload(title: title, isDone: isDone, doneAt: doneAt, createdAt: createdAt, order: order,
-                    focusSeconds: focusSeconds, breadcrumb: breadcrumb, inPlay: inPlay, inPlayAt: inPlayAt)
+                    focusSeconds: focusSeconds, breadcrumb: breadcrumb, inPlay: inPlay, inPlayAt: inPlayAt,
+                    waitingSince: waitingSince)
     }
 
     func apply(_ value: TaskPayload) {
@@ -153,6 +154,7 @@ extension FocusTask {
         breadcrumb = value.breadcrumb
         inPlay = value.inPlay
         inPlayAt = value.inPlayAt
+        waitingSince = value.waitingSince
     }
 }
 

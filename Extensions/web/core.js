@@ -523,6 +523,27 @@
     return before;
   }
 
+  /**
+   * The juggled tasks from a snapshot, in slot order, for the popup:
+   * [{ id, title, current, waiting, waitingMinutes }].
+   */
+  function juggleItems(snapshot, nowMs) {
+    if (!snapshot || !Array.isArray(snapshot.inPlay)) { return []; }
+    var working = snapshot.mode === 'focus' || snapshot.mode === 'think';
+    return snapshot.inPlay
+      .filter(function (item) { return item && typeof item.id === 'string' && typeof item.title === 'string'; })
+      .map(function (item) {
+        var since = dateMs(item.waitingSince);
+        return {
+          id: item.id,
+          title: item.title,
+          current: working && item.id === snapshot.taskID,
+          waiting: since !== null,
+          waitingMinutes: since !== null ? Math.max(0, Math.floor((nowMs - since) / 60000)) : 0,
+        };
+      });
+  }
+
   function modeLabel(mode) {
     switch (mode) {
       case 'focus': return 'Focus';
@@ -566,6 +587,7 @@
     dayKey: dayKey,
     dateMs: dateMs,
     taskElapsed: taskElapsed,
+    juggleItems: juggleItems,
     modeLabel: modeLabel
   };
 });

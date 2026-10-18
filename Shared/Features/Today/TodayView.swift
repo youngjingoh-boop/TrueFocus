@@ -36,7 +36,7 @@ struct TodayView: View {
                     .tfListRow()
             }
 
-            InPlayStrip()
+            JugglePanel()
                 .listRowInsets(rowInsets(top: 0, bottom: 14))
                 .tfListRow()
 
@@ -62,9 +62,9 @@ struct TodayView: View {
                                 Label("Delete", systemImage: "trash")
                             }
                             Button {
-                                controller.setInPlay(task, !task.inPlay)
+                                if task.inPlay { controller.drop(task) } else { controller.juggle(task) }
                             } label: {
-                                Label(task.inPlay ? "Out of play" : "In play", systemImage: "square.stack.3d.up")
+                                Label(task.inPlay ? "Drop" : "Juggle", systemImage: "square.stack.3d.up")
                             }
                             .tint(TF.Palette.think)
                         }

@@ -20,9 +20,12 @@ public struct TaskPayload: Codable, Equatable, Sendable {
     public var breadcrumb: String
     public var inPlay: Bool
     public var inPlayAt: Date?
+    /// Juggling: waiting on someone for this task. Absent in payloads from older builds.
+    public var waitingSince: Date?
 
     public init(title: String, isDone: Bool, doneAt: Date?, createdAt: Date, order: Double,
-                focusSeconds: Double, breadcrumb: String, inPlay: Bool, inPlayAt: Date?) {
+                focusSeconds: Double, breadcrumb: String, inPlay: Bool, inPlayAt: Date?,
+                waitingSince: Date? = nil) {
         self.title = title
         self.isDone = isDone
         self.doneAt = doneAt
@@ -32,6 +35,7 @@ public struct TaskPayload: Codable, Equatable, Sendable {
         self.breadcrumb = breadcrumb
         self.inPlay = inPlay
         self.inPlayAt = inPlayAt
+        self.waitingSince = waitingSince
     }
 }
 

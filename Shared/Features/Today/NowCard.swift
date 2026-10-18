@@ -81,6 +81,16 @@ struct NowCard: View {
         case .focus:
             HStack(spacing: 8) {
                 Button {
+                    TFHaptics.tap()
+                    withAnimation(TF.Motion.snappy) { controller.waitOnCurrent() }
+                } label: {
+                    Image(systemName: "hourglass")
+                }
+                .buttonStyle(OrbButtonStyle(tint: TF.Palette.ink2, size: 44))
+                .accessibilityLabel("Waiting on it")
+                .help("Waiting on it — keep it juggled and move to the next task")
+
+                Button {
                     controller.stuck()
                 } label: {
                     Image(systemName: "brain")
@@ -110,57 +120,6 @@ struct NowCard: View {
             .buttonStyle(QuietButtonStyle(foreground: TF.Palette.rest))
         case .idle:
             EmptyView()
-        }
-    }
-}
-
-/// Tasks held "in play", for one-tap switching between parallel work.
-struct InPlayStrip: View {
-    @Environment(FocusController.self) private var controller
-    var onDark = false
-
-    var body: some View {
-        let nowID = controller.nowTask?.id
-        let held = controller.inPlayTasks.filter { $0.id != nowID }
-        if !held.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("In play").tfEyebrowStyle(onDark ? TF.Palette.nightInk2 : TF.Palette.ink2)
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(held, id: \.id) { task in
-                            Button {
-                                TFHaptics.tap()
-                                controller.start(task)
-                            } label: {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(task.title)
-                                        .font(.system(size: 14, weight: .semibold))
-                                        .lineLimit(1)
-                                    if !task.breadcrumb.isEmpty {
-                                        Text("↳ \(task.breadcrumb)")
-                                            .font(.system(size: 12))
-                                            .lineLimit(1)
-                                            .opacity(0.6)
-                                    }
-                                }
-                                .foregroundStyle(onDark ? TF.Palette.nightInk : TF.Palette.ink)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 10)
-                                .frame(maxWidth: 220, alignment: .leading)
-                                .background(
-                                    Capsule().fill(onDark ? Color.white.opacity(0.08) : TF.Palette.surface2)
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .contextMenu {
-                                Button("Take out of play", systemImage: "minus.circle") {
-                                    controller.setInPlay(task, false)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 }

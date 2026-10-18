@@ -50,7 +50,7 @@ struct TaskRow: View {
                         .foregroundStyle(TF.Palette.ink2)
                         .lineLimit(2)
                 }
-                if task.focusSeconds >= 60 || isNow {
+                if task.focusSeconds >= 60 || isNow || task.inPlay {
                     meta
                 }
             }
@@ -78,8 +78,11 @@ struct TaskRow: View {
             if task.focusSeconds >= 60 {
                 Text(TFFormat.short(task.focusSeconds))
             }
-            if task.inPlay && !isNow {
-                Text("in play")
+            if task.waitingSince != nil && !isNow {
+                Image(systemName: "hourglass")
+                Text("waiting")
+            } else if task.inPlay && !isNow {
+                Text("juggling")
             }
         }
         .font(.tfCaption)
@@ -112,8 +115,16 @@ struct TaskRow: View {
     private var menu: some View {
         if !task.isDone {
             Button("Focus on This", systemImage: "bolt.fill") { controller.start(task) }
-            Button(task.inPlay ? "Take Out of Play" : "Put in Play", systemImage: task.inPlay ? "minus.circle" : "square.stack.3d.up") {
-                controller.setInPlay(task, !task.inPlay)
+            if task.inPlay {
+                Button("Drop from Juggle", systemImage: "minus.circle") { controller.drop(task) }
+            } else {
+                Button("Juggle", systemImage: "square.stack.3d.up") { controller.juggle(task) }
+                    .disabled(!controller.canJuggleMore)
+            }
+            if !isNow {
+                Button(task.waitingSince != nil ? "Not Waiting Anymore" : "Waiting on It", systemImage: "hourglass") {
+                    controller.setWaiting(task, task.waitingSince == nil)
+                }
             }
             Button("Do Next", systemImage: "arrow.up.to.line") { controller.makeNext(task) }
         } else {

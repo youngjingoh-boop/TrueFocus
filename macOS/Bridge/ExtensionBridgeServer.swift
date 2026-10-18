@@ -7,6 +7,7 @@ import TrueFocusKit
 ///
 ///     GET  http://127.0.0.1:52525/state  → {"snapshot": {...}, "settings": {...}}
 ///     POST http://127.0.0.1:52525/boot   ← {"site": "Instagram", "reason": "binge"}
+///     POST http://127.0.0.1:52525/command ← {"kind": "switchTo", "taskID": "…"} or {"kind": "wait"}
 ///
 /// Only browser-extension origins are answered; ordinary web pages can't read your tasks.
 @MainActor
@@ -150,6 +151,20 @@ private final class BridgeConnection: @unchecked Sendable {
             let site = (json["site"] as? String).map { String($0.prefix(120)) }
             let reason = (json["reason"] as? String).map { String($0.prefix(40)) }
             SharedStore.shared.appendBoot(BootEvent(source: "web", site: site, reason: reason))
+            Task { @MainActor in
+                FocusController.shared.drainSharedQueues()
+            }
+            send(status: 200, body: Data(#"{"ok":true}"#.utf8), origin: origin)
+        case ("POST", "/command"):
+            // Juggling from the popup. Only these two; everything else stays in the app.
+            let json = (try? JSONSerialization.jsonObject(with: request.body)) as? [String: Any] ?? [:]
+            let kind = (json["kind"] as? String).flatMap(RemoteCommand.Kind.init(rawValue:))
+            let taskID = (json["taskID"] as? String).flatMap(UUID.init(uuidString:))
+            guard let kind, kind == .wait || (kind == .switchTo && taskID != nil) else {
+                send(status: 400, body: Data(#"{"error":"bad command"}"#.utf8), origin: origin)
+                return
+            }
+            SharedStore.shared.enqueue(RemoteCommand(kind: kind, taskID: taskID))
             Task { @MainActor in
                 FocusController.shared.drainSharedQueues()
             }

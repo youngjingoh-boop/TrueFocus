@@ -68,6 +68,7 @@ Everything is encrypted on the device before it's uploaded; the server only hold
 
 - Morning: Today ▸ **Start the day** ▸ empty your head ▸ keep what matters ▸ pick the win ▸ **Attack**.
 - Working: **Done** (⌥⌘D anywhere on the Mac), **Stuck** (⌥⌘S), **Back to it / Next** (⌥⌘B).
+- Waiting on someone: **Waiting on it** (the hourglass, or ⌥⌘P) keeps the task juggled and moves you to the next one. Juggle up to 3 more with **+ Juggle another task**, switch with a tap in the Juggling list (menu bar, Today, the Chrome/Safari popup, the Lock Screen chips) or ⌥⌘K. The number of tasks is in Settings ▸ Rhythm.
 - Evening: **Shut down the day** from Today or the scoreboard.
 
 ## Troubleshooting
