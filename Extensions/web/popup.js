@@ -88,9 +88,49 @@
     });
     $('managed').hidden = !managed;
 
+    renderJuggle(snapshot, connected, now);
+    $('waitBtn').hidden = !(connected && mode === 'focus');
+
     renderAdult(eff.adult, state && state.settings, now);
 
     $('foot').textContent = eff.strict ? 'Feeds are closed while you focus.' : 'Short-form is gone. Feeds are on a timer.';
+  }
+
+  function renderJuggle(snapshot, connected, now) {
+    var items = Core.juggleItems(snapshot, now);
+    var section = $('juggle');
+    section.hidden = items.length < 2;
+    if (section.hidden) return;
+    var limit = state && state.settings && state.settings.juggleLimit;
+    $('juggleCount').textContent = items.length + (limit ? ' of ' + limit : '');
+    var list = $('juggleList');
+    var key = JSON.stringify(items.map(function (i) { return [i.id, i.title, i.current, i.waiting, i.waitingMinutes]; }));
+    if (list.dataset.key === key) return; // the 1 s render loop shouldn't rebuild the list
+    list.dataset.key = key;
+    list.textContent = '';
+    items.forEach(function (item) {
+      var li = document.createElement('li');
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'juggle-item' + (item.current ? ' current' : '') + (item.waiting ? ' waiting' : '');
+      button.disabled = item.current || !connected;
+      var glyph = document.createElement('span');
+      glyph.className = 'glyph';
+      glyph.textContent = item.current ? '' : item.waiting ? '⏳' : '⇄';
+      var title = document.createElement('span');
+      title.className = 'title';
+      title.textContent = item.title;
+      var tail = document.createElement('span');
+      tail.className = 'tail';
+      tail.textContent = item.current ? 'now' : item.waiting ? 'waiting ' + item.waitingMinutes + 'm' : 'switch';
+      button.append(glyph, title, tail);
+      button.title = item.current ? 'You’re on this one' : 'Switch to this task';
+      button.addEventListener('click', function () {
+        send({ type: 'command', kind: 'switchTo', taskID: item.id });
+      });
+      li.appendChild(button);
+      list.appendChild(li);
+    });
   }
 
   function renderAdult(adult, settings, now) {
@@ -159,6 +199,10 @@
       send({ type: 'adultOff', action: action });
     }
   });
+  $('waitBtn').addEventListener('click', function () {
+    send({ type: 'command', kind: 'wait' });
+  });
+
   $('adultKeep').addEventListener('click', function () {
     confirming = false;
     render();

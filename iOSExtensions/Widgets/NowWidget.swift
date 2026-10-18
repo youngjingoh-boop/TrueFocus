@@ -109,11 +109,18 @@ private struct LockRectangularView: View {
             }
             .foregroundStyle(.secondary)
 
+            let juggling = snapshot.mode.isWorking ? Juggle.summary(snapshot.inPlay, excluding: snapshot.taskID, maxTitle: 14) : nil
             Text(snapshot.widgetHeadline)
                 .font(.system(size: 15, weight: .semibold))
-                .lineLimit(2)
+                .lineLimit(juggling == nil ? 2 : 1)
                 .minimumScaleFactor(0.85)
                 .frame(maxWidth: .infinity, alignment: .leading)
+            if let juggling {
+                Text(juggling)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
         }
     }
 }
@@ -238,6 +245,12 @@ private struct HomeBody: View {
             } else if let outcome = snapshot.outcome, !snapshot.dayEnded {
                 Text(outcome)
                     .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(TF.Palette.ink2)
+                    .lineLimit(1)
+            }
+            if snapshot.mode.isWorking, let juggling = Juggle.summary(snapshot.inPlay, excluding: snapshot.taskID, maxTitle: 16) {
+                Text(juggling)
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(TF.Palette.ink2)
                     .lineLimit(1)
             }

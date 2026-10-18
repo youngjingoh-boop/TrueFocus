@@ -123,7 +123,9 @@ private struct LiveBannerView: View {
                         .foregroundStyle(TF.Palette.nightInk)
                         .lineLimit(2)
                         .minimumScaleFactor(0.8)
-                    if let sub = LiveCopy.subline(state), state.mode != .rest {
+                    if !state.juggled.isEmpty, state.mode.isWorking {
+                        LiveJuggleChips(tasks: state.juggled)
+                    } else if let sub = LiveCopy.subline(state), state.mode != .rest {
                         Text(sub)
                             .font(.system(size: 13, weight: .regular))
                             .foregroundStyle(TF.Palette.nightInk2)
@@ -163,6 +165,10 @@ private enum LiveCopy {
 
     /// The line under the title: where you left off, or a nudge for the mode.
     static func subline(_ state: FocusActivityAttributes.ContentState) -> String? {
+        if state.mode.isWorking, !state.juggled.isEmpty {
+            let names = state.juggled.map { ($0.waiting ? "⏳ " : "") + TFFormat.truncate($0.title, to: 18) }
+            return "Juggling " + names.joined(separator: " · ")
+        }
         switch state.mode {
         case .focus:
             if let crumb = state.breadcrumb, !crumb.isEmpty { return "↳ " + crumb }
@@ -173,6 +179,32 @@ private enum LiveCopy {
             return "Breathe. Then go."
         case .idle:
             return nil
+        }
+    }
+}
+
+/// The other juggled tasks as chips. Tapping one switches to it without unlocking.
+private struct LiveJuggleChips: View {
+    var tasks: [FocusActivityAttributes.JuggledTask]
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(tasks.prefix(3)) { task in
+                Button(intent: SwitchJuggledTaskIntent(taskID: task.id)) {
+                    HStack(spacing: 4) {
+                        Image(systemName: task.waiting ? "hourglass" : "arrow.left.arrow.right")
+                            .font(.system(size: 9, weight: .bold))
+                        Text(task.title)
+                            .font(.system(size: 12, weight: .medium))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(TF.Palette.nightInk)
+                    .padding(.horizontal, 9)
+                    .frame(height: 24)
+                    .background(Capsule().fill(Color.white.opacity(0.12)))
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 }

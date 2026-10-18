@@ -36,6 +36,8 @@ private struct FlowTab: View {
                 ShortcutRow(keys: "⌥⌘S", action: "Stuck → think time")
                 ShortcutRow(keys: "⌥⌘B", action: "Back to it / start the next task")
                 ShortcutRow(keys: "⌥⌘T", action: "Show TrueFocus")
+                ShortcutRow(keys: "⌥⌘K", action: "Next juggled task")
+                ShortcutRow(keys: "⌥⌘P", action: "Pending: waiting on it → next task")
             }
         }
     }

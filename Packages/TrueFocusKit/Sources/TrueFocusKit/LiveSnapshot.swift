@@ -8,12 +8,17 @@ public struct LiveSnapshot: Codable, Equatable, Sendable {
         public var id: UUID
         public var title: String
         public var breadcrumb: String?
+        /// Set while you're waiting on someone or something for this task.
+        public var waitingSince: Date?
 
-        public init(id: UUID, title: String, breadcrumb: String? = nil) {
+        public init(id: UUID, title: String, breadcrumb: String? = nil, waitingSince: Date? = nil) {
             self.id = id
             self.title = title
             self.breadcrumb = breadcrumb
+            self.waitingSince = waitingSince
         }
+
+        public var isWaiting: Bool { waitingSince != nil }
     }
 
     public var mode: FlowMode
@@ -28,7 +33,7 @@ public struct LiveSnapshot: Codable, Equatable, Sendable {
     public var plannedRestEnd: Date?
     public var nextTaskID: UUID?
     public var nextTaskTitle: String?
-    /// Tasks held "in play" for fast switching (the current one included).
+    /// The tasks you're juggling, in the order they joined (the current one included).
     public var inPlay: [Item]
     public var doneToday: Int
     public var plannedToday: Int
@@ -152,6 +157,14 @@ public struct LiveSnapshot: Codable, Equatable, Sendable {
             && systemFocusOn == other.systemFocusOn && bootsToday == other.bootsToday
             && chain == other.chain
     }
+
+    /// The juggled tasks other than the current one.
+    public var juggledOthers: [Item] {
+        inPlay.filter { $0.id != taskID }
+    }
+
+    /// True while more than one task is in the air.
+    public var isJuggling: Bool { inPlay.count > 1 }
 
     public var progressFraction: Double {
         guard plannedToday > 0 else { return 0 }

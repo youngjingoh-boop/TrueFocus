@@ -20,9 +20,12 @@ final class FocusTask {
     var focusSeconds: Double = 0
     /// "Where I left off": the next step, written when switching away.
     var breadcrumb: String = ""
-    /// Held for fast switching (multi-tasking).
+    /// Being juggled: one of the few tasks in the air at once.
     var inPlay: Bool = false
+    /// When it joined the juggle. Orders the juggle, so tasks keep their slots.
     var inPlayAt: Date?
+    /// Juggling: set while you're waiting on someone or something for this task.
+    var waitingSince: Date?
 
     init(title: String, order: Double) {
         self.id = UUID()

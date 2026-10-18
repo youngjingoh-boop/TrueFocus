@@ -74,7 +74,7 @@ struct FlowSettingsView<Extra: View>: View {
                        value: Binding(get: { Int(controller.settings.thinkNudgeMinutes) },
                                       set: { value in controller.updateSettings { $0.thinkNudgeMinutes = Double(value) } }),
                        range: 1...30, unit: "min")
-            StepperRow(title: "Tasks in play at once", value: controller.binding(\.maxInPlay), range: 1...5, unit: "")
+            StepperRow(title: "Tasks you can juggle", value: controller.binding(\.juggleLimit), range: 1...Juggle.maxLimit, unit: "")
         }
     }
 

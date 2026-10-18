@@ -166,6 +166,34 @@ async function recordBoot(message) {
   return boots;
 }
 
+// ─────────────────────────────────── Commands ───────────────────────────────────
+
+const COMMANDS = new Set(['switchTo', 'wait']);
+
+/** Juggling from the popup: switch to a juggled task, or park the current one as waiting. */
+async function sendCommand(message) {
+  const kind = message && message.kind;
+  if (!COMMANDS.has(kind)) return { ok: false, error: 'unknown command' };
+  const payload = { kind, taskID: typeof message.taskID === 'string' ? message.taskID : null };
+  try {
+    if (IS_SAFARI) {
+      await api.runtime.sendNativeMessage(NATIVE_APP, Object.assign({ type: 'command' }, payload));
+    } else {
+      const res = await fetch(BRIDGE + '/command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('bridge ' + res.status);
+    }
+  } catch (error) {
+    return { ok: false, error: 'app not reachable' };
+  }
+  // The app applies it within a moment; pull the new state so the popup follows.
+  setTimeout(() => refreshState(), 400);
+  return { ok: true };
+}
+
 // ──────────────────────────────────── Messages ────────────────────────────────────
 
 async function handle(message, sender) {
@@ -179,6 +207,8 @@ async function handle(message, sender) {
       return refreshState();
     case 'boot':
       return { ok: true, boots: await recordBoot(message) };
+    case 'command':
+      return sendCommand(message);
     case 'closeTab': {
       const tabId = sender && sender.tab && sender.tab.id;
       if (typeof tabId === 'number' && api.tabs && api.tabs.remove) {

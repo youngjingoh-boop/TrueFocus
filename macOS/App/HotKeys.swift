@@ -8,6 +8,8 @@ import Foundation
 ///     ⌥⌘S  Stuck → think time
 ///     ⌥⌘B  Back to it / start the next task
 ///     ⌥⌘T  Show TrueFocus
+///     ⌥⌘K  Next juggled task
+///     ⌥⌘P  Pending: waiting on the current task (keep it juggled, move on)
 ///
 /// Uses Carbon's RegisterEventHotKey, which needs no special permission.
 @MainActor
@@ -19,6 +21,8 @@ final class HotKeys {
         case stuck = 2
         case back = 3
         case show = 4
+        case juggleNext = 5
+        case wait = 6
     }
 
     /// 'TFKY'
@@ -41,6 +45,8 @@ final class HotKeys {
         add(.stuck, keyCode: UInt32(kVK_ANSI_S), modifiers: modifiers)
         add(.back, keyCode: UInt32(kVK_ANSI_B), modifiers: modifiers)
         add(.show, keyCode: UInt32(kVK_ANSI_T), modifiers: modifiers)
+        add(.juggleNext, keyCode: UInt32(kVK_ANSI_K), modifiers: modifiers)
+        add(.wait, keyCode: UInt32(kVK_ANSI_P), modifiers: modifiers)
     }
 
     func unregister() {
@@ -78,6 +84,10 @@ final class HotKeys {
             controller.backToIt()
         case .show:
             WindowOpener.shared.openMain()
+        case .juggleNext:
+            controller.switchToNextJuggled()
+        case .wait:
+            controller.waitOnCurrent()
         }
     }
 }

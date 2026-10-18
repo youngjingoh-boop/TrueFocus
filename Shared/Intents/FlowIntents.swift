@@ -18,8 +18,13 @@ typealias TFFlowIntent = AppIntent
 enum IntentRouter {
     @MainActor
     static func run(_ command: RemoteCommand.Kind) {
+        run(RemoteCommand(kind: command))
+    }
+
+    @MainActor
+    static func run(_ command: RemoteCommand) {
         #if TF_EXTENSION
-        SharedStore.shared.enqueue(RemoteCommand(kind: command))
+        SharedStore.shared.enqueue(command)
         #else
         FocusController.shared.apply(command)
         #endif
@@ -74,6 +79,43 @@ struct StartNextTaskIntent: TFFlowIntent {
     @MainActor
     func perform() async throws -> some IntentResult {
         IntentRouter.run(.startNext)
+        return .result()
+    }
+}
+
+struct WaitOnTaskIntent: TFFlowIntent {
+    static let title: LocalizedStringResource = "Waiting on Current Task"
+    static let description: IntentDescription? = IntentDescription("Marks the current task as waiting, keeps it juggled, and moves to the next one.")
+
+    init() {}
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        IntentRouter.run(.wait)
+        return .result()
+    }
+}
+
+/// Switches to one of the tasks being juggled. Used by the Live Activity's task chips.
+struct SwitchJuggledTaskIntent: TFFlowIntent {
+    static let title: LocalizedStringResource = "Switch to Juggled Task"
+    static let description: IntentDescription? = IntentDescription("Moves your focus to another task you're juggling.")
+    static let isDiscoverable = false
+
+    @Parameter(title: "Task ID")
+    var taskID: String
+
+    init() {}
+
+    init(taskID: UUID) {
+        self.taskID = taskID.uuidString
+    }
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        if let id = UUID(uuidString: taskID) {
+            IntentRouter.run(RemoteCommand(kind: .switchTo, taskID: id))
+        }
         return .result()
     }
 }

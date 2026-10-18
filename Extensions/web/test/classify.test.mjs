@@ -203,3 +203,24 @@ test('formatting matches TFFormat', () => {
   assert.equal(core.taskElapsed({ mode: 'focus', taskFocusBefore: 60, modeStartedAt: sec(NOW - 30_000) }, NOW), 90);
   assert.equal(core.taskElapsed({ mode: 'think', taskFocusBefore: 60, modeStartedAt: sec(NOW - 30_000) }, NOW), 60);
 });
+
+test('juggled tasks come out in slot order with the current one and waits marked', () => {
+  const snapshot = {
+    mode: 'focus',
+    taskID: 'A',
+    inPlay: [
+      { id: 'A', title: 'Submit the application' },
+      { id: 'B', title: 'Fix the PDF', waitingSince: (NOW - 12 * 60000) / 1000 },
+      { id: 'C', title: 'Reply to Ben' },
+      { id: 7, title: 'broken' },
+    ],
+  };
+  assert.deepEqual(core.juggleItems(snapshot, NOW), [
+    { id: 'A', title: 'Submit the application', current: true, waiting: false, waitingMinutes: 0 },
+    { id: 'B', title: 'Fix the PDF', current: false, waiting: true, waitingMinutes: 12 },
+    { id: 'C', title: 'Reply to Ben', current: false, waiting: false, waitingMinutes: 0 },
+  ]);
+  assert.equal(core.juggleItems(Object.assign({}, snapshot, { mode: 'rest' }), NOW)[0].current, false);
+  assert.deepEqual(core.juggleItems(null, NOW), []);
+  assert.deepEqual(core.juggleItems({ mode: 'idle' }, NOW), []);
+});

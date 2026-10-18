@@ -8,6 +8,8 @@ import TrueFocusKit
 /// - `{type: "state"}` → `{ok, snapshot, settings}` read from the App Group.
 /// - `{type: "boot", site, reason}` → records a doom-scroll boot-out for the app to collect,
 ///   then replies like `state`.
+/// - `{type: "command", kind: "switchTo" | "wait", taskID}` → queues a juggling command
+///   for the app, then replies like `state`.
 final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
     /// Posted (Darwin notification) whenever the extension writes to the App Group,
     /// so a running app can pick the change up without waiting to be foregrounded.
@@ -27,6 +29,17 @@ final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
                                        reason: Self.string(message["reason"])))
             Self.postSharedChanged()
             reply["recorded"] = true
+        case "command":
+            let kind = (message["kind"] as? String).flatMap(RemoteCommand.Kind.init(rawValue:))
+            let taskID = (message["taskID"] as? String).flatMap(UUID.init(uuidString:))
+            if let kind, kind == .wait || (kind == .switchTo && taskID != nil) {
+                store.enqueue(RemoteCommand(kind: kind, taskID: taskID))
+                Self.postSharedChanged()
+                reply["queued"] = true
+            } else {
+                reply["ok"] = false
+                reply["error"] = "bad command"
+            }
         case "state":
             break
         default:
