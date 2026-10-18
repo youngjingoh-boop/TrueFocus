@@ -78,7 +78,12 @@ struct FocusScreen: View {
 
             Spacer()
 
-            ModeLabel(mode: snapshot.mode)
+            VStack(spacing: 2) {
+                ModeLabel(mode: snapshot.mode)
+                if snapshot.mode.isWorking {
+                    MusicQuickButton(onDark: true)
+                }
+            }
 
             Spacer()
 

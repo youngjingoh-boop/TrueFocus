@@ -14,6 +14,9 @@ struct NowCard: View {
             HStack(spacing: 8) {
                 ModeLabel(mode: mode, text: label(for: snapshot))
                 Spacer(minLength: 8)
+                if mode.isWorking {
+                    MusicQuickButton()
+                }
                 if snapshot.originDevice != TFDevice.name, !snapshot.originDevice.isEmpty {
                     Label("on \(snapshot.originDevice)", systemImage: snapshot.originDevice == "Mac" ? "laptopcomputer" : "iphone")
                         .labelStyle(.titleAndIcon)

@@ -11,6 +11,7 @@ final class MacAppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationC
         controller.register(ScrollWatch.shared)
         controller.register(MacNudger.shared)
         controller.register(FocusModeBridge.shared)
+        controller.register(AudioDirector.shared)
 
         ExtensionBridgeServer.shared.start()
         HotKeys.shared.register()

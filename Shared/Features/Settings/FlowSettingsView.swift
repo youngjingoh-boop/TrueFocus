@@ -16,6 +16,7 @@ struct FlowSettingsView<Extra: View>: View {
             VStack(alignment: .leading, spacing: 30) {
                 voice
                 rhythm
+                SoundSettingsSection()
                 scrolling
                 web
                 SyncSettingsSection()

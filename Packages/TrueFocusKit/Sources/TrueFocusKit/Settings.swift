@@ -17,6 +17,15 @@ public struct TFSettings: Codable, Equatable, Sendable {
     /// tasks beside the current one). Kept so older settings still decode.
     public var maxInPlay: Int = 3
 
+    // Sound
+    /// Short studio sounds for done, rest, stuck, back to it, switching and shutting down.
+    public var soundEffects: Bool = true
+    /// What plays while you focus. Off until you pick something.
+    public var focusMusic: FocusMusic = .off
+    public var musicVolume: Double = 0.7
+    /// A calm river under micro-rests.
+    public var restAmbience: Bool = true
+
     // Doom-scroll guard
     public var doomScroll: DoomScrollConfig = .standard
     /// Shield distracting apps and sites while focus/think is running.
@@ -63,6 +72,10 @@ public struct TFSettings: Codable, Equatable, Sendable {
         thinkNudgeMinutes = try c.decodeIfPresent(Double.self, forKey: .thinkNudgeMinutes) ?? d.thinkNudgeMinutes
         maxInPlay = try c.decodeIfPresent(Int.self, forKey: .maxInPlay) ?? d.maxInPlay
         juggleLimit = try c.decodeIfPresent(Int.self, forKey: .juggleLimit) ?? d.juggleLimit
+        soundEffects = try c.decodeIfPresent(Bool.self, forKey: .soundEffects) ?? d.soundEffects
+        focusMusic = (try? c.decodeIfPresent(FocusMusic.self, forKey: .focusMusic)) ?? d.focusMusic
+        musicVolume = try c.decodeIfPresent(Double.self, forKey: .musicVolume) ?? d.musicVolume
+        restAmbience = try c.decodeIfPresent(Bool.self, forKey: .restAmbience) ?? d.restAmbience
         doomScroll = try c.decodeIfPresent(DoomScrollConfig.self, forKey: .doomScroll) ?? d.doomScroll
         shieldDuringFocus = try c.decodeIfPresent(Bool.self, forKey: .shieldDuringFocus) ?? d.shieldDuringFocus
         scrollBudgetMinutes = try c.decodeIfPresent(Int.self, forKey: .scrollBudgetMinutes) ?? d.scrollBudgetMinutes
@@ -101,6 +114,7 @@ public struct TFSettings: Codable, Equatable, Sendable {
         thinkNudgeMinutes = min(max(thinkNudgeMinutes, 1), 60)
         maxInPlay = min(max(maxInPlay, 1), 5)
         juggleLimit = min(max(juggleLimit, 1), Juggle.maxLimit)
+        musicVolume = min(max(musicVolume, 0), 1)
         scrollBudgetMinutes = min(max(scrollBudgetMinutes, 1), 120)
         scrollCooldownMinutes = min(max(scrollCooldownMinutes, 15), 240)
         respondPassMinutes = min(max(respondPassMinutes, 1), 10)
