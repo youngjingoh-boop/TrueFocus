@@ -88,6 +88,22 @@ public struct Copy: Sendable {
         }
     }
 
+    /// Paused on a task for a while: come back to it.
+    public func paused(level: Int, task: String?) -> Line {
+        let name = quoted(task)
+        switch (tone, level) {
+        case (.calm, 1): return Line(title: "Ready to pick it back up?", body: "\(name) is paused right where you left it.")
+        case (.calm, 2): return Line(title: "Still paused", body: "Resume \(name). The clock picks up where it stopped.")
+        case (.calm, _): return Line(title: "Let's get going again", body: "One tap: resume \(name).")
+        case (.direct, 1): return Line(title: "Pause over?", body: "Resume \(name).")
+        case (.direct, 2): return Line(title: "Still paused.", body: "\(name) is waiting. Resume it.")
+        case (.direct, _): return Line(title: "Back to work.", body: "Resume \(name).")
+        case (.savage, 1): return Line(title: "Break's over.", body: "Resume \(name).")
+        case (.savage, 2): return Line(title: "Still paused?", body: "Put the phone down. Resume \(name).")
+        case (.savage, _): return Line(title: "Wake the fuck up and resume.", body: "\(name) is waiting where you left it.")
+        }
+    }
+
     // MARK: Boot-outs (doom-scroll guard, shields, overlay)
 
     /// Shown when a doom-scroll guard kicks you out of a feed.

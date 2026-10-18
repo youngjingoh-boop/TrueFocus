@@ -41,14 +41,16 @@ public struct NudgeContext: Sendable {
     public var openTaskCount: Int
     /// True once the day has been shut down. No nudges after shutdown.
     public var dayEnded: Bool
+    /// Idle because you paused on `nextTaskTitle`: gentler, later nudges to resume.
+    public var paused: Bool
     public var tone: NudgeTone
     public var thinkNudgeMinutes: Double
     public var now: Date
 
     public init(mode: FlowMode, modeStartedAt: Date?, plannedRestEnd: Date? = nil,
                 taskTitle: String? = nil, nextTaskTitle: String? = nil, openTaskCount: Int = 0,
-                dayEnded: Bool = false, tone: NudgeTone = .savage, thinkNudgeMinutes: Double = 5,
-                now: Date) {
+                dayEnded: Bool = false, paused: Bool = false, tone: NudgeTone = .savage,
+                thinkNudgeMinutes: Double = 5, now: Date) {
         self.mode = mode
         self.modeStartedAt = modeStartedAt
         self.plannedRestEnd = plannedRestEnd
@@ -56,6 +58,7 @@ public struct NudgeContext: Sendable {
         self.nextTaskTitle = nextTaskTitle
         self.openTaskCount = openTaskCount
         self.dayEnded = dayEnded
+        self.paused = paused
         self.tone = tone
         self.thinkNudgeMinutes = thinkNudgeMinutes
         self.now = now
@@ -97,6 +100,16 @@ public enum NudgePlanner {
             let line = copy.stillOnIt(task: context.taskTitle)
             nudges.append(Nudge(id: "focus.0", fireAt: start.addingTimeInterval(75 * 60),
                                 level: 1, title: line.title, body: line.body))
+
+        case .idle where context.paused:
+            // You chose to stop: give the pause room, then ask you back to that task.
+            guard let since = context.modeStartedAt else { break }
+            let steps: [(TimeInterval, Int)] = [(600, 1), (1500, 2), (3000, 3)]
+            for (index, step) in steps.enumerated() {
+                let line = copy.paused(level: step.1, task: context.nextTaskTitle)
+                nudges.append(Nudge(id: "paused.\(index)", fireAt: since.addingTimeInterval(step.0),
+                                    level: step.1, title: line.title, body: line.body))
+            }
 
         case .idle:
             guard context.openTaskCount > 0, let since = context.modeStartedAt else { break }

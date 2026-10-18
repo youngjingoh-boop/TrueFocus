@@ -38,7 +38,8 @@ final class LiveActivityController: FocusEffect {
         adoptExisting()
         let state = State(snapshot: snapshot)
 
-        guard snapshot.mode.isActive else {
+        // A pause keeps the card on the Lock Screen, with Resume one tap away.
+        guard snapshot.mode.isActive || snapshot.isPaused else {
             end(with: state, snapshot: snapshot)
             return
         }

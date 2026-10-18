@@ -107,6 +107,18 @@ struct TFShortcuts: AppShortcutsProvider {
             systemImageName: "arrow.uturn.forward"
         )
         AppShortcut(
+            intent: PauseIntent(),
+            phrases: ["Pause \(.applicationName)", "Pause focus in \(.applicationName)"],
+            shortTitle: "Pause",
+            systemImageName: "pause.fill"
+        )
+        AppShortcut(
+            intent: ResumeIntent(),
+            phrases: ["Resume \(.applicationName)", "Resume focus in \(.applicationName)"],
+            shortTitle: "Resume",
+            systemImageName: "play.fill"
+        )
+        AppShortcut(
             intent: AddTaskIntent(),
             phrases: ["Add a task in \(.applicationName)", "Add to \(.applicationName)"],
             shortTitle: "Add Task",

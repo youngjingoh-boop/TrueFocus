@@ -92,6 +92,8 @@ public enum FlowCue: String, CaseIterable, Sendable {
         if next.doneToday > previous.doneToday { return .complete }
         switch (previous.mode, next.mode) {
         case (.focus, .think): return .think
+        // Pausing settles like a rest; resuming is a go (idle → focus, below).
+        case (.focus, .idle), (.think, .idle): return next.isPaused ? .rest : nil
         case (.focus, .rest), (.think, .rest): return .rest
         case (.rest, .focus), (.think, .focus), (.idle, .focus): return .go
         case (.focus, .focus) where next.taskID != previous.taskID: return .switchTask

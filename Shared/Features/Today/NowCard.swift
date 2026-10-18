@@ -31,7 +31,7 @@ struct NowCard: View {
                 .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
 
-            if let crumb = snapshot.breadcrumb, mode.isWorking {
+            if let crumb = snapshot.breadcrumb, mode.isWorking || snapshot.isPaused {
                 Text("↳ \(crumb)")
                     .font(.subheadline)
                     .foregroundStyle(TF.Palette.ink2)
@@ -40,9 +40,11 @@ struct NowCard: View {
 
             HStack(alignment: .center, spacing: 12) {
                 timer(for: snapshot)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
                     .foregroundStyle(mode == .rest && snapshot.isRestOverrun(now: Date()) ? TF.Palette.signal : TF.Palette.ink)
                 Spacer(minLength: 8)
-                actions(for: mode, tint: tint)
+                actions(for: snapshot, tint: tint)
             }
         }
         .padding(20)
@@ -60,7 +62,7 @@ struct NowCard: View {
         case .focus: return "Now"
         case .think: return "Thinking"
         case .rest: return "Rest · next"
-        case .idle: return "Up next"
+        case .idle: return snapshot.isPaused ? "Paused" : "Up next"
         }
     }
 
@@ -74,15 +76,30 @@ struct NowCard: View {
         case .rest:
             CountdownText(until: snapshot.plannedRestEnd ?? Date(), font: .tfTimerSmall)
         case .idle:
-            EmptyView()
+            if snapshot.isPaused {
+                // Frozen where you stopped.
+                Text(TFFormat.clock(snapshot.taskFocusBefore))
+                    .font(.tfTimerSmall)
+                    .opacity(0.45)
+            }
         }
     }
 
     @ViewBuilder
-    private func actions(for mode: FlowMode, tint: Color) -> some View {
-        switch mode {
+    private func actions(for snapshot: LiveSnapshot, tint: Color) -> some View {
+        switch snapshot.mode {
         case .focus:
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Button {
+                    TFHaptics.tap()
+                    withAnimation(TF.Motion.snappy) { controller.pause() }
+                } label: {
+                    Image(systemName: "pause.fill")
+                }
+                .buttonStyle(OrbButtonStyle(tint: TF.Palette.ink2, size: 44))
+                .accessibilityLabel("Pause")
+                .help("Pause — stop the clock, keep your place")
+
                 Button {
                     TFHaptics.tap()
                     withAnimation(TF.Motion.snappy) { controller.waitOnCurrent() }
@@ -113,8 +130,18 @@ struct NowCard: View {
                 .help("Done — cross it off")
             }
         case .think:
-            Button("Back to it") { controller.backToIt() }
-                .buttonStyle(QuietButtonStyle(foreground: TF.Palette.think))
+            HStack(spacing: 6) {
+                Button {
+                    TFHaptics.tap()
+                    withAnimation(TF.Motion.snappy) { controller.pause() }
+                } label: {
+                    Image(systemName: "pause.fill")
+                }
+                .buttonStyle(OrbButtonStyle(tint: TF.Palette.ink2, size: 44))
+                .accessibilityLabel("Pause")
+                Button("Back to it") { controller.backToIt() }
+                    .buttonStyle(QuietButtonStyle(foreground: TF.Palette.think))
+            }
         case .rest:
             Button("Go now") {
                 TFHaptics.tap()
@@ -122,7 +149,29 @@ struct NowCard: View {
             }
             .buttonStyle(QuietButtonStyle(foreground: TF.Palette.rest))
         case .idle:
-            EmptyView()
+            if snapshot.isPaused {
+                HStack(spacing: 6) {
+                    Button {
+                        TFHaptics.success()
+                        if let paused = controller.pausedTask { controller.toggleDone(paused) }
+                    } label: {
+                        Image(systemName: "checkmark")
+                    }
+                    .buttonStyle(OrbButtonStyle(tint: TF.Palette.ink2, size: 44))
+                    .accessibilityLabel("Done")
+                    .help("Done — cross it off")
+
+                    Button {
+                        TFHaptics.success()
+                        withAnimation(TF.Motion.snappy) { controller.resume() }
+                    } label: {
+                        Image(systemName: "play.fill")
+                    }
+                    .buttonStyle(OrbButtonStyle(tint: TF.Palette.signal, size: 44, filled: true))
+                    .accessibilityLabel("Resume")
+                    .help("Resume — the clock picks up where it stopped")
+                }
+            }
         }
     }
 }

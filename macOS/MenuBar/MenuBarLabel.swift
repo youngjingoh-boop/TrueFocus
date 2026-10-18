@@ -35,6 +35,7 @@ struct MenuBarLabel: View {
 
     private func symbol(for snapshot: LiveSnapshot) -> String {
         if snapshot.dayEnded { return "moon.fill" }
+        if snapshot.isPaused { return "pause.circle" }
         return snapshot.mode == .idle ? "scope" : snapshot.mode.symbol
     }
 
@@ -56,6 +57,9 @@ struct MenuBarLabel: View {
             return "Rest"
         case .idle:
             if snapshot.dayEnded { return "Done for today" }
+            if snapshot.isPaused, let task = snapshot.nextTaskTitle {
+                return "Paused · \(TFFormat.truncate(task, to: 22))"
+            }
             if let next = snapshot.nextTaskTitle { return "Next: \(TFFormat.truncate(next, to: 24))" }
             return "Plan today"
         }

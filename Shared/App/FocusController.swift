@@ -92,11 +92,27 @@ final class FocusController {
             guard let id, id != nowID, let task = task(id: id), !task.isDone, task.waitingSince == nil else { return nil }
             return task
         }
+        if let paused = ready(pausedTask?.id) { return paused }
         if let pinned = ready(pinnedNextID) { return pinned }
         if mode == .rest, let upcoming = ready(current?.taskID) { return upcoming }
         if let juggled = nextJuggled(after: nowTask) { return juggled }
         return openTasks.first { $0.id != nowID && $0.waitingSince == nil }
     }
+
+    /// The task you paused on: the day's last segment ended with Pause and nothing has run
+    /// since. Read off the synced timeline, so every device agrees.
+    var pausedTask: FocusTask? {
+        guard current == nil, !dayEnded, let last = segmentsToday.last, last.endedAt != nil,
+              last.outcome == .paused, let id = last.taskID, let task = task(id: id), !task.isDone else { return nil }
+        return task
+    }
+
+    /// When the pause began.
+    var pausedAt: Date? {
+        pausedTask == nil ? nil : segmentsToday.last?.endedAt
+    }
+
+    var isPaused: Bool { pausedTask != nil }
 
     /// Nothing ready, but tasks are parked waiting: the one that has waited longest.
     var longestWaiting: FocusTask? {
@@ -430,10 +446,22 @@ final class FocusController {
     }
 
     /// Stop the clock without finishing anything (e.g. a meeting). Back to idle.
-    func stopForNow() {
-        guard let current else { return }
-        close(current, at: Date(), outcome: .ended)
+    /// Stop the clock on the current task. Shields drop and music stops; the task keeps its
+    /// place, its time and its juggle slot until you resume.
+    func pause() {
+        guard let current, current.mode.isWorking, current.taskID != nil else { return }
+        close(current, at: Date(), outcome: .paused)
         commit()
+    }
+
+    /// Back on the paused task, its clock picking up where it stopped.
+    func resume() {
+        guard let task = pausedTask else { return }
+        start(task)
+    }
+
+    func togglePause() {
+        if mode.isWorking { pause() } else { resume() }
     }
 
     func apply(_ command: RemoteCommand.Kind) {
@@ -445,6 +473,8 @@ final class FocusController {
         case .complete: complete()
         case .stuck: stuck()
         case .backToIt: backToIt()
+        case .pause: pause()
+        case .resume: resume()
         case .startNext: startNext()
         case .endDay: endDay()
         case .switchTo:
@@ -662,6 +692,13 @@ final class FocusController {
             snap.breadcrumb = task.breadcrumb.isEmpty ? nil : task.breadcrumb
             snap.taskFocusBefore = task.focusSeconds
         }
+        let paused = pausedTask
+        if let paused {
+            // The paused task is `next`; its clock shows frozen at the time already on it.
+            snap.pausedAt = pausedAt
+            snap.breadcrumb = paused.breadcrumb.isEmpty ? nil : paused.breadcrumb
+            snap.taskFocusBefore = paused.focusSeconds
+        }
         if let next = nextTask {
             snap.nextTaskID = next.id
             snap.nextTaskTitle = next.title
@@ -682,7 +719,8 @@ final class FocusController {
         snap.dayEnded = dayEnded
         snap.systemFocusOn = systemFocusOn
         snap.updatedAt = now
-        snap.originDevice = current?.device ?? TFDevice.name
+        // A pause belongs to the device that paused, so only it plays the pause cue.
+        snap.originDevice = current?.device ?? (paused != nil ? segmentsToday.last?.device : nil) ?? TFDevice.name
         return snap
     }
 
