@@ -96,6 +96,7 @@ struct NotesHomeView: View {
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
+            .scrollDismissesKeyboard(.immediately)
             #else
             List(selection: $selection) {
                 sections

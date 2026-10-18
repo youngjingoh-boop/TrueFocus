@@ -97,6 +97,7 @@ struct ReviewView: View {
             .frame(maxWidth: 680, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
+        .scrollDismissesKeyboard(.immediately)
         .tfPage()
         .onAppear { reflection = controller.plan?.reflection ?? "" }
         .onDisappear {
