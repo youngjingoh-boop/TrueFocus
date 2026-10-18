@@ -94,7 +94,7 @@ struct JuggleRow: View {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(onDark ? TF.Palette.nightInk2 : TF.Palette.ink3)
-                    .frame(width: 32, height: 44)
+                    .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
             .menuStyle(.button)
@@ -104,7 +104,7 @@ struct JuggleRow: View {
             .accessibilityLabel("More for \(task.title)")
         }
         .padding(.leading, 12)
-        .padding(.trailing, 4)
+        .padding(.trailing, 0)
         .contextMenu { actions }
     }
 

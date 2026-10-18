@@ -55,7 +55,7 @@ struct TodayView: View {
                             }
                             .tint(TF.Palette.signal)
                         }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
                                 controller.delete(task)
                             } label: {
@@ -144,6 +144,13 @@ struct TodayView: View {
             Spacer()
             VStack(alignment: .trailing, spacing: 6) {
                 HStack(spacing: 2) {
+                    Button { showBrainDump = true } label: {
+                        Image(systemName: "brain.head.profile")
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .help("Empty your head into the plan")
+                    .accessibilityLabel("Brain dump")
                     Button { showReview = true } label: {
                         Image(systemName: "chart.bar.xaxis")
                             .frame(width: 44, height: 44)

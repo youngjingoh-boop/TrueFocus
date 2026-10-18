@@ -23,6 +23,8 @@ final class NudgeScheduler: NSObject, FocusEffect, UNUserNotificationCenterDeleg
     private var generation = 0
     private var lastTone: NudgeTone?
     private var lastThinkMinutes: Double?
+    /// When the current idle stretch began (idle has no segment to carry a start time).
+    private var idleSince = Date()
 
     private var center: UNUserNotificationCenter { UNUserNotificationCenter.current() }
 
@@ -35,7 +37,7 @@ final class NudgeScheduler: NSObject, FocusEffect, UNUserNotificationCenterDeleg
         guard !started else { return }
         started = true
         center.delegate = self
-        let startNext = UNNotificationAction(identifier: NudgeIDs.startNextAction, title: "Start next", options: [.foreground])
+        let startNext = UNNotificationAction(identifier: NudgeIDs.startNextAction, title: "Attack next", options: [.foreground])
         let onIt = UNNotificationAction(identifier: NudgeIDs.onItAction, title: "I'm on it", options: [])
         let category = UNNotificationCategory(identifier: NudgeIDs.category, actions: [startNext, onIt],
                                               intentIdentifiers: [], options: [])
@@ -48,6 +50,9 @@ final class NudgeScheduler: NSObject, FocusEffect, UNUserNotificationCenterDeleg
     // MARK: FocusEffect
 
     func focusDidChange(_ snapshot: LiveSnapshot, previous: LiveSnapshot?, settings: TFSettings) {
+        if snapshot.mode == .idle, previous?.mode != .idle {
+            idleSince = Date()
+        }
         let settingsChanged = settings.tone != lastTone || settings.thinkNudgeMinutes != lastThinkMinutes
         guard previous == nil || !snapshot.isSameState(as: previous) || settingsChanged else { return }
         lastTone = settings.tone
@@ -68,7 +73,7 @@ final class NudgeScheduler: NSObject, FocusEffect, UNUserNotificationCenterDeleg
         if ownsNudges {
             let context = NudgeContext(
                 mode: snapshot.mode,
-                modeStartedAt: snapshot.modeStartedAt,
+                modeStartedAt: snapshot.mode == .idle ? idleSince : snapshot.modeStartedAt,
                 plannedRestEnd: snapshot.plannedRestEnd,
                 taskTitle: snapshot.taskTitle,
                 nextTaskTitle: snapshot.nextTaskTitle,

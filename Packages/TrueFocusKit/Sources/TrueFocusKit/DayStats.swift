@@ -81,6 +81,14 @@ public struct DayStats: Equatable, Sendable {
                 stats.thinkSeconds += duration
                 // Thinking is work. Small credit, no penalty.
                 gain(duration / 60 * 0.15)
+                // Finishing straight from think time counts like finishing from focus.
+                if segment.outcome == .completed {
+                    stats.completed += 1
+                    gain(14)
+                    chain += 1
+                    best = max(best, chain)
+                    chainDeadline = end.addingTimeInterval(300 + RestPolicy.chainSlack)
+                }
             case .rest:
                 stats.restSeconds += duration
                 let planned = segment.plannedSeconds ?? 60

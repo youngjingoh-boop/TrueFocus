@@ -39,7 +39,7 @@ struct ReviewView: View {
 
                 LazyVGrid(columns: [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)],
                           alignment: .leading, spacing: 22) {
-                    StatTile(value: "\(stats.completed)/\(snapshot.plannedToday)", label: "Done")
+                    StatTile(value: "\(controller.doneToday.count)/\(snapshot.plannedToday)", label: "Done")
                     StatTile(value: TFFormat.short(stats.focusSeconds), label: "Focused")
                     StatTile(value: "\(stats.bestChain)", label: "Best chain")
                     StatTile(value: TFFormat.short(stats.thinkSeconds), label: "Thinking")
@@ -139,7 +139,7 @@ struct ReviewView: View {
         case 55..<80: return "Strong day. The leaks were small."
         case 30..<55: return "Decent. Tighten the rests and the starts."
         default:
-            return stats.completed == 0 ? "Pick one task and start the clock." : "Momentum leaked. Shorter rests, fewer exits."
+            return controller.doneToday.isEmpty ? "Pick one task and start the clock." : "Momentum leaked. Shorter rests, fewer exits."
         }
     }
 

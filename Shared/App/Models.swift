@@ -35,6 +35,11 @@ final class FocusTask {
     }
 }
 
+extension FocusTask {
+    /// Still in the store. A deleted task must not be read or written again.
+    var isLive: Bool { !isDeleted && modelContext != nil }
+}
+
 /// One contiguous block of a single mode. The day is a timeline of these.
 @Model
 final class FlowSegment {

@@ -11,6 +11,8 @@ struct CheckCircle: View {
     var isOn: Bool
     var tint: Color = TF.Palette.signal
     var size: CGFloat = 22
+    /// What's being checked, for VoiceOver ("Reply to Sam").
+    var label: String? = nil
     var action: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -40,12 +42,14 @@ struct CheckCircle: View {
                     .scaleEffect(burst ? 2.1 : 1)
                     .opacity(burst ? 0 : (burstVisible ? 0.6 : 0))
             )
-            .contentShape(Circle().inset(by: -8))
+            // 44 pt to the finger, whatever the drawn size.
+            .contentShape(Circle().inset(by: -max(11, (44 - size) / 2)))
             .animation(TF.Motion.check, value: isOn)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(isOn ? "Completed" : "Not completed")
-        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel(label ?? "Done")
+        .accessibilityValue(isOn ? "Completed" : "Not completed")
+        .accessibilityAddTraits(isOn ? [.isButton, .isSelected] : .isButton)
         .onChange(of: isOn) { wasOn, nowOn in
             guard nowOn, !wasOn, !reduceMotion else { return }
             burstVisible = true
@@ -86,6 +90,7 @@ struct DayProgressBar: View {
 struct ModeDot: View {
     var mode: FlowMode
     var size: CGFloat = 8
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var pulse = false
 
     var body: some View {
@@ -99,12 +104,12 @@ struct ModeDot: View {
                     .opacity(pulse ? 0 : 0.8)
             )
             .onAppear {
-                guard mode.isWorking else { return }
+                guard mode.isWorking, !reduceMotion else { return }
                 withAnimation(.easeOut(duration: 1.6).repeatForever(autoreverses: false)) { pulse = true }
             }
             .onChange(of: mode) { _, newValue in
                 pulse = false
-                guard newValue.isWorking else { return }
+                guard newValue.isWorking, !reduceMotion else { return }
                 withAnimation(.easeOut(duration: 1.6).repeatForever(autoreverses: false)) { pulse = true }
             }
             .accessibilityHidden(true)

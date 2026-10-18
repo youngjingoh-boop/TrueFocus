@@ -39,3 +39,18 @@ final class SoundTests: XCTestCase {
         XCTAssertEqual(FocusMusic.appleMusic.bundledTrack, "tf_music_drive")
     }
 }
+
+final class DayStatsThinkTests: XCTestCase {
+    func testFinishingFromThinkCounts() {
+        let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+        let task = UUID()
+        let segments = [
+            SegmentRecord(mode: .focus, taskID: task, start: t0, end: t0.addingTimeInterval(600), outcome: .stuck),
+            SegmentRecord(mode: .think, taskID: task, start: t0.addingTimeInterval(600),
+                          end: t0.addingTimeInterval(900), outcome: .completed),
+        ]
+        let stats = DayStats.compute(segments: segments, now: t0.addingTimeInterval(901))
+        XCTAssertEqual(stats.completed, 1)
+        XCTAssertEqual(stats.chain, 1)
+    }
+}
