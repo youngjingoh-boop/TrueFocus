@@ -42,7 +42,7 @@ struct TodayView: View {
 
             Section {
                 ForEach(controller.openTasks, id: \.id) { task in
-                    TaskRow(task: task) { _ in newTaskFocused = true }
+                    TaskRow(task: task, dense: isDense) { _ in newTaskFocused = true }
                         .listRowInsets(rowInsets(top: 0, bottom: 0))
                         .tfListRow()
                         #if os(iOS)
@@ -74,7 +74,7 @@ struct TodayView: View {
                     controller.moveOpenTasks(fromOffsets: source, toOffset: destination)
                 }
 
-                NewTaskRow(isFocused: $newTaskFocused)
+                NewTaskRow(isFocused: $newTaskFocused, dense: isDense)
                     .listRowInsets(rowInsets(top: 0, bottom: 0))
                     .tfListRow()
             } header: {
@@ -85,7 +85,7 @@ struct TodayView: View {
                 Section {
                     if showDone {
                         ForEach(controller.doneToday.reversed(), id: \.id) { task in
-                            TaskRow(task: task)
+                            TaskRow(task: task, dense: isDense)
                                 .listRowInsets(rowInsets(top: 0, bottom: 0))
                                 .tfListRow()
                         }
@@ -258,6 +258,11 @@ struct TodayView: View {
             .environment(controller)
             .frame(minWidth: 460, minHeight: 520)
         #endif
+    }
+
+    /// Long plans (open plus visible done) switch to tighter lines.
+    private var isDense: Bool {
+        controller.openTasks.count + (showDone ? controller.doneToday.count : 0) >= TaskRowMetrics.denseFrom
     }
 
     private func rowInsets(top: CGFloat, bottom: CGFloat) -> EdgeInsets {

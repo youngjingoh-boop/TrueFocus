@@ -6,6 +6,8 @@ import TrueFocusKit
 struct TaskRow: View {
     @Environment(FocusController.self) private var controller
     let task: FocusTask
+    /// Tighter lines once the plan gets long, so 15–20 tasks fit on one screen.
+    var dense = false
     /// Called when Return is pressed, so the list can open a new line below.
     var onReturn: (FocusTask) -> Void = { _ in }
 
@@ -57,7 +59,7 @@ struct TaskRow: View {
 
             trailing
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, TaskRowMetrics.padding(dense: dense))
         .contentShape(Rectangle())
         .onAppear { draft = task.title }
         .onChange(of: task.title) { _, title in
@@ -137,6 +139,7 @@ struct TaskRow: View {
 struct NewTaskRow: View {
     @Environment(FocusController.self) private var controller
     @Binding var isFocused: Bool
+    var dense = false
     @State private var text = ""
     @FocusState private var focused: Bool
 
@@ -166,7 +169,7 @@ struct NewTaskRow: View {
                 }
                 .onSubmit { submit() }
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, TaskRowMetrics.padding(dense: dense))
         .onChange(of: isFocused) { _, value in focused = value }
         .onChange(of: focused) { _, value in
             if isFocused != value { isFocused = value }
@@ -179,5 +182,15 @@ struct NewTaskRow: View {
         guard !clean.isEmpty else { return }
         text = ""
         withAnimation(TF.Motion.snappy) { _ = controller.addTask(clean) }
+    }
+}
+
+/// Line spacing for the plan, close to an Apple Notes checklist.
+enum TaskRowMetrics {
+    /// From this many tasks on the screen, lines tighten further.
+    static let denseFrom = 10
+
+    static func padding(dense: Bool) -> CGFloat {
+        dense ? 2 : 6
     }
 }
