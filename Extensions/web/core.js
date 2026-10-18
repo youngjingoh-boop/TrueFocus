@@ -174,13 +174,19 @@
   /** Blocklist.feedSites. */
   var FEED_SITES = Object.freeze([
     { name: 'Instagram', hosts: ['instagram.com'], shortFormPaths: ['/reels', '/reel', '/explore'],
-      respondPath: '/direct/inbox/', safePaths: ['/direct', '/accounts', '/create'], allShortForm: false },
+      respondPath: '/direct/inbox/', safePaths: ['/direct', '/accounts', '/create'], allShortForm: false,
+      workHosts: ['business.instagram.com', 'accountscenter.instagram.com', 'help.instagram.com'] },
     { name: 'YouTube', hosts: ['youtube.com', 'youtu.be'], shortFormPaths: ['/shorts'],
       respondPath: null, safePaths: ['/upload', '/account'], allShortForm: false },
     { name: 'TikTok', hosts: ['tiktok.com'], shortFormPaths: [],
       respondPath: '/messages', safePaths: ['/messages', '/upload', '/tiktokstudio', '/login', '/setting'], allShortForm: true },
     { name: 'Facebook', hosts: ['facebook.com'], shortFormPaths: ['/reel', '/reels', '/watch'],
-      respondPath: '/messages/', safePaths: ['/messages', '/settings'], allShortForm: false },
+      respondPath: '/messages/',
+      safePaths: ['/messages', '/settings', '/adsmanager', '/ads/', '/business', '/events_manager',
+        '/commerce_manager', '/billing_hub', '/ad_center', '/help'],
+      allShortForm: false,
+      workHosts: ['business.facebook.com', 'adsmanager.facebook.com', 'developers.facebook.com',
+        'accountscenter.facebook.com'] },
     { name: 'X', hosts: ['x.com', 'twitter.com'], shortFormPaths: [],
       respondPath: '/messages', safePaths: ['/messages', '/compose', '/settings'], allShortForm: false },
     { name: 'Threads', hosts: ['threads.net', 'threads.com'], shortFormPaths: [],
@@ -228,10 +234,12 @@
     return host === suffix || host.slice(-(suffix.length + 1)) === '.' + suffix;
   }
 
+  /** Blocklist.FeedSite.matches(host:): a site's work hosts (Ads Manager…) are not the site. */
   function feedSiteForHost(host) {
     var h = String(host || '').toLowerCase();
     for (var i = 0; i < FEED_SITES.length; i++) {
       var site = FEED_SITES[i];
+      if ((site.workHosts || []).some(function (w) { return hostMatches(h, w); })) { return null; }
       for (var j = 0; j < site.hosts.length; j++) {
         if (hostMatches(h, site.hosts[j])) { return site; }
       }

@@ -335,6 +335,16 @@ struct GuardView: View {
                   opensSettings: false)
             Hairline()
             guide(4,
+                  title: "Run ads, skip the feed",
+                  summary: "Ads Manager and Business Suite stay open while Facebook and Instagram are blocked.",
+                  steps: [
+                    "Shield the Facebook and Instagram apps. Leave Meta Business Suite and Ads Manager out of your scroll apps.",
+                    "Don't add facebook.com or instagram.com as websites here: Screen Time would block business.facebook.com with them.",
+                    "In Safari the extension already closes the feeds and leaves Ads Manager, Business Suite and the Ad Library alone.",
+                  ],
+                  opensSettings: false)
+            Hairline()
+            guide(5,
                   title: "Add Apple's own adult filter",
                   summary: "A second wall that works even without TrueFocus.",
                   steps: [

@@ -21,6 +21,7 @@ To build under another team or prefix, `cp Config/Local.example.xcconfig Config/
 
 1. **Screen Time access.** Open TrueFocus ▸ Guard ▸ *Enable*. Approve with Face ID.
 2. **Scroll apps.** Guard ▸ *Scroll apps* — pick Instagram, YouTube, TikTok, X, Reddit, anything you lose time in. These are shielded during focus and budgeted outside it.
+   Running ads for clients? Pick the Facebook and Instagram **apps**, but leave out Meta Business Suite and Ads Manager, and don't add facebook.com or instagram.com as websites (Screen Time would block business.facebook.com with them). On the web the extension closes the feeds and leaves Ads Manager, Business Suite, Business Manager, Events Manager and the Ad Library open.
 3. **Reply apps.** Guard ▸ *Reply apps* — pick the ones you must answer messages in (e.g. Instagram). Their shield shows **Reply · 2 min**.
 4. **Notifications.** Allow them when asked. Then Settings ▸ Notifications ▸ TrueFocus ▸ turn on *Time Sensitive Notifications* so the wake-up nudges get through a Focus.
 5. **Safari extension.** Settings ▸ Apps ▸ Safari ▸ Extensions ▸ TrueFocus ▸ *Allow Extension*, and set *All Websites* to *Allow*.

@@ -37,6 +37,27 @@ test('lookalike paths are not short-form', () => {
   assert.equal(core.classify('https://www.youtube.com/shortsighted', e, {}, NOW).kind, 'feed');
 });
 
+test("Meta's business tools stay open while Facebook and Instagram are blocked", () => {
+  const e = eff({ strict: true });
+  const booted = { Facebook: NOW + 600000, Instagram: NOW + 600000 };
+  for (const url of [
+    'https://business.facebook.com/latest/home?asset_id=1',
+    'https://business.facebook.com/settings/ad-accounts',
+    'https://adsmanager.facebook.com/adsmanager/manage/campaigns?act=1',
+    'https://www.facebook.com/adsmanager/manage/campaigns',
+    'https://www.facebook.com/ads/library/?q=shoes',
+    'https://www.facebook.com/events_manager2/list',
+    'https://www.facebook.com/business/help/123',
+    'https://accountscenter.instagram.com/',
+  ]) {
+    assert.ok(['safe', 'other'].includes(core.classify(url, e, booted, NOW).kind), url);
+  }
+  assert.equal(core.classify('https://www.facebook.com/', e, {}, NOW).kind, 'strict');
+  assert.equal(core.classify('https://www.facebook.com/', eff(), booted, NOW).kind, 'cooldown');
+  assert.equal(core.classify('https://www.facebook.com/reel/1', eff(), {}, NOW).kind, 'shortform');
+  assert.equal(core.classify('https://www.instagram.com/', e, {}, NOW).kind, 'respond');
+});
+
 test('safe paths are left alone, even in focus', () => {
   const e = eff({ strict: true });
   assert.equal(core.classify('https://www.instagram.com/direct/inbox/', e, {}, NOW).kind, 'safe');
