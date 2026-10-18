@@ -26,6 +26,7 @@ struct FlowSettingsView<Extra: View>: View {
             .frame(maxWidth: 640, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
+        .scrollDismissesKeyboard(.immediately)
         .tfPage()
     }
 

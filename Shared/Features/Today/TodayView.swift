@@ -105,6 +105,8 @@ struct TodayView: View {
                 .tfListRow()
         }
         .listStyle(.plain)
+        // Scrolling the plan puts the keyboard away (a half-typed task is kept as a task).
+        .scrollDismissesKeyboard(.immediately)
         .scrollContentBackground(.hidden)
         .environment(\.defaultMinListRowHeight, 1)
         .tfPage()

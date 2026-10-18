@@ -37,6 +37,13 @@ final class NoteEditorEngine {
     private var pendingShortcut: (location: Int, text: String, kind: NoteBlockKind)?
     private var isInternalEdit = false
 
+    // TextKit forbids layout while the text storage is mid-edit (between beginEditing and
+    // endEditing): it throws, and the app quits. Setting the text view's typing attributes or
+    // redrawing does layout, so inside an edit those wait until the outermost edit ends.
+    private var editDepth = 0
+    private var needsTypingRefresh = false
+    private var needsRedraw = false
+
     init() {
         textContainer = NSTextContainer(size: CGSize(width: 0, height: CGFloat.greatestFiniteMagnitude))
         textContainer.widthTracksTextView = true
@@ -67,6 +74,43 @@ final class NoteEditorEngine {
         let markup = serialize()
         lastSerialized = markup
         onChange(markup)
+    }
+
+    // MARK: Editing transactions
+
+    /// Groups storage changes; typing-attribute and redraw requests made inside run after.
+    private func editing(_ changes: () -> Void) {
+        editDepth += 1
+        storage.beginEditing()
+        changes()
+        storage.endEditing()
+        editDepth -= 1
+        if editDepth == 0 { flushDeferred() }
+    }
+
+    private func flushDeferred() {
+        if needsTypingRefresh {
+            needsTypingRefresh = false
+            refreshTypingAttributes()
+        }
+        if needsRedraw {
+            needsRedraw = false
+            redraw()
+        }
+    }
+
+    /// Typing attributes follow the paragraph the caret is in.
+    private func refreshTypingAttributes() {
+        if editDepth > 0 {
+            needsTypingRefresh = true
+            return
+        }
+        guard !hasMarkedText() else { return }
+        setTypingAttributes(NoteFormatter.attributes(for: kind(ofParagraph: paragraphRange(at: selectedRange().location))))
+    }
+
+    private func requestRedraw() {
+        if editDepth > 0 { needsRedraw = true } else { redraw() }
     }
 
     // MARK: Paragraph helpers
@@ -128,14 +172,13 @@ final class NoteEditorEngine {
         let resolved: NoteBlockKind = paragraph.location == 0 ? .title : (kind == .title ? .text : kind)
         if paragraph.length == 0 {
             layoutManager.extraLineKind = resolved
-            if caretIsIn(paragraph) { setTypingAttributes(NoteFormatter.attributes(for: resolved)) }
-            redraw()
+            requestRedraw()
         } else {
-            storage.beginEditing()
-            storage.setAttributes(NoteFormatter.attributes(for: resolved), range: paragraph)
-            storage.endEditing()
-            if caretIsIn(paragraph) { setTypingAttributes(NoteFormatter.attributes(for: resolved)) }
+            editing {
+                storage.setAttributes(NoteFormatter.attributes(for: resolved), range: paragraph)
+            }
         }
+        if caretIsIn(paragraph) { refreshTypingAttributes() }
         if notify { notifyChanged() }
     }
 
@@ -240,17 +283,17 @@ final class NoteEditorEngine {
             notifyChanged()
             return
         }
-        storage.beginEditing()
-        if let edited = pendingEdited {
-            normalize(edited)
-        } else {
-            normalize(NSRange(location: selectedRange().location, length: 0))
+        editing {
+            if let edited = pendingEdited {
+                normalize(edited)
+            } else {
+                normalize(NSRange(location: selectedRange().location, length: 0))
+            }
+            normalizeTitle()
+            if let item = pendingNewItem {
+                setKind(item.kind, paragraph: paragraphRange(at: item.location), notify: false)
+            }
         }
-        normalizeTitle()
-        if let item = pendingNewItem {
-            setKind(item.kind, paragraph: paragraphRange(at: item.location), notify: false)
-        }
-        storage.endEditing()
         pendingEdited = nil
         pendingNewItem = nil
         if !endsWithTerminator { layoutManager.extraLineKind = nil }
@@ -263,9 +306,7 @@ final class NoteEditorEngine {
     }
 
     func selectionDidChange() {
-        guard !hasMarkedText() else { return }
-        let paragraph = paragraphRange(at: selectedRange().location)
-        setTypingAttributes(NoteFormatter.attributes(for: kind(ofParagraph: paragraph)))
+        refreshTypingAttributes()
     }
 
     private func applyShortcut(_ shortcut: (location: Int, text: String, kind: NoteBlockKind)) {
@@ -291,13 +332,13 @@ final class NoteEditorEngine {
             return
         }
         let allChecklist = touched.allSatisfy { kind(ofParagraph: $0).isChecklist }
-        storage.beginEditing()
-        for paragraph in touched {
-            let current = kind(ofParagraph: paragraph)
-            let next: NoteBlockKind = allChecklist ? .text : (current == .done ? .done : .todo)
-            setKind(next, paragraph: paragraph, notify: false)
+        editing {
+            for paragraph in touched {
+                let current = kind(ofParagraph: paragraph)
+                let next: NoteBlockKind = allChecklist ? .text : (current == .done ? .done : .todo)
+                setKind(next, paragraph: paragraph, notify: false)
+            }
         }
-        storage.endEditing()
         notifyChanged()
     }
 
@@ -305,11 +346,12 @@ final class NoteEditorEngine {
     func toggleDoneForSelection() {
         let touched = paragraphs(in: selectedRange()).filter { kind(ofParagraph: $0).isChecklist }
         guard !touched.isEmpty else { return }
-        storage.beginEditing()
-        for paragraph in touched {
-            setKind(kind(ofParagraph: paragraph) == .done ? .todo : .done, paragraph: paragraph, notify: false)
+        editing {
+            for paragraph in touched {
+                setKind(kind(ofParagraph: paragraph) == .done ? .todo : .done, paragraph: paragraph, notify: false)
+            }
         }
-        storage.endEditing()
+        if touched.contains(where: { kind(ofParagraph: $0) == .done }) { TFHaptics.success() } else { TFHaptics.tap() }
         notifyChanged()
     }
 
