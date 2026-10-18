@@ -73,7 +73,8 @@ targets:
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
-        UIBackgroundModes: [remote-notification]
+        UIBackgroundModes: [remote-notification, audio]
+        NSAppleMusicUsageDescription: TrueFocus plays an Apple Music focus playlist while you work, if you choose it in Settings.
         NSSupportsLiveActivities: true
         NSSupportsLiveActivitiesFrequentUpdates: true
         ITSAppUsesNonExemptEncryption: false

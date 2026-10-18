@@ -50,6 +50,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         controller.register(NudgeScheduler.shared)
 
         controller.register(LiveActivityController.shared)
+        controller.register(AudioDirector.shared)
 
         SyncService.shared.start()
         // Silent pushes from the sync server wake the app when the Mac changes the plan,

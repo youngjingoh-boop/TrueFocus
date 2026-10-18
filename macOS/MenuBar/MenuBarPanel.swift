@@ -133,6 +133,7 @@ private struct NowSection: View {
         HStack {
             ModeLabel(mode: snapshot.mode, text: snapshot.mode == .think ? "Think" : "Now")
             Spacer()
+            MusicQuickButton()
             if let start = snapshot.modeStartedAt {
                 ElapsedText(since: start,
                             base: snapshot.mode == .focus ? snapshot.taskFocusBefore : 0,
