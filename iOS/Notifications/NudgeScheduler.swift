@@ -24,6 +24,7 @@ final class NudgeScheduler: NSObject, FocusEffect, UNUserNotificationCenterDeleg
     private var lastTone: NudgeTone?
     private var lastCustom: CustomReminders?
     private var lastThinkMinutes: Double?
+    private var lastFocusCheckIn: Bool?
     /// When the current idle stretch began (idle has no segment to carry a start time).
     private var idleSince = Date()
 
@@ -55,11 +56,12 @@ final class NudgeScheduler: NSObject, FocusEffect, UNUserNotificationCenterDeleg
             idleSince = Date()
         }
         let settingsChanged = settings.tone != lastTone || settings.customReminders != lastCustom
-            || settings.thinkNudgeMinutes != lastThinkMinutes
+            || settings.thinkNudgeMinutes != lastThinkMinutes || settings.focusCheckIn != lastFocusCheckIn
         guard previous == nil || !snapshot.isSameState(as: previous) || settingsChanged else { return }
         lastTone = settings.tone
         lastCustom = settings.customReminders
         lastThinkMinutes = settings.thinkNudgeMinutes
+        lastFocusCheckIn = settings.focusCheckIn
         replan(snapshot: snapshot, settings: settings)
     }
 

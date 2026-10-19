@@ -310,6 +310,12 @@ final class BrainDumpTests: XCTestCase {
                        ["Email investors", "Fix login bug", "Call the designer", "Draft pricing page", "Book flights"])
     }
 
+    func testEmptyListItemsAreNotTasks() {
+        // Pasted checklists and numbered lists often end with an empty item.
+        let text = "- [ ] call Sam\n- [ ]\n[ ]\n3.\n4)\n-\n- [ ] ship it"
+        XCTAssertEqual(BrainDump.extractTasks(from: text), ["Call Sam", "Ship it"])
+    }
+
     func testCommaSeparatedSingleLine() {
         XCTAssertEqual(BrainDump.extractTasks(from: "gym, reply to Sam, ship v2"), ["Gym", "Reply to Sam", "Ship v2"])
         XCTAssertEqual(BrainDump.extractTasks(from: "Finish the deck, then sleep"), ["Finish the deck, then sleep"])

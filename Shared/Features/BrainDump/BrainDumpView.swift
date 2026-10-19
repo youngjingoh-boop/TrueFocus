@@ -269,7 +269,9 @@ struct BrainDumpView: View {
         let fresh = titles.filter { !existing.contains($0.lowercased()) }
         controller.setOutcome(win)
         controller.addTasks(fresh)
-        if let first = fresh.first.flatMap({ title in controller.openTasks.first { $0.title == title } }) {
+        // The win starts first when it's a task, even one already on the plan (a leftover).
+        let winTask: FocusTask? = win.isEmpty ? nil : controller.openTasks.first(where: { $0.title.lowercased() == win.lowercased() })
+        if let first = winTask ?? fresh.first.flatMap({ title in controller.openTasks.first { $0.title == title } }) {
             controller.makeNext(first)
             controller.start(first)
         } else {

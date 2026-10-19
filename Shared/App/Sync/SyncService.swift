@@ -156,10 +156,22 @@ final class SyncService {
     /// linked devices keep their own copies (and upload future edits unless they're turned off).
     func deleteServerCopy() async throws {
         guard let cloud else { throw SyncError.notConfigured }
-        await running?.value
-        guard let key = loadKey() else { throw SyncError.notConfigured }
-        try await cloud.deleteSpace(access: SyncAccess.token(for: key))
+        // Off first, so no sync starts while the delete is in flight: it would upload again and
+        // write the ledger back, and the next "Turn on" would then say "Not linked".
+        let wasEnabled = isEnabled
         setEnabled(false)
+        pending?.cancel()
+        await running?.value
+        guard let key = loadKey() else {
+            setEnabled(wasEnabled)
+            throw SyncError.notConfigured
+        }
+        do {
+            try await cloud.deleteSpace(access: SyncAccess.token(for: key))
+        } catch {
+            setEnabled(wasEnabled)
+            throw error
+        }
         SyncKeychain.delete()
         SyncLedgerFile.delete()
         spaceKey = nil
@@ -360,12 +372,18 @@ final class SyncService {
         let context = controller.context
         let cipher = SyncCipher(spaceKey: key)
         let access = SyncAccess.token(for: key)
+        let hadHistory = SyncLedgerFile.hasHistory
         status = .syncing
         defer { SyncLedgerFile.save(ledger, for: key) }
         do {
             if !Self.isMigrated(key) {
-                // The last time this key travels. Moved records come back below as changes.
-                try await cloud.rekey(legacyKey: key, access: access)
+                // Only a device that synced before (it has a ledger) can have records under the
+                // legacy id. A reinstall keeps its Keychain key but not this flag, and must not
+                // send the key to the server again. Moved records come back below as echoes.
+                if hadHistory {
+                    // The last time this key travels.
+                    try await cloud.rekey(legacyKey: key, access: access)
+                }
                 Self.markMigrated(key)
                 registerDevice()
             }
@@ -401,6 +419,10 @@ final class SyncService {
                 applying = true
                 try context.save()
                 applying = false
+                // Now, before the upload below suspends: until the controller re-reads the store,
+                // its lists still hold records just deleted here, and views and timers touching
+                // a deleted model crash.
+                controller.refresh()
             }
             if let newest = remote.compactMap(\.updatedAt).max() {
                 ledger.cursor = max(ledger.cursor ?? newest, newest)
@@ -419,7 +441,6 @@ final class SyncService {
 
             lastSyncAt = Date()
             status = .idle
-            if changed { controller.refresh() }
         } catch {
             applying = false
             status = .failed(Self.describe(error))
