@@ -640,7 +640,7 @@ footer.foot .wrap { padding-block: 48px max(40px, env(safe-area-inset-bottom, 0p
 }
 
 /* ---------- v3: stronger boot-out, nudges, the Mac ---------- */
-.story { height: calc(100svh + 12 * 74vh); }
+.story { height: calc(100svh + 12 * 92vh); }
 .ticks { grid-template-columns: repeat(12, minmax(0, 1fr)); max-width: 460px; }
 .ph-move { position: relative; z-index: 2; transition: transform .7s var(--ease), opacity .5s var(--ease); transform-origin: 100% 100%; }
 .ph-wrap.mac-on .ph-move { transform: translate(4%, -8%) scale(.42); }
@@ -767,7 +767,7 @@ footer.foot .wrap { padding-block: 48px max(40px, env(safe-area-inset-bottom, 0p
 .wesc { margin-top: 18px; font: 400 12px var(--text); color: #5a5a60; }
 
 @media (max-width: 900px) {
-  .story { height: calc(100svh + 12 * 66vh); }
+  .story { height: calc(100svh + 12 * 88vh); }
   .mac { position: absolute; left: 50%; right: auto; width: min(92vw, 520px); transform: translate(-50%, -50%) scale(.96); }
   .ph-wrap.mac-on .mac, .ph-wrap.mac-only .mac { transform: translate(-50%, -50%); }
   .ph-wrap.mac-on .ph-move { transform: translate(18%, 4%) scale(.42); }
@@ -775,6 +775,11 @@ footer.foot .wrap { padding-block: 48px max(40px, env(safe-area-inset-bottom, 0p
   .macnote { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .ph-move, .mac, .nb, .reelstack .reel, .tfpanel { transition: none; } .iphone.shake, .flash.go, .syncping.go { animation: none; } }
+
+/* scrolling: gentle stops in the clock section; the story steps one moment per gesture in script */
+html { scroll-snap-type: y proximity; }
+.snap { position: absolute; left: 0; width: 1px; height: 1px; pointer-events: none; scroll-snap-align: start; scroll-snap-stop: always; }
+@media (prefers-reduced-motion: reduce) { html { scroll-snap-type: none; } }
 
 .lay { position: absolute; inset: 0; transition: opacity .45s var(--ease); }
 .lay.hide { opacity: 0; }
@@ -1703,18 +1708,18 @@ footer.foot .wrap { padding-block: 48px max(40px, env(safe-area-inset-bottom, 0p
 
   // moment -> phone screen, callout, glow, device layout
   var M = [
-    { k: 'plan',   scr: 'dump',   call: ['Sorted on-device by Apple Intelligence', '40%'], glow: 'rgba(250,249,246,.32)' },
-    { k: 'focus',  scr: 'focus',  call: ['Counts up. Nothing cuts you off.', '40%'], glow: 'rgba(255,90,31,.6)' },
-    { k: 'shield', scr: 'shield', call: ['The feed is closed. The task is named.', '44%'], glow: 'rgba(255,90,31,.55)' },
-    { k: 'reply',  scr: 'reply',  call: ['Two minutes to reply. Then you are out.', '22%'], glow: 'rgba(255,90,31,.55)' },
-    { k: 'think',  scr: 'think',  call: ['Stuck means thinking, not scrolling', '38%'], glow: 'rgba(124,124,255,.6)' },
-    { k: 'switch', scr: 'switch', call: ['Your place, saved in one line', '52%'], glow: 'rgba(255,90,31,.5)' },
-    { k: 'rest',   scr: 'rest',   call: ['56 minutes of work earns 1:55 of rest', '42%'], glow: 'rgba(52,201,142,.55)' },
-    { k: 'nudge',  scr: 'nudge',  call: ['Firmer each time. Always names the next task.', '14%'], glow: 'rgba(255,90,31,.5)' },
-    { k: 'lock',   scr: 'lock',   call: ['Done, without unlocking', '76%'], glow: 'rgba(255,90,31,.5)' },
-    { k: 'mac',    scr: 'lock',   call: null, glow: 'rgba(255,90,31,.45)', mac: 'on' },
-    { k: 'macweb', scr: 'lock',   call: null, glow: 'rgba(255,90,31,.45)', mac: 'only' },
-    { k: 'score',  scr: 'score',  call: ['Momentum, not minutes', '28%'], glow: 'rgba(250,249,246,.32)' }
+    { k: 'plan',   dur: 4.6, scr: 'dump',   call: ['Sorted on-device by Apple Intelligence', '40%'], glow: 'rgba(250,249,246,.32)' },
+    { k: 'focus',  dur: 3.0, scr: 'focus',  call: ['Counts up. Nothing cuts you off.', '40%'], glow: 'rgba(255,90,31,.6)' },
+    { k: 'shield', dur: 2.8, scr: 'shield', call: ['The feed is closed. The task is named.', '44%'], glow: 'rgba(255,90,31,.55)' },
+    { k: 'reply',  dur: 6.4, scr: 'reply',  call: ['Two minutes to reply. Then you are out.', '22%'], glow: 'rgba(255,90,31,.55)' },
+    { k: 'think',  dur: 4.2, scr: 'think',  call: ['Stuck means thinking, not scrolling', '38%'], glow: 'rgba(124,124,255,.6)' },
+    { k: 'switch', dur: 4.0, scr: 'switch', call: ['Your place, saved in one line', '52%'], glow: 'rgba(255,90,31,.5)' },
+    { k: 'rest',   dur: 4.4, scr: 'rest',   call: ['56 minutes of work earns 1:55 of rest', '42%'], glow: 'rgba(52,201,142,.55)' },
+    { k: 'nudge',  dur: 5.2, scr: 'nudge',  call: ['Firmer each time. Always names the next task.', '14%'], glow: 'rgba(255,90,31,.5)' },
+    { k: 'lock',   dur: 2.4, scr: 'lock',   call: ['Done, without unlocking', '76%'], glow: 'rgba(255,90,31,.5)' },
+    { k: 'mac',    dur: 3.6, scr: 'lock',   call: null, glow: 'rgba(255,90,31,.45)', mac: 'on' },
+    { k: 'macweb', dur: 7.2, scr: 'lock',   call: null, glow: 'rgba(255,90,31,.45)', mac: 'only' },
+    { k: 'score',  dur: 2.6, scr: 'score',  call: ['Momentum, not minutes', '28%'], glow: 'rgba(250,249,246,.32)' }
   ];
   var N = M.length;
   var moms = story.querySelectorAll('.mom');
@@ -1917,6 +1922,8 @@ footer.foot .wrap { padding-block: 48px max(40px, env(safe-area-inset-bottom, 0p
     }
   };
 
+  // Scroll only picks the moment. Each moment then plays on its own clock, so a small scroll never
+  // scrubs it backwards and a fast flick never races through it.
   var inView = false;
   function frame() {
     var r = story.getBoundingClientRect();
@@ -1924,14 +1931,87 @@ footer.foot .wrap { padding-block: 48px max(40px, env(safe-area-inset-bottom, 0p
     inView = r.bottom > 0 && r.top < vh;
     var span = r.height - vh;
     var p = Math.max(0, Math.min(0.99999, -r.top / span));
-    var i = Math.floor(p * N), t = p * N - i;
+    var i = Math.floor(p * N);
     setStep(i);
-    U[M[i].k](t, reduce ? 0 : (performance.now() - since) / 1000);
+    var elapsed = (performance.now() - since) / 1000;
+    var t = reduce ? 1 : clamp((elapsed - 0.15) / M[i].dur);
+    U[M[i].k](t, reduce ? 0 : Math.max(0, elapsed - M[i].dur));
   }
-  var ticking = false;
-  window.addEventListener('scroll', function () { if (!ticking) { ticking = true; requestAnimationFrame(function () { ticking = false; frame(); }); } }, { passive: true });
-  window.addEventListener('resize', function () { scale(); placeTap(); frame(); });
-  setInterval(function () { if (inView && !document.hidden) frame(); }, 500);
+  // scroll-snap stops, one in the middle of each moment, so a flick moves exactly one moment
+  function snaps(section, fractions) {
+    section.querySelectorAll(':scope > .snap').forEach(function (el) { el.remove(); });
+    var span = section.offsetHeight - window.innerHeight;
+    fractions.forEach(function (f) {
+      var s = document.createElement('i');
+      s.className = 'snap';
+      s.setAttribute('aria-hidden', 'true');
+      s.style.top = Math.round(span * f) + 'px';
+      section.appendChild(s);
+    });
+  }
+  function layout() {
+    var clock = document.getElementById('clock');
+    if (clock) snaps(clock, [0.04, 0.5, 0.74, 0.95]);
+  }
+
+  // One gesture, one moment. Inside the story a wheel tick, trackpad swipe, touch swipe or arrow key
+  // moves exactly one moment; at either end, normal scrolling takes over again.
+  var lock = false, stepAt = 0, lastWheel = 0, navAt = 0, prevY = window.scrollY;
+  function geo() { var top = story.getBoundingClientRect().top + window.scrollY; return { top: top, span: story.offsetHeight - window.innerHeight }; }
+  function inside() { var g = geo(), y = window.scrollY; return y >= g.top - 2 && y <= g.top + g.span + 2; }
+  function centre(i) { var g = geo(); return g.top + g.span * (i + 0.5) / N; }
+  function go(top) { lock = true; stepAt = performance.now(); window.scrollTo({ top: top, behavior: reduce ? 'auto' : 'smooth' }); }
+  function stepTo(i) { go(centre(Math.max(0, Math.min(N - 1, i)))); }
+  function unlockIfQuiet() { var n = performance.now(); if (lock && n - stepAt > 700 && n - lastWheel > 170) lock = false; }
+  function move(dir) {
+    if (dir > 0) { if (cur < N - 1) { stepTo(cur + 1); return true; } }
+    else if (cur > 0) { stepTo(cur - 1); return true; }
+    return false;
+  }
+  window.addEventListener('wheel', function (e) {
+    if (!inside()) return;
+    lastWheel = performance.now();
+    unlockIfQuiet();
+    if (lock) { e.preventDefault(); return; }
+    if (Math.abs(e.deltaY) < 3) { e.preventDefault(); return; }
+    if (move(e.deltaY > 0 ? 1 : -1)) e.preventDefault();
+  }, { passive: false });
+  var ty = null, tin = false;
+  window.addEventListener('touchstart', function (e) { ty = e.touches[0].clientY; tin = inside(); }, { passive: true });
+  window.addEventListener('touchmove', function (e) { if (tin) e.preventDefault(); }, { passive: false });
+  window.addEventListener('touchend', function (e) {
+    if (!tin || ty === null) return;
+    var dy = ty - e.changedTouches[0].clientY; ty = null;
+    if (Math.abs(dy) < 36) return;
+    var dir = dy > 0 ? 1 : -1;
+    if (!move(dir)) { var g = geo(); go(dir > 0 ? g.top + g.span + window.innerHeight * 0.7 : g.top - window.innerHeight * 0.7); }
+  }, { passive: true });
+  window.addEventListener('keydown', function (e) {
+    if (!inside() || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || '')) return;
+    var dir = (e.key === 'ArrowDown' || e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey)) ? 1
+            : (e.key === 'ArrowUp' || e.key === 'PageUp' || (e.key === ' ' && e.shiftKey)) ? -1 : 0;
+    if (dir && move(dir)) e.preventDefault();
+  });
+  document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('a[href^="#"]')) navAt = performance.now(); });
+  window.addEventListener('scrollend', function () { if (performance.now() - stepAt > 300) lock = false; });
+  // a fast fling that lands inside the story starts at its first (or last) moment instead of the middle
+  var lastScrollT = 0;
+  function guardEntry() {
+    var g = geo(), y = window.scrollY, n = performance.now();
+    var nowIn = y >= g.top - 2 && y <= g.top + g.span + 2;
+    var fling = n - lastScrollT < 150; // part of a continuous scroll, not a reload restoring the position
+    lastScrollT = n;
+    if (nowIn && fling && !lock && n - navAt > 1500) {
+      if (prevY < g.top - 2 && y > centre(0) + 40) stepTo(0);
+      else if (prevY > g.top + g.span + 2 && y < centre(N - 1) - 40) stepTo(N - 1);
+    }
+    prevY = y;
+  }
+  window.addEventListener('scroll', function () { guardEntry(); frame(); }, { passive: true });
+  window.addEventListener('resize', function () { scale(); placeTap(); layout(); frame(); });
+  window.addEventListener('load', layout);
+  layout();
+  (function loop() { if (inView && !document.hidden) frame(); requestAnimationFrame(loop); })();
   frame();
 
   if (!reduce && window.matchMedia('(pointer: fine)').matches) {
@@ -1962,9 +2042,9 @@ async function boot() {
   catch (e) { return; }
 
   const isPhone = Math.min(window.innerWidth, window.innerHeight) < 600;
-  const N = isPhone ? 9000 : 20000;
+  const N = isPhone ? 6500 : 13000;
   const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isPhone ? 1.75 : 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.setClearColor(0x050506, 1);
   stageEl.appendChild(renderer.domElement);
@@ -2011,7 +2091,7 @@ async function boot() {
   const uniforms = {
     uTime: { value: 0 }, uW: { value: new THREE.Vector4(0, 1, 0, 0) },
     uSpeed: { value: 0 }, uChaos: { value: 1 }, uPixel: { value: renderer.getPixelRatio() },
-    uSize: { value: isPhone ? 2.6 : 2.2 }, uGlow: { value: 1 },
+    uSize: { value: isPhone ? 3.0 : 2.6 }, uGlow: { value: 1 },
     cEmber: { value: new THREE.Color('#FF5A1F') }, cEmber2: { value: new THREE.Color('#FFB28A') },
     cInk: { value: new THREE.Color('#F2F1EC') }, cDim: { value: new THREE.Color('#4A4A52') }, cThink: { value: new THREE.Color('#7C7CFF') }
   };
