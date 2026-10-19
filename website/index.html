@@ -2047,7 +2047,7 @@ async function boot() {
   catch (e) { return; }
 
   const isPhone = Math.min(window.innerWidth, window.innerHeight) < 600;
-  const N = isPhone ? 6500 : 13000;
+  const N = isPhone ? 9000 : 18000;
   const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.setSize(window.innerWidth, window.innerHeight, false);
@@ -2060,21 +2060,32 @@ async function boot() {
 
   // ---------- formations ----------
   const pRing = new Float32Array(N * 3), pChaos = new Float32Array(N * 3), pTunnel = new Float32Array(N * 3), pField = new Float32Array(N * 3);
-  const aRand = new Float32Array(N * 4);
+  const aRand = new Float32Array(N * 4), aCol = new Float32Array(N * 3), aKind = new Float32Array(N);
   const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
-  const R = 2.05;
+  // The mark, built the way docs/brand/07-motion builds it: a thick, soft ring (gaussian band), a core laid out
+  // on a golden-angle spiral (dense, hot centre), and a few strays drifting between them.
+  const R = 2.05, CORE = R * 14 / 37, BAND = R * 4 / 37, GA = Math.PI * (3 - Math.sqrt(5));
+  const g3 = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
+  const colour = t => { const hot = [255, 196, 168], mid = [255, 90, 31], deep = [160, 36, 8];
+    const [x, y, k] = t < 0.5 ? [hot, mid, t / 0.5] : [mid, deep, (t - 0.5) / 0.5]; return x.map((v, j) => (v + (y[j] - v) * k) / 255); };
+  const nCore = Math.round(N * 0.28), nStray = Math.round(N * 0.04);
   for (let i = 0; i < N; i++) {
     const i3 = i * 3, i4 = i * 4;
-    // ring + core, like the icon: an Ember ring around a solid dot
-    if (i % 7 === 0) {
-      const rr = 0.86 * Math.cbrt(Math.random());
-      const th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1);
-      pRing[i3] = rr * Math.sin(ph) * Math.cos(th); pRing[i3 + 1] = rr * Math.sin(ph) * Math.sin(th); pRing[i3 + 2] = rr * Math.cos(ph);
+    let col;
+    if (i < nCore) {
+      const j = i + 1, tt = Math.sqrt(j / nCore), rr = CORE * tt, an = j * GA;
+      pRing[i3] = Math.cos(an) * rr; pRing[i3 + 1] = Math.sin(an) * rr; pRing[i3 + 2] = gauss() * 0.05;
+      col = colour(0.1 + tt * 0.5); aKind[i] = 1;
+    } else if (i < nCore + nStray) {
+      const an = Math.random() * Math.PI * 2, rr = CORE * 1.2 + Math.random() * (R * 1.2 - CORE);
+      pRing[i3] = Math.cos(an) * rr; pRing[i3 + 1] = Math.sin(an) * rr; pRing[i3 + 2] = gauss() * 0.12;
+      col = colour(0.8); aKind[i] = 2;
     } else {
-      const a = Math.random() * Math.PI * 2, b = Math.random() * Math.PI * 2;
-      const tube = Math.abs(gauss()) * 0.07 + (Math.random() < 0.08 ? Math.random() * 0.5 : 0);
-      pRing[i3] = (R + tube * Math.cos(b)) * Math.cos(a); pRing[i3 + 1] = (R + tube * Math.cos(b)) * Math.sin(a); pRing[i3 + 2] = tube * Math.sin(b);
+      const an = Math.random() * Math.PI * 2, rr = R + g3() * BAND * 0.95;
+      pRing[i3] = Math.cos(an) * rr; pRing[i3 + 1] = Math.sin(an) * rr; pRing[i3 + 2] = gauss() * 0.07;
+      col = colour(0.5 + Math.abs(rr - R) / BAND * 0.3); aKind[i] = 0;
     }
+    aCol[i3] = col[0]; aCol[i3 + 1] = col[1]; aCol[i3 + 2] = col[2];
     // chaos: a wide restless cloud
     pChaos[i3] = (Math.random() * 2 - 1) * 11 * Math.pow(Math.random(), 0.6);
     pChaos[i3 + 1] = (Math.random() * 2 - 1) * 6.5;
@@ -2092,31 +2103,38 @@ async function boot() {
   geo.setAttribute('pTunnel', new THREE.BufferAttribute(pTunnel, 3));
   geo.setAttribute('pField', new THREE.BufferAttribute(pField, 3));
   geo.setAttribute('aRand', new THREE.BufferAttribute(aRand, 4));
+  geo.setAttribute('aCol', new THREE.BufferAttribute(aCol, 3));
+  geo.setAttribute('aKind', new THREE.BufferAttribute(aKind, 1));
 
   const uniforms = {
     uTime: { value: 0 }, uW: { value: new THREE.Vector4(0, 1, 0, 0) },
     uSpeed: { value: 0 }, uChaos: { value: 1 }, uPixel: { value: renderer.getPixelRatio() },
     uSize: { value: isPhone ? 3.0 : 2.6 }, uGlow: { value: 1 },
+    uMouse: { value: new THREE.Vector2(99, 99) }, uPush: { value: 0 }, uScatter: { value: 0 },
     cEmber: { value: new THREE.Color('#FF5A1F') }, cEmber2: { value: new THREE.Color('#FFB28A') },
     cInk: { value: new THREE.Color('#F2F1EC') }, cDim: { value: new THREE.Color('#4A4A52') }, cThink: { value: new THREE.Color('#7C7CFF') }
   };
   const mat = new THREE.ShaderMaterial({
     uniforms, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     vertexShader: /* glsl */`
-      uniform float uTime, uSpeed, uChaos, uPixel, uSize, uGlow;
+      uniform float uTime, uSpeed, uChaos, uPixel, uSize, uGlow, uPush, uScatter;
+      uniform vec2 uMouse;
       uniform vec4 uW;
       uniform vec3 cEmber, cEmber2, cInk, cDim, cThink;
       attribute vec3 pChaos, pTunnel, pField;
       attribute vec4 aRand;
+      attribute vec3 aCol;
+      attribute float aKind;
       varying vec3 vColor; varying float vAlpha;
       mat2 rot(float a) { float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
       void main() {
         float t = uTime, sd = aRand.x * 6.2831;
-        bool core = length(position) < 0.95;
+        bool core = aKind > 0.5 && aKind < 1.5;
         vec3 r = position;
-        r.xy = rot(t * (core ? 0.25 : 0.10 + 0.08 * aRand.z)) * r.xy;
-        r += (core ? 0.025 : 0.035) * vec3(sin(t * 1.3 + sd), cos(t * 1.1 + sd * 1.7), sin(t * 0.9 + sd * 2.3));
-        r *= 1.0 + 0.015 * sin(t * 1.6);
+        r.xy = rot(t * (core ? 0.036 : (aKind > 1.5 ? 0.012 : 0.015))) * r.xy;   // the motion file's slow spin
+        r += 0.018 * vec3(sin(t * 1.3 + sd), cos(t * 1.1 + sd * 1.7), sin(t * 0.9 + sd * 2.3));
+        r.xy *= 1.0 + 0.012 * sin(t * 0.67);                                        // and its breathing
+        r = mix(r, pChaos * 0.55, uScatter * uScatter);                              // a click scatters it
         vec3 c = pChaos;
         float jit = 0.6 + aRand.z * 1.4;
         c.x += sin(t * 0.9 * jit + sd + c.y * 0.50) * 1.0 * uChaos;
@@ -2130,13 +2148,19 @@ async function boot() {
         vec3 f = pField;
         f.y += sin(f.x * 0.42 + t * 0.55) * 0.16 + cos(f.z * 0.36 + t * 0.42) * 0.20;
         vec3 p = r * uW.x + c * uW.y + u * uW.z + f * uW.w;
+        // the pointer parts the particles and stirs them around it, then they drift back
+        vec2 dv = p.xy - uMouse;
+        float d2 = dot(dv, dv);
+        float fm = uPush * exp(-d2 / 0.5) * (uW.x + 0.6 * uW.y + 0.5 * uW.w);
+        p.xy += dv * inversesqrt(d2 + 0.03) * fm * (0.3 + 0.5 * aRand.y) + vec2(-dv.y, dv.x) * fm * 0.22;
+        p.z += fm * (aRand.z - 0.5) * 1.2;
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
         gl_Position = projectionMatrix * mv;
         float depth = max(-mv.z, 0.5);
-        float sz = uSize * (0.35 + aRand.y * aRand.y * 1.4) * (core ? 1.25 : 1.0) * (1.0 + uW.z * 0.9 + uW.y * 0.45 + uW.w * 0.25);
+        float sz = uSize * (0.35 + aRand.y * aRand.y * 1.4) * mix(1.0, core ? (1.15 - 0.45 * length(position) / 0.78) : 0.8, uW.x) * (1.0 + uW.z * 0.9 + uW.y * 0.45 + uW.w * 0.25) * (1.0 + fm * 0.6);
         gl_PointSize = min(sz * uPixel * (9.0 / depth), 46.0 * uPixel);
         vec3 chaosCol = aRand.w < 0.14 ? cThink : (aRand.w < 0.22 ? cEmber : mix(cDim * 1.3, cInk, aRand.w * aRand.w));
-        vec3 focusCol = core ? mix(cEmber2, vec3(1.0, 0.93, 0.86), aRand.y * 0.6) : mix(cEmber, cEmber2, aRand.y * 0.7);
+        vec3 focusCol = aCol;
         vec3 tunCol = mix(cEmber, cInk, aRand.w * 0.55);
         vec3 fieldCol = mix(cDim * 1.4, cInk, 0.25 + aRand.w * 0.6);
         vColor = focusCol * uW.x + chaosCol * uW.y + tunCol * uW.z + fieldCol * uW.w;
@@ -2144,8 +2168,7 @@ async function boot() {
         float nearFade = smoothstep(0.6, 2.4, depth);
         float a = (0.55 + 0.45 * aRand.x) * fog * nearFade;
         a *= mix(1.0, 0.9, uW.y) * mix(1.0, 1.35, uW.z);
-        // the formed mark keeps a clean, solid core: core particles fade out as the ring forms (docs/brand: no dots on the core)
-        if (core) a *= 1.0 - smoothstep(0.35, 0.9, uW.x);
+        a *= mix(1.0, (0.4 + 0.5 * aRand.w) * (core ? 1.35 : 1.2), uW.x) * (1.0 + fm * 0.8);
         vAlpha = a * uGlow;
       }`,
     fragmentShader: /* glsl */`
@@ -2153,8 +2176,7 @@ async function boot() {
       void main() {
         vec2 q = gl_PointCoord - 0.5;
         float d = length(q);
-        float a = smoothstep(0.5, 0.0, d);
-        a *= a;
+        float a = smoothstep(0.5, 0.18, d) * 0.85 + smoothstep(0.5, 0.0, d) * 0.15;
         if (a < 0.01) discard;
         gl_FragColor = vec4(vColor, a * vAlpha);
       }`
@@ -2170,18 +2192,12 @@ async function boot() {
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
     fragmentShader: `uniform float uO; uniform vec3 cEmber; varying vec2 vUv;
-      // the brand core: a solid radial gradient (#FFE6D6 -> #FF9560 -> #FF5A1F) with a soft Signal glow around it
+      // a warm haze that fills the ring, brightest at the core (docs/brand/07-motion)
       void main(){
         float d = length(vUv - 0.5) * 9.0;
-        float rc = 0.94;
-        vec3 hot = vec3(1.0, 0.902, 0.839), mid = vec3(1.0, 0.584, 0.376);
-        float k = clamp(d / rc, 0.0, 1.0);
-        vec3 core = k < 0.45 ? mix(hot, mid, k / 0.45) : mix(mid, cEmber, (k - 0.45) / 0.55);
-        float inCore = 1.0 - smoothstep(rc - 0.03, rc + 0.02, d);
-        float glow = exp(-max(d - rc, 0.0) * 2.4) * 0.55 + exp(-max(d - rc, 0.0) * 0.9) * 0.12;
-        vec3 col = mix(cEmber * glow, core, inCore);
-        float a = max(inCore, glow) * uO;
-        gl_FragColor = vec4(col * a, a);
+        float haze = (1.0 - smoothstep(0.2, 2.35, d)) * 0.2 + exp(-d * 1.5) * 0.24;
+        float a = haze * uO;
+        gl_FragColor = vec4(cEmber * a, a);
       }`
   });
   const glow = new THREE.Mesh(new THREE.PlaneGeometry(9, 9), glowMat);
@@ -2235,8 +2251,28 @@ async function boot() {
   let cur = SCENES.chaos();
   cur.glow = 0;
   const introStart = performance.now();
-  const pointer = { x: 0, y: 0, sx: 0, sy: 0 };
-  window.addEventListener('pointermove', e => { pointer.x = e.clientX / window.innerWidth * 2 - 1; pointer.y = e.clientY / window.innerHeight * 2 - 1; }, { passive: true });
+  const pointer = { x: 0, y: 0, sx: 0, sy: 0, on: false, moved: 0 };
+  window.addEventListener('pointermove', e => {
+    pointer.x = e.clientX / window.innerWidth * 2 - 1; pointer.y = e.clientY / window.innerHeight * 2 - 1;
+    pointer.on = true; pointer.moved = performance.now();
+  }, { passive: true });
+  document.addEventListener('pointerleave', () => { pointer.on = false; });
+  window.addEventListener('blur', () => { pointer.on = false; });
+  // click anywhere that isn't a control: the mark scatters, then finds focus again
+  let scatter = 0;
+  window.addEventListener('pointerdown', e => {
+    if (reduce || (e.target.closest && e.target.closest('a, button, input, label, select, textarea, .iphone, .mac'))) return;
+    scatter = 1;
+  });
+  // where the pointer meets the particle plane, in the group's own coordinates
+  const ray = new THREE.Vector3(), hit = new THREE.Vector2(99, 99), mouseLocal = new THREE.Vector2(99, 99);
+  let push = 0;
+  function pointerOnPlane() {
+    ray.set(pointer.x, -pointer.y, 0.5).unproject(camera).sub(camera.position).normalize();
+    if (Math.abs(ray.z) < 1e-4) return;
+    const k = -camera.position.z / ray.z;
+    hit.set(camera.position.x + ray.x * k - group.position.x, camera.position.y + ray.y * k - group.position.y);
+  }
 
   function resize() {
     const w = window.innerWidth, h = window.innerHeight;
@@ -2283,6 +2319,17 @@ async function boot() {
     uniforms.uGlow.value = 1;
     glowMat.uniforms.uO.value = cur.glow * cur.w[0];
     group.position.set(cur.x, cur.y, 0);
+    // pointer interaction: ease toward the cursor, and fade the push when it rests or leaves
+    pointerOnPlane();
+    if (mouseLocal.x > 50) mouseLocal.copy(hit);
+    mouseLocal.lerp(hit, 1 - Math.pow(0.0008, dt));
+    const resting = performance.now() - pointer.moved > 2500;
+    const pushTarget = reduce || !pointer.on ? 0 : (resting ? 0.55 : 1);
+    push += (pushTarget - push) * (1 - Math.pow(0.02, dt));
+    uniforms.uMouse.value.copy(mouseLocal);
+    uniforms.uPush.value = push;
+    scatter = Math.max(0, scatter - dt * 0.55);
+    uniforms.uScatter.value = scatter;
     pointer.sx += (pointer.x - pointer.sx) * 0.04; pointer.sy += (pointer.y - pointer.sy) * 0.04;
     const par = reduce ? 0 : 1;
     group.rotation.x = (cur.tilt + pointer.sy * 0.12) * par;
