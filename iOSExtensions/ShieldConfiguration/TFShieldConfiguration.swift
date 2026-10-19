@@ -17,6 +17,13 @@ final class TFShieldConfiguration: ShieldConfigurationDataSource {
     }
 
     private static let ember = UIColor(red: 1.0, green: 90.0 / 255.0, blue: 31.0 / 255.0, alpha: 1)
+    /// Brand Ink (#050506): the label on an Ember fill.
+    private static let onEmber = UIColor(red: 5.0 / 255.0, green: 5.0 / 255.0, blue: 6.0 / 255.0, alpha: 1)
+    /// The mark's gradients (docs/brand/tokens.json): ring #FF7A40 → #E2460E, core #FFE6D6 → #FF9560 → Ember.
+    private static let ringTop = UIColor(red: 1.0, green: 122.0 / 255.0, blue: 64.0 / 255.0, alpha: 1)
+    private static let ringBottom = UIColor(red: 226.0 / 255.0, green: 70.0 / 255.0, blue: 14.0 / 255.0, alpha: 1)
+    private static let coreHot = UIColor(red: 1.0, green: 230.0 / 255.0, blue: 214.0 / 255.0, alpha: 1)
+    private static let coreMid = UIColor(red: 1.0, green: 149.0 / 255.0, blue: 96.0 / 255.0, alpha: 1)
     private static let ink = UIColor(white: 0.96, alpha: 1)
     private static let ink2 = UIColor(white: 0.74, alpha: 1)
     /// The secondary button sits on a light glass pill (iOS 26), so its label is dark.
@@ -92,7 +99,7 @@ final class TFShieldConfiguration: ShieldConfigurationDataSource {
             icon: icon(),
             title: ShieldConfiguration.Label(text: title, color: Self.ink),
             subtitle: ShieldConfiguration.Label(text: subtitle, color: Self.ink2),
-            primaryButtonLabel: ShieldConfiguration.Label(text: "Back to work", color: .black),
+            primaryButtonLabel: ShieldConfiguration.Label(text: "Back to work", color: Self.onEmber),
             primaryButtonBackgroundColor: Self.ember,
             secondaryButtonLabel: secondary
         )
@@ -113,9 +120,66 @@ final class TFShieldConfiguration: ShieldConfigurationDataSource {
         return line
     }
 
+    /// The TruFocus mark (docs/brand, "Ember Open"): one ring, one point of light. The shield is
+    /// always dark, so this is the glow cut. Drawn on the brand's 100-unit field: ring radius 37,
+    /// stroke 5.5; core radius 17; a soft Signal glow behind the core and along the ring.
     private func icon() -> UIImage? {
-        let configuration = UIImage.SymbolConfiguration(pointSize: 40, weight: .semibold)
-        return UIImage(systemName: "bolt.fill", withConfiguration: configuration)?
-            .withTintColor(Self.ember, renderingMode: .alwaysOriginal)
+        let side: CGFloat = 64
+        let u = side / 100
+        let center = CGPoint(x: side / 2, y: side / 2)
+        let format = UIGraphicsImageRendererFormat.preferred()
+        format.opaque = false
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format)
+        let image = renderer.image { context in
+            let cg = context.cgContext
+            guard let space = CGColorSpace(name: CGColorSpace.sRGB) else { return }
+            func circle(_ radius: CGFloat) -> CGRect {
+                CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
+            }
+
+            // Core glow: Signal at 65%, fading out inside the ring.
+            if let glow = CGGradient(colorsSpace: space,
+                                     colors: [Self.ember.withAlphaComponent(0.65).cgColor,
+                                              Self.ember.withAlphaComponent(0).cgColor] as CFArray,
+                                     locations: [0.5, 1]) {
+                cg.drawRadialGradient(glow, startCenter: center, startRadius: 0,
+                                      endCenter: center, endRadius: 34 * u, options: [])
+            }
+
+            // Ring glow: Signal at 30%, blurred.
+            cg.saveGState()
+            cg.setShadow(offset: .zero, blur: 6.4 * u, color: Self.ember.withAlphaComponent(0.6).cgColor)
+            cg.setStrokeColor(Self.ember.withAlphaComponent(0.3).cgColor)
+            cg.setLineWidth(5.5 * u)
+            cg.strokeEllipse(in: circle(37 * u))
+            cg.restoreGState()
+
+            // Ring: vertical gradient, top to bottom.
+            cg.saveGState()
+            cg.addEllipse(in: circle(37 * u))
+            cg.setLineWidth(5.5 * u)
+            cg.replacePathWithStrokedPath()
+            cg.clip()
+            if let ring = CGGradient(colorsSpace: space,
+                                     colors: [Self.ringTop.cgColor, Self.ringBottom.cgColor] as CFArray,
+                                     locations: [0, 1]) {
+                cg.drawLinearGradient(ring, start: CGPoint(x: center.x, y: 11 * u), end: CGPoint(x: center.x, y: 89 * u),
+                                      options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
+            }
+            cg.restoreGState()
+
+            // Core: centred radial gradient.
+            cg.saveGState()
+            cg.addEllipse(in: circle(17 * u))
+            cg.clip()
+            if let core = CGGradient(colorsSpace: space,
+                                     colors: [Self.coreHot.cgColor, Self.coreMid.cgColor, Self.ember.cgColor] as CFArray,
+                                     locations: [0, 0.45, 1]) {
+                cg.drawRadialGradient(core, startCenter: center, startRadius: 0,
+                                      endCenter: center, endRadius: 17 * u, options: [.drawsAfterEndLocation])
+            }
+            cg.restoreGState()
+        }
+        return image.withRenderingMode(.alwaysOriginal)
     }
 }

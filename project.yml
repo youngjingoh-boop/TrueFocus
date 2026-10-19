@@ -291,7 +291,7 @@ targets:
         LSApplicationCategoryType: public.app-category.productivity
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
         ITSAppUsesNonExemptEncryption: false
-        NSHumanReadableCopyright: Built for momentum.
+        NSHumanReadableCopyright: Built for hyperfocus. Not against it.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         CFBundleURLTypes:

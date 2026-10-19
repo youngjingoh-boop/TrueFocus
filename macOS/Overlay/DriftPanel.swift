@@ -116,7 +116,7 @@ private struct DriftCard: View {
             }
             HStack(spacing: 8) {
                 Button("Back to it", action: onBack)
-                    .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: .black))
+                    .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: TF.Palette.onSignal))
                     .keyboardShortcut(.defaultAction)
                 Button("Part of the task", action: onPartOfTask)
                     .buttonStyle(QuietButtonStyle())

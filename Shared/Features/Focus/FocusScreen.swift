@@ -146,7 +146,7 @@ struct FocusScreen: View {
         case .think:
             HStack(spacing: 12) {
                 Button("Back to it") { controller.backToIt() }
-                    .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.think, foreground: .black))
+                    .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.think, foreground: TF.Palette.onSignal))
                     .keyboardShortcut(.return, modifiers: .command)
                 Button { showSwitcher = true } label: { Image(systemName: "arrow.left.arrow.right") }
                     .buttonStyle(OrbButtonStyle(tint: TF.Palette.nightInk, size: 52))
@@ -158,7 +158,7 @@ struct FocusScreen: View {
                     TFHaptics.tap()
                     controller.backToIt()
                 }
-                .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.rest, foreground: .black))
+                .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.rest, foreground: TF.Palette.onSignal))
                 .keyboardShortcut(.return, modifiers: .command)
                 Button { showSwitcher = true } label: { Image(systemName: "list.bullet") }
                     .buttonStyle(OrbButtonStyle(tint: TF.Palette.nightInk, size: 52))
