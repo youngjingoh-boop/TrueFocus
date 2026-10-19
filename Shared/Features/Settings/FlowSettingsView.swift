@@ -79,6 +79,7 @@ struct FlowSettingsView<Extra: View>: View {
                        value: Binding(get: { Int(controller.settings.thinkNudgeMinutes) },
                                       set: { value in controller.updateSettings { $0.thinkNudgeMinutes = Double(value) } }),
                        range: 1...30, unit: "min")
+            ToggleRow(title: "Check in after 75 minutes of focus", isOn: controller.binding(\.focusCheckIn))
             StepperRow(title: "Tasks you can juggle", value: controller.binding(\.juggleLimit), range: 1...Juggle.maxLimit, unit: "")
         }
     }

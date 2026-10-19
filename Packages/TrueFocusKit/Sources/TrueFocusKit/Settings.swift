@@ -5,12 +5,14 @@ import Foundation
 /// never wipe old ones.
 public struct TFSettings: Codable, Equatable, Sendable {
     // Flow
-    public var tone: NudgeTone = .savage
+    public var tone: NudgeTone = .direct
     public var restBaseSeconds: Double = 45
     public var adaptiveRest: Bool = true
     /// Start the next task automatically when the micro-rest ends.
     public var autoContinue: Bool = true
     public var thinkNudgeMinutes: Double = 5
+    /// Check in once after 75 minutes of focus. Off by default so hyperfocus runs uninterrupted.
+    public var focusCheckIn: Bool = false
     /// How many tasks you can juggle at once, the current one included.
     public var juggleLimit: Int = 4
     /// Superseded by `juggleLimit` (its old default of 3 left no room to juggle three
@@ -79,6 +81,7 @@ public struct TFSettings: Codable, Equatable, Sendable {
         adaptiveRest = try c.decodeIfPresent(Bool.self, forKey: .adaptiveRest) ?? d.adaptiveRest
         autoContinue = try c.decodeIfPresent(Bool.self, forKey: .autoContinue) ?? d.autoContinue
         thinkNudgeMinutes = try c.decodeIfPresent(Double.self, forKey: .thinkNudgeMinutes) ?? d.thinkNudgeMinutes
+        focusCheckIn = try c.decodeIfPresent(Bool.self, forKey: .focusCheckIn) ?? d.focusCheckIn
         maxInPlay = try c.decodeIfPresent(Int.self, forKey: .maxInPlay) ?? d.maxInPlay
         juggleLimit = try c.decodeIfPresent(Int.self, forKey: .juggleLimit) ?? d.juggleLimit
         soundEffects = try c.decodeIfPresent(Bool.self, forKey: .soundEffects) ?? d.soundEffects

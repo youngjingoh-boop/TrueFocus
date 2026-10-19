@@ -45,12 +45,15 @@ public struct NudgeContext: Sendable {
     public var paused: Bool
     public var tone: NudgeTone
     public var thinkNudgeMinutes: Double
+    /// Ask once after 75 minutes of focus, in case the session was forgotten. Off by default:
+    /// a long focus segment is usually hyperfocus, and a nudge would break it.
+    public var focusCheckIn: Bool
     public var now: Date
 
     public init(mode: FlowMode, modeStartedAt: Date?, plannedRestEnd: Date? = nil,
                 taskTitle: String? = nil, nextTaskTitle: String? = nil, openTaskCount: Int = 0,
-                dayEnded: Bool = false, paused: Bool = false, tone: NudgeTone = .savage,
-                thinkNudgeMinutes: Double = 5, now: Date) {
+                dayEnded: Bool = false, paused: Bool = false, tone: NudgeTone = .direct,
+                thinkNudgeMinutes: Double = 5, focusCheckIn: Bool = false, now: Date) {
         self.mode = mode
         self.modeStartedAt = modeStartedAt
         self.plannedRestEnd = plannedRestEnd
@@ -61,6 +64,7 @@ public struct NudgeContext: Sendable {
         self.paused = paused
         self.tone = tone
         self.thinkNudgeMinutes = thinkNudgeMinutes
+        self.focusCheckIn = focusCheckIn
         self.now = now
     }
 }
@@ -95,7 +99,8 @@ public enum NudgePlanner {
             }
 
         case .focus:
-            // A long focus segment is fine; a forgotten one is not. Check in once.
+            // A long focus segment is fine; a forgotten one is not. Check in once, if asked to.
+            guard context.focusCheckIn else { break }
             let start = context.modeStartedAt ?? context.now
             let line = copy.stillOnIt(task: context.taskTitle)
             nudges.append(Nudge(id: "focus.0", fireAt: start.addingTimeInterval(75 * 60),

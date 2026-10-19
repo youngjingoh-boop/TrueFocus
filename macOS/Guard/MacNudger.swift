@@ -54,6 +54,7 @@ final class MacNudger: FocusEffect {
             paused: snapshot.isPaused,
             tone: settings.tone,
             thinkNudgeMinutes: settings.thinkNudgeMinutes,
+            focusCheckIn: settings.focusCheckIn,
             now: Date()
         )
         for nudge in NudgePlanner.plan(context) {

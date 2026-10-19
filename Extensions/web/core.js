@@ -402,7 +402,7 @@
       ? normalizeConfig(settings.doomScroll)
       : normalizeConfig(PRESETS[p.sensitivity] || DEFAULT_CONFIG);
     var tone = settings && (settings.tone === 'calm' || settings.tone === 'direct' || settings.tone === 'savage')
-      ? settings.tone : 'savage';
+      ? settings.tone : 'direct';
     var strict = isStrict(snapshot, nowMs);
     return {
       appManaged: appManaged,
