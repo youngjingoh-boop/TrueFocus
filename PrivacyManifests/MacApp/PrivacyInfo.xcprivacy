@@ -3,9 +3,9 @@
 <!--
   Privacy manifest for the TrueFocus Mac app (target TrueFocusMac).
 
-  Collected data (sync is on from first launch whenever TFSupabaseHost is set, see SyncService):
-  - Other User Content: tasks, plans and notes, sealed with AES-GCM on device before upload.
-  The Mac registers no push token. Nothing is linked to identity or used for tracking.
+  Collected data: none. Sync (off until the user turns it on) sends tasks, plans and notes only
+  end-to-end encrypted, under a key that never leaves the user's devices (docs/appstore/privacy.md,
+  Label B). The Mac registers no push token.
   The scroll watch and the browser bridge (127.0.0.1:52525) keep everything on this Mac.
 
   Required-reason APIs: UserDefaults only (App Group suite via TrueFocusKit.SharedStore, and
@@ -18,20 +18,7 @@
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
 	<key>NSPrivacyCollectedDataTypes</key>
-	<array>
-		<dict>
-			<key>NSPrivacyCollectedDataType</key>
-			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
-			<key>NSPrivacyCollectedDataTypeLinked</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypePurposes</key>
-			<array>
-				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-			</array>
-		</dict>
-	</array>
+	<array/>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 		<dict>

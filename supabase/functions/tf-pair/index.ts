@@ -1,15 +1,20 @@
 // TrueFocus device linking. The server relays public keys and a sealed box; it never sees
 // the space key.
 //
-//   host  { pk }            -> { code, expires_at }  device that has the key shows the code
-//   join  { code, pk }      -> { host_pk }           device joining types it in
-//   wait  { code, host_pk } -> { guest_pk | null }   host polls for the joiner
-//   seal  { code, host_pk, box } -> { ok }           host sends the key, sealed to the joiner,
-//                                                    once both screens show the same match number
-//   fetch { code, pk }      -> { box | null }       joiner polls; the code is gone after this
+//   host   { commit }               -> { code, expires_at }  host shows the code; commit = sha256(host pk)
+//   join   { code, claim }          -> { commit }            joiner types the code, claims it
+//   offer  { code, claim, pk }      -> { ok }                joiner sends its pk, only after it holds commit
+//   wait   { code, commit }         -> { guest_pk | null }   host polls for the joiner
+//   reveal { code, commit, pk }     -> { ok }                host reveals its pk (must hash to commit)
+//   seal   { code, commit, box }    -> { ok }                host sends the key sealed to the joiner,
+//                                                            once both screens show the same number
+//   fetch  { code, pk }             -> { host_pk, box }      joiner polls; the code is gone after the box
 //
-// Both devices derive the box key and a 4-digit match number from an X25519 exchange, so a
-// server that swapped the public keys would show two different numbers.
+// Both devices derive the box key and a 4-digit match number from an X25519 exchange. The order
+// is what makes the number meaningful: the joiner holds the host's commitment before it sends its
+// own key, and the host reveals its key only after the joiner's is in. A server in the middle has
+// to fix every key it shows either side before it can know the other side's number, so it can't
+// search for keys that make the two numbers agree.
 //
 // Codes are 6 digits, live 10 minutes, link one device. Failed joins are counted globally and
 // the endpoint locks for everyone after 40 misses in 10 minutes. Tables are service-role only.
@@ -27,7 +32,9 @@ const db = createClient(
 const TEN_MINUTES = 10 * 60 * 1000;
 const MAX_FAILURES = 40;
 
-type Body = { action?: string; key?: string; code?: string; pk?: string; host_pk?: string; box?: string };
+type Body = {
+  action?: string; key?: string; code?: string; pk?: string; commit?: string; claim?: string; box?: string;
+};
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -45,6 +52,17 @@ function sixDigits(): string {
 function publicKey(value: unknown): string | null {
   const s = typeof value === "string" ? value.trim() : "";
   return /^[A-Za-z0-9+/]{43}=$/.test(s) ? s : null;
+}
+
+/** sha256 hex of a public key, as the host commits to it. */
+function commitment(value: unknown): string | null {
+  const s = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return /^[0-9a-f]{64}$/.test(s) ? s : null;
+}
+
+async function sha256Hex(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function digits(value: unknown): string | null {
@@ -87,44 +105,68 @@ Deno.serve(async (req) => {
 
   switch (body.action) {
     case "host": {
-      const pk = publicKey(body.pk);
-      if (!pk) return json({ error: "invalid key" }, 400);
+      const commit = commitment(body.commit);
+      if (!commit) return json({ error: "invalid commitment" }, 400);
       // space_key stays empty: nothing secret is stored.
-      return await insertWithCode({ host_pk: pk, space_key: "" }, new Date(now + TEN_MINUTES).toISOString());
+      return await insertWithCode({ host_commit: commit, space_key: "" }, new Date(now + TEN_MINUTES).toISOString());
     }
 
     case "join": {
       const code = digits(body.code);
-      const pk = publicKey(body.pk);
-      if (!code || !pk) return json({ error: "invalid code" }, 400);
+      const claim = commitment(body.claim);
+      if (!code || !claim) return json({ error: "invalid code" }, 400);
       if (await tooManyFailures(now)) return json({ error: "too many attempts, wait a few minutes" }, 429);
       // Only the first joiner gets in; the update is conditional so two can't race.
-      const { data } = await db.from("tf_pairings").update({ guest_pk: pk })
-        .eq("code", code).not("host_pk", "is", null).is("guest_pk", null).gt("expires_at", nowISO)
-        .select("host_pk").maybeSingle();
+      const { data } = await db.from("tf_pairings").update({ guest_claim: claim })
+        .eq("code", code).not("host_commit", "is", null).is("guest_claim", null).gt("expires_at", nowISO)
+        .select("host_commit").maybeSingle();
       if (!data) return await miss();
       await db.from("tf_pair_failures").delete().lt("at", new Date(now - TEN_MINUTES).toISOString());
-      return json({ host_pk: data.host_pk });
+      return json({ commit: data.host_commit });
+    }
+
+    case "offer": {
+      const code = digits(body.code);
+      const claim = commitment(body.claim);
+      const pk = publicKey(body.pk);
+      if (!code || !claim || !pk) return json({ error: "invalid key" }, 400);
+      const { data } = await db.from("tf_pairings").update({ guest_pk: pk })
+        .eq("code", code).eq("guest_claim", claim).is("guest_pk", null).gt("expires_at", nowISO)
+        .select("code").maybeSingle();
+      if (!data) return json({ error: "code not found or expired" }, 404);
+      return json({ ok: true });
     }
 
     case "wait": {
       const code = digits(body.code);
-      const hostPK = publicKey(body.host_pk);
-      if (!code || !hostPK) return json({ error: "invalid code" }, 400);
+      const commit = commitment(body.commit);
+      if (!code || !commit) return json({ error: "invalid code" }, 400);
       const { data } = await db.from("tf_pairings").select("guest_pk")
-        .eq("code", code).eq("host_pk", hostPK).gt("expires_at", nowISO).maybeSingle();
+        .eq("code", code).eq("host_commit", commit).gt("expires_at", nowISO).maybeSingle();
       if (!data) return json({ error: "code not found or expired" }, 404);
       return json({ guest_pk: data.guest_pk ?? null });
     }
 
+    case "reveal": {
+      const code = digits(body.code);
+      const commit = commitment(body.commit);
+      const pk = publicKey(body.pk);
+      if (!code || !commit || !pk || (await sha256Hex(pk)) !== commit) return json({ error: "invalid key" }, 400);
+      const { data } = await db.from("tf_pairings").update({ host_pk: pk })
+        .eq("code", code).eq("host_commit", commit).not("guest_pk", "is", null).is("host_pk", null)
+        .gt("expires_at", nowISO).select("code").maybeSingle();
+      if (!data) return json({ error: "code not found or expired" }, 404);
+      return json({ ok: true });
+    }
+
     case "seal": {
       const code = digits(body.code);
-      const hostPK = publicKey(body.host_pk);
+      const commit = commitment(body.commit);
       const box = typeof body.box === "string" ? body.box.trim() : "";
-      if (!code || !hostPK || box.length < 40 || box.length > 1024) return json({ error: "invalid box" }, 400);
+      if (!code || !commit || box.length < 40 || box.length > 1024) return json({ error: "invalid box" }, 400);
       const { data } = await db.from("tf_pairings").update({ box })
-        .eq("code", code).eq("host_pk", hostPK).not("guest_pk", "is", null).is("box", null).gt("expires_at", nowISO)
-        .select("code").maybeSingle();
+        .eq("code", code).eq("host_commit", commit).not("host_pk", "is", null).not("guest_pk", "is", null)
+        .is("box", null).gt("expires_at", nowISO).select("code").maybeSingle();
       if (!data) return json({ error: "code not found or expired" }, 404);
       return json({ ok: true });
     }
@@ -133,12 +175,11 @@ Deno.serve(async (req) => {
       const code = digits(body.code);
       const guestPK = publicKey(body.pk);
       if (!code || !guestPK) return json({ error: "invalid code" }, 400);
-      const { data } = await db.from("tf_pairings").select("box")
+      const { data } = await db.from("tf_pairings").select("host_pk, box")
         .eq("code", code).eq("guest_pk", guestPK).gt("expires_at", nowISO).maybeSingle();
       if (!data) return json({ error: "code not found or expired" }, 404);
-      if (!data.box) return json({ box: null });
-      await db.from("tf_pairings").delete().eq("code", code);
-      return json({ box: data.box });
+      if (data.box) await db.from("tf_pairings").delete().eq("code", code);
+      return json({ host_pk: data.host_pk ?? null, box: data.box ?? null });
     }
 
     // Legacy: the key itself passes through the server.

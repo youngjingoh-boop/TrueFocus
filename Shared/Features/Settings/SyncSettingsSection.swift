@@ -11,6 +11,8 @@ struct SyncSettingsSection: View {
     @State private var joined: SyncService.JoinedLink?
     /// This device entered a code and waits for the other to confirm.
     @State private var pending: SyncService.PendingJoin?
+    /// The match number, once the other device has revealed its key.
+    @State private var joinMatch: String?
     @State private var entering = false
     @State private var entry = ""
     @State private var working = false
@@ -320,17 +322,23 @@ struct SyncSettingsSection: View {
 
     private func pendingJoin(_ join: SyncService.PendingJoin) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Check the other device shows")
-                .font(.headline)
-                .foregroundStyle(TF.Palette.ink)
-            matchNumber(join.match)
-            Text("Then tap They match there. If it shows a different number, cancel.")
-                .font(.subheadline)
-                .foregroundStyle(TF.Palette.ink2)
-                .fixedSize(horizontal: false, vertical: true)
+            if let joinMatch {
+                Text("Check the other device shows")
+                    .font(.headline)
+                    .foregroundStyle(TF.Palette.ink)
+                matchNumber(joinMatch)
+                Text("Then tap They match there. If it shows a different number, cancel.")
+                    .font(.subheadline)
+                    .foregroundStyle(TF.Palette.ink2)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("Waiting for the other device…")
+                    .font(.headline)
+                    .foregroundStyle(TF.Palette.ink)
+            }
             HStack(spacing: 8) {
                 ProgressView()
-                Button("Cancel") { pending = nil }
+                Button("Cancel") { endJoin() }
                     .buttonStyle(QuietButtonStyle(foreground: TF.Palette.ink2))
             }
         }
@@ -340,12 +348,18 @@ struct SyncSettingsSection: View {
         .task(id: join.code) { await waitForKey(join) }
     }
 
+    private func endJoin() {
+        pending = nil
+        joinMatch = nil
+    }
+
     private func join() async {
         guard entry.count == 6, !working else { return }
         working = true
         message = nil
         defer { working = false }
         do {
+            joinMatch = nil
             pending = try await sync.join(code: entry)
             entering = false
             entry = ""
@@ -354,26 +368,34 @@ struct SyncSettingsSection: View {
         }
     }
 
-    /// Polls for the sealed key for up to ten minutes, or until cancelled.
+    /// Polls for the other device's key, then the sealed space key, for up to ten minutes.
     private func waitForKey(_ join: SyncService.PendingJoin) async {
         let giveUp = Date().addingTimeInterval(10 * 60)
         while !Task.isCancelled, Date() < giveUp {
             do {
-                if try await sync.finishJoin(join) {
+                switch try await sync.checkJoin(join) {
+                case .waiting:
+                    break
+                case .compare(let match):
+                    if joinMatch != match {
+                        TFHaptics.tap()
+                        joinMatch = match
+                    }
+                case .joined:
                     TFHaptics.success()
-                    pending = nil
+                    endJoin()
                     message = "Linked. This device now shares one plan with the other."
                     return
                 }
             } catch {
-                pending = nil
+                endJoin()
                 message = SyncService.describe(error)
                 return
             }
             try? await Task.sleep(for: .seconds(1.5))
         }
         if !Task.isCancelled, pending != nil {
-            pending = nil
+            endJoin()
             message = "The other device didn't confirm in time. Start again with a new code."
         }
     }

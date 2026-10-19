@@ -278,9 +278,9 @@ URLs: the same as the iPhone app.
 - **"Even we can't see when you work"** or "zero knowledge". Record kinds, IDs and timestamps are
   in plain text on the server (`privacy.md` §1.3, caveat 1). "End-to-end encrypted" is accurate for
   the content; don't stretch it to the metadata.
-- **"Linking can't be intercepted"** or "verified linking". The four-digit match number stops a
-  naive key swap, but with no commitment step a server attacking a link on purpose could find
-  matching numbers (`privacy.md` §1.3, caveat 4).
+- **"Linking can't be intercepted."** The four-digit match number, with its commitment step, leaves
+  an attacking server one guess in 10,000 per link (`privacy.md` §1.3, caveat 4). "Linking is
+  checked with a match number on both screens" is accurate; "impossible to intercept" isn't.
 - **"Blocks Reels in the Instagram app."** It doesn't, and the README says so.
 - **Specific scroll counts on iPhone native apps.** iPhone native apps are guarded by time only.
 - **"Works without the app"** for the Chrome extension on the iPhone listing. Not relevant there.

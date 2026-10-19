@@ -123,9 +123,10 @@ public final class TFCloud: @unchecked Sendable {
 
     // MARK: Linking (public keys and a sealed box; the key never passes through the server)
 
-    /// Host: opens a code for `publicKey` (base64 X25519).
-    public func pairHost(publicKey: String) async throws -> PairingCode {
-        let object = try await pair(["action": "host", "pk": publicKey])
+    /// Host: opens a code, committing to its public key (`commitment` = sha256 hex of it) without
+    /// revealing it yet.
+    public func pairHost(commitment: String) async throws -> PairingCode {
+        let object = try await pair(["action": "host", "commit": commitment])
         guard let code = object["code"] as? String,
               let expires = (object["expires_at"] as? String).flatMap(SyncDates.parse) else {
             throw SyncError.invalidResponse
@@ -133,28 +134,39 @@ public final class TFCloud: @unchecked Sendable {
         return PairingCode(code: code, expiresAt: expires)
     }
 
-    /// Joiner: claims `code` with its public key; returns the host's.
-    public func pairJoin(code: String, publicKey: String) async throws -> String {
-        let object = try await pair(["action": "join", "code": code, "pk": publicKey])
-        guard let host = object["host_pk"] as? String else { throw SyncError.invalidResponse }
-        return host
+    /// Joiner: claims `code` (`claim` is 64 random hex digits that identify it from here on);
+    /// returns the host's commitment.
+    public func pairJoin(code: String, claim: String) async throws -> String {
+        let object = try await pair(["action": "join", "code": code, "claim": claim])
+        guard let commitment = object["commit"] as? String else { throw SyncError.invalidResponse }
+        return commitment
+    }
+
+    /// Joiner: sends its public key. Call only once `pairJoin` has returned the commitment.
+    public func pairOffer(code: String, claim: String, publicKey: String) async throws {
+        _ = try await pair(["action": "offer", "code": code, "claim": claim, "pk": publicKey])
     }
 
     /// Host: the joiner's public key once someone has entered the code, else nil.
-    public func pairWait(code: String, hostKey: String) async throws -> String? {
-        let object = try await pair(["action": "wait", "code": code, "host_pk": hostKey])
+    public func pairWait(code: String, commitment: String) async throws -> String? {
+        let object = try await pair(["action": "wait", "code": code, "commit": commitment])
         return object["guest_pk"] as? String
     }
 
-    /// Host: hands over the sealed space key.
-    public func pairSeal(code: String, hostKey: String, box: String) async throws {
-        _ = try await pair(["action": "seal", "code": code, "host_pk": hostKey, "box": box])
+    /// Host: reveals the public key it committed to, now that the joiner's is fixed.
+    public func pairReveal(code: String, commitment: String, publicKey: String) async throws {
+        _ = try await pair(["action": "reveal", "code": code, "commit": commitment, "pk": publicKey])
     }
 
-    /// Joiner: the sealed space key once the host has sent it, else nil.
-    public func pairFetch(code: String, guestKey: String) async throws -> String? {
+    /// Host: hands over the sealed space key.
+    public func pairSeal(code: String, commitment: String, box: String) async throws {
+        _ = try await pair(["action": "seal", "code": code, "commit": commitment, "box": box])
+    }
+
+    /// Joiner: the host's public key once revealed, and the sealed space key once sent.
+    public func pairFetch(code: String, guestKey: String) async throws -> (hostKey: String?, box: String?) {
         let object = try await pair(["action": "fetch", "code": code, "pk": guestKey])
-        return object["box"] as? String
+        return (object["host_pk"] as? String, object["box"] as? String)
     }
 
     private func pair(_ body: [String: String]) async throws -> [String: Any] {

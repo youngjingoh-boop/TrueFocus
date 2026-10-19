@@ -189,13 +189,23 @@ enum SyncLedgerFile {
 
 /// One side of linking two devices. They swap X25519 public keys through the server, then both
 /// derive the same box key (to seal the space key) and a 4-digit match number from the shared
-/// secret. A server that swapped the keys would leave the two screens showing different numbers,
-/// so the host only sends the key after you confirm they match.
+/// secret. The order is the point: the host publishes only a commitment to its key, the joiner
+/// sends its key only once it holds that commitment, and the host reveals its key only after the
+/// joiner's is in. A server in the middle must fix every key it shows either side before it can
+/// know the other side's number, so it can't search for keys that make them agree: the screens
+/// differ 9,999 times in 10,000, and the host only sends the key after you confirm they match.
 struct PairingSecret {
     private let privateKey = Curve25519.KeyAgreement.PrivateKey()
 
     /// Base64, as the server expects.
     var publicKey: String { privateKey.publicKey.rawRepresentation.base64EncodedString() }
+
+    /// sha256 hex of `publicKey`: what the host publishes first.
+    var commitment: String { Self.commitment(to: publicKey) }
+
+    static func commitment(to publicKey: String) -> String {
+        SHA256.hash(data: Data(publicKey.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
 
     struct Session {
         fileprivate let boxKey: SymmetricKey

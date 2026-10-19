@@ -126,13 +126,12 @@ by this build, or adopted by linking, never make the call.
 >    request, so its protection depends on nothing having kept it (a log, for instance). To start
 >    clean, use *Delete server copy…* on every device in the space, then *Turn on sync* on one
 >    (which makes a new key), and link the others to it again.
-> 4. **The match number is short.** Linking is safe against a passive server. A server that swapped
->    the public keys would show two different numbers, unless it searched for a pair of its own keys
->    whose numbers agree. With four digits and no commitment step in the exchange, that takes about
->    10,000 tries, which is cheap. So a server actively attacking one linking session could obtain the
->    key without the user noticing. The usual fix is a commitment step: one device publishes a hash
->    of its public key before it sees the other's, which leaves an attacker one guess per link. A
->    longer number helps on top of that. Both are code changes.
+> 4. **The match number is four digits.** Linking uses a commitment step: the host publishes only a
+>    hash of its public key, the joiner sends its key only once it holds that hash, and the host
+>    reveals its key only after the joiner's is in (`tf-pair`, `PairingSecret`). A server in the
+>    middle must fix every key it shows either side before it can know the other side's number, so
+>    it gets one guess per link: the screens agree by chance 1 time in 10,000, and every failed
+>    attempt shows the user two different numbers.
 
 ### 1.4 What never leaves the device
 
@@ -213,11 +212,9 @@ The **Mac record**, if there ever is one (the Mac app ships as a Developer ID do
    example to derive location. The code doesn't.
 6. **Apple Music, APNs and Apple Intelligence** are Apple's services. Data Apple handles under its
    own policy isn't declared by the developer.
-7. **Keep the privacy manifests in step.** `PrivacyManifests/iOSApp/PrivacyInfo.xcprivacy` and
-   `PrivacyManifests/MacApp/PrivacyInfo.xcprivacy` still declare
-   `NSPrivacyCollectedDataTypeOtherUserContent`, which matches Label A. Before you submit Label B,
-   remove it from both (keep `NSPrivacyCollectedDataTypeDeviceID` on iPhone), or keep declaring Other
-   User Content in the label too. The label and the manifests shouldn't disagree.
+7. **Keep the privacy manifests in step.** `PrivacyManifests/iOSApp/PrivacyInfo.xcprivacy` declares
+   only `NSPrivacyCollectedDataTypeDeviceID`, and `PrivacyManifests/MacApp/PrivacyInfo.xcprivacy`
+   declares nothing, matching Label B. Change them together with the label.
 
 ### Label A: before end-to-end sync (history, don't submit)
 
@@ -381,8 +378,8 @@ If this policy changes, we'll update the date above and say what changed in the 
   silent pushes to this one. It ignores them while sync is off. The policy above doesn't claim the
   token is removed.
 - **The four-digit match number** (§1.3, caveat 4): the policy says both screens show the same
-  number. It doesn't promise that a hostile server can't defeat it, and it shouldn't until the
-  linking exchange gets a commitment step.
+  number and that you should cancel if they don't. A hostile server gets one guess per link (1 in
+  10,000), so the policy doesn't promise it can never succeed.
 - The Supabase project is **shared with another app (ListingLine)**, according to the migration header and
   `docs/SETUP.md`. That's fine legally, since it's the same controller, but anyone with access to that
   project can see the TrueFocus tables (ciphertext and metadata). The access group for the project is

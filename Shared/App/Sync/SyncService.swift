@@ -61,22 +61,16 @@ final class SyncService {
     private static let enabledKey = "tf.sync.enabled"
 
     /// Remembered per device. Before sync asked first, it started on its own: a device that has
-    /// synced (or holds a key) keeps syncing, a new one waits to be turned on.
+    /// synced keeps syncing, a new one waits to be turned on.
     private func resolveEnabled() {
         let defaults = UserDefaults.standard
         if let stored = defaults.object(forKey: Self.enabledKey) as? Bool {
             isEnabled = stored
             return
         }
-        if SyncLedgerFile.hasHistory {
-            setEnabled(true)
-            return
-        }
-        switch SyncKeychain.read() {
-        case .found: setEnabled(true)
-        case .missing: setEnabled(false)
-        case .unavailable: isEnabled = false  // decide once the Keychain can be read
-        }
+        // Only a ledger counts: iOS keeps Keychain items after the app is deleted, so a key alone
+        // may be left over from a previous install, and a reinstall must ask again.
+        setEnabled(SyncLedgerFile.hasHistory)
     }
 
     private func setEnabled(_ on: Bool) {
@@ -87,7 +81,6 @@ final class SyncService {
     /// Call once at launch, after `FocusController.shared` exists.
     func start() {
         guard cloud != nil, timer == nil else { return }
-        if UserDefaults.standard.object(forKey: Self.enabledKey) == nil { resolveEnabled() }
         // Delivered on the saving thread, so a save made by `cycle` is still flagged `applying`.
         observer = NotificationCenter.default.addObserver(forName: ModelContext.didSave,
                                                           object: FocusController.shared.context,
@@ -191,12 +184,20 @@ final class SyncService {
         fileprivate let session: PairingSecret.Session
     }
 
-    /// The joining side, waiting for the other device to confirm the match number.
+    /// The joining side, waiting for the other device.
     struct PendingJoin {
         let code: String
-        let match: String
-        fileprivate let guestKey: String
-        fileprivate let session: PairingSecret.Session
+        fileprivate let commitment: String
+        fileprivate let secret: PairingSecret
+    }
+
+    enum JoinProgress {
+        /// The other device hasn't revealed its key yet.
+        case waiting
+        /// Compare this with the other screen; the key arrives once it's confirmed there.
+        case compare(String)
+        /// Linked.
+        case joined
     }
 
     /// Offers a six-digit code another device can enter. Valid for ten minutes, links one device.
@@ -206,40 +207,50 @@ final class SyncService {
         guard loadKey() != nil else { throw SyncError.notConfigured }
         await syncNow()
         let secret = PairingSecret()
-        return HostedLink(code: try await cloud.pairHost(publicKey: secret.publicKey), secret: secret)
+        return HostedLink(code: try await cloud.pairHost(commitment: secret.commitment), secret: secret)
     }
 
-    /// One look for a device that entered the code. Nil until one has.
+    /// One look for a device that entered the code. Nil until one has; then reveals this
+    /// device's key and returns the match number to compare.
     func joiner(for link: HostedLink) async throws -> JoinedLink? {
         guard let cloud else { throw SyncError.notConfigured }
         let host = link.secret.publicKey
-        guard let guest = try await cloud.pairWait(code: link.code.code, hostKey: host) else { return nil }
-        let session = try link.secret.session(peer: guest, hostKey: host, guestKey: guest, code: link.code.code)
+        let code = link.code.code
+        guard let guest = try await cloud.pairWait(code: code, commitment: link.secret.commitment) else { return nil }
+        let session = try link.secret.session(peer: guest, hostKey: host, guestKey: guest, code: code)
+        try await cloud.pairReveal(code: code, commitment: link.secret.commitment, publicKey: host)
         return JoinedLink(match: session.match, session: session)
     }
 
     /// The numbers match: hand the key over, sealed so only the other device can open it.
     func approve(_ link: HostedLink, _ joined: JoinedLink) async throws {
         guard let cloud, let key = loadKey() else { throw SyncError.notConfigured }
-        try await cloud.pairSeal(code: link.code.code, hostKey: link.secret.publicKey, box: joined.session.seal(key))
+        try await cloud.pairSeal(code: link.code.code, commitment: link.secret.commitment, box: joined.session.seal(key))
     }
 
-    /// Enters a code from another device. Returns the match number to compare.
+    /// Enters a code from another device. Takes the other device's commitment first, and only
+    /// then sends this device's key, so neither side's key can be picked after seeing the other.
     func join(code: String) async throws -> PendingJoin {
         guard let cloud else { throw SyncError.notConfigured }
         let secret = PairingSecret()
-        let guest = secret.publicKey
-        let host = try await cloud.pairJoin(code: code, publicKey: guest)
-        let session = try secret.session(peer: host, hostKey: host, guestKey: guest, code: code)
-        return PendingJoin(code: code, match: session.match, guestKey: guest, session: session)
+        let claim = PairingSecret().commitment  // 64 random hex digits; nothing secret
+        let commitment = try await cloud.pairJoin(code: code, claim: claim)
+        try await cloud.pairOffer(code: code, claim: claim, publicKey: secret.publicKey)
+        return PendingJoin(code: code, commitment: commitment, secret: secret)
     }
 
-    /// One look for the sealed key. True once this device has joined; what's on it is merged in.
-    func finishJoin(_ pending: PendingJoin) async throws -> Bool {
+    /// One look at how joining is going. The host's key must match what it committed to before
+    /// this device saw it; anything else is someone in the middle.
+    func checkJoin(_ pending: PendingJoin) async throws -> JoinProgress {
         guard let cloud else { throw SyncError.notConfigured }
-        guard let box = try await cloud.pairFetch(code: pending.code, guestKey: pending.guestKey) else { return false }
-        try await adopt(pending.session.open(box))
-        return true
+        let guest = pending.secret.publicKey
+        let fetched = try await cloud.pairFetch(code: pending.code, guestKey: guest)
+        guard let host = fetched.hostKey else { return .waiting }
+        guard PairingSecret.commitment(to: host) == pending.commitment else { throw SyncError.corruptPayload }
+        let session = try pending.secret.session(peer: host, hostKey: host, guestKey: guest, code: pending.code)
+        guard let box = fetched.box else { return .compare(session.match) }
+        try await adopt(session.open(box))
+        return .joined
     }
 
     private func adopt(_ key: String) async throws {
