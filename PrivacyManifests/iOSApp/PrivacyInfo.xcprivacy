@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Privacy manifest for the TrueFocus iPhone app (target TrueFocus).
+
+  Keep it in step with the App Privacy answers in App Store Connect (docs/RELEASE.md, step 7).
+
+  Collected data (sync is off until the user turns it on or links a device, see SyncService):
+  - Device ID: the APNs device token, stored with the sync space so the server can send silent
+    "something changed" pushes. Not linked to the user's identity or used for tracking.
+  Tasks, plans and notes are not declared: they reach the server only end-to-end encrypted, under
+  a key that never leaves the user's devices (docs/appstore/privacy.md, Label B).
+
+  Required-reason APIs: UserDefaults only (App Group suite via TrueFocusKit.SharedStore, and
+  the app's own standard defaults). No file-timestamp, boot-time, disk-space or keyboard APIs.
+-->
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeDeviceID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+				<string>1C8F.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

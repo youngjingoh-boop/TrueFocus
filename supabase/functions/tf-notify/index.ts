@@ -2,7 +2,7 @@
 // the same space gets a silent push so it syncs in the background (Lock Screen, Live Activity,
 // shields follow a session started on the Mac).
 //
-//   POST (header x-tf-space: <key>) { except_token? } -> { sent, skipped? }
+//   POST (header x-tf-space: <access token>) { except_token? } -> { sent, skipped? }
 //
 // Secrets: APNS_KEY_ID, APNS_TEAM_ID, APNS_PRIVATE_KEY (.p8 contents), optional APNS_TOPIC.
 // Without them it answers { sent: 0, skipped: "apns not configured" } and devices fall back to

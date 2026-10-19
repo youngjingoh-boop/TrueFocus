@@ -25,6 +25,10 @@ settings:
   base:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: minimal
+    # Versions for every target (apps and extensions must match). Local builds use these;
+    # the Release workflow (.github/workflows/release.yml) overrides both on the xcodebuild
+    # command line: MARKETING_VERSION from the v* tag or the run's input, and
+    # CURRENT_PROJECT_VERSION from the GitHub run number. See docs/RELEASE.md.
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
@@ -47,6 +51,8 @@ targets:
       - path: Shared
       - path: iOS
       - path: iOSExtensions/ScreenTimeShared
+      - path: PrivacyManifests/iOSApp/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - package: TrueFocusKit
       - target: TrueFocusWidgets
@@ -102,6 +108,8 @@ targets:
       - path: Shared/LiveActivity
       - path: Shared/Intents/FlowIntents.swift
       - path: Shared/Design/Theme.swift
+      - path: PrivacyManifests/Extensions/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - package: TrueFocusKit
       - sdk: WidgetKit.framework
@@ -131,6 +139,8 @@ targets:
     sources:
       - path: iOSExtensions/Monitor
       - path: iOSExtensions/ScreenTimeShared
+      - path: PrivacyManifests/Extensions/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - package: TrueFocusKit
     settings:
@@ -160,6 +170,8 @@ targets:
     sources:
       - path: iOSExtensions/ShieldConfiguration
       - path: iOSExtensions/ScreenTimeShared
+      - path: PrivacyManifests/Extensions/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - package: TrueFocusKit
     settings:
@@ -189,6 +201,8 @@ targets:
     sources:
       - path: iOSExtensions/ShieldAction
       - path: iOSExtensions/ScreenTimeShared
+      - path: PrivacyManifests/Extensions/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - package: TrueFocusKit
     settings:
@@ -220,6 +234,8 @@ targets:
       - path: Extensions/web
         buildPhase: resources
         excludes: ["test/**", "package.json", "README.md"]
+      - path: PrivacyManifests/Extensions/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - package: TrueFocusKit
     settings:
@@ -251,6 +267,8 @@ targets:
       - path: Shared
         excludes: ["LiveActivity/**"]
       - path: macOS
+      - path: PrivacyManifests/MacApp/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - package: TrueFocusKit
       - target: TrueFocusSafariMac
@@ -270,6 +288,7 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.productivity
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        ITSAppUsesNonExemptEncryption: false
         NSHumanReadableCopyright: Built for momentum.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
@@ -294,6 +313,8 @@ targets:
       - path: Extensions/web
         buildPhase: resources
         excludes: ["test/**", "package.json", "README.md"]
+      - path: PrivacyManifests/Extensions/PrivacyInfo.xcprivacy
+        buildPhase: resources
     dependencies:
       - package: TrueFocusKit
     settings:

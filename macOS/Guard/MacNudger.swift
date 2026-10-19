@@ -53,6 +53,7 @@ final class MacNudger: FocusEffect {
             dayEnded: snapshot.dayEnded,
             paused: snapshot.isPaused,
             tone: settings.tone,
+            customReminders: settings.customReminders,
             thinkNudgeMinutes: settings.thinkNudgeMinutes,
             now: Date()
         )
@@ -94,7 +95,7 @@ final class MacNudger: FocusEffect {
             MainActor.assumeIsolated {
                 guard let self, self.snapshot.mode == mode, self.snapshot.modeStartedAt == started,
                       !self.snapshot.dayEnded, self.snapshot.mode != .focus else { return }
-                let line = Copy(tone: self.settings.tone).restOver(level: 3, next: self.snapshot.nextTaskTitle ?? self.snapshot.taskTitle)
+                let line = Copy(settings: self.settings).restOver(level: 3, next: self.snapshot.nextTaskTitle ?? self.snapshot.taskTitle)
                 self.showOverlay(title: line.title, message: line.body)
             }
         }

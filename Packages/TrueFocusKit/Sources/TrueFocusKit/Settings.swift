@@ -5,7 +5,10 @@ import Foundation
 /// never wipe old ones.
 public struct TFSettings: Codable, Equatable, Sendable {
     // Flow
-    public var tone: NudgeTone = .savage
+    /// Direct by default. Savage (strong language) is opt-in; saved settings keep their tone.
+    public var tone: NudgeTone = .direct
+    /// Your own words per reminder moment, in place of the tone's line. Empty by default.
+    public var customReminders = CustomReminders()
     public var restBaseSeconds: Double = 45
     public var adaptiveRest: Bool = true
     /// Start the next task automatically when the micro-rest ends.
@@ -76,6 +79,7 @@ public struct TFSettings: Codable, Equatable, Sendable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let d = TFSettings()
         tone = try c.decodeIfPresent(NudgeTone.self, forKey: .tone) ?? d.tone
+        customReminders = (try? c.decodeIfPresent(CustomReminders.self, forKey: .customReminders)) ?? d.customReminders
         restBaseSeconds = try c.decodeIfPresent(Double.self, forKey: .restBaseSeconds) ?? d.restBaseSeconds
         adaptiveRest = try c.decodeIfPresent(Bool.self, forKey: .adaptiveRest) ?? d.adaptiveRest
         autoContinue = try c.decodeIfPresent(Bool.self, forKey: .autoContinue) ?? d.autoContinue
@@ -133,5 +137,6 @@ public struct TFSettings: Codable, Equatable, Sendable {
         respondPassMinutes = min(max(respondPassMinutes, 1), 15)
         respondPassesPerDay = min(max(respondPassesPerDay, 0), 30)
         adultFilterCoolOffHours = min(max(adultFilterCoolOffHours, 1), 168)
+        customReminders.normalize()
     }
 }

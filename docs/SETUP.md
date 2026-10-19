@@ -47,14 +47,15 @@ To build under another team or prefix, `cp Config/Local.example.xcconfig Config/
 
 ## 4. Link iPhone and Mac
 
-Sync runs through the TrueFocus server (Supabase), not iCloud. There's no account: each device starts with its own private space, and you join them once.
+Sync runs through the TrueFocus server (Supabase), not iCloud. There's no account, and it's off until you turn it on: nothing leaves a device before then.
 
-1. On the Mac: TrueFocus ▸ Settings ▸ Flow ▸ **Sync** ▸ *Link a device*. A six-digit code appears.
+1. On the Mac: TrueFocus ▸ Settings ▸ Flow ▸ **Sync** ▸ *Turn on sync*, then *Link a device*. A six-digit code appears.
 2. On the iPhone: Today ▸ settings (the slider icon) ▸ **Sync** ▸ *Enter a code*, type it, *Link*.
+3. Both screens show the same four-digit number. If they match, tap *They match* on the Mac. If they don't, cancel: something is between your devices.
 
-The code works once, for 10 minutes. The iPhone's tasks and notes are merged into the Mac's, and from then on both show one plan. Link more of your devices the same way, from any linked one.
+The code works for 10 minutes and links one device. The iPhone's tasks and notes are merged into the Mac's, and from then on both show one plan. Link more of your devices the same way, from any linked one.
 
-Everything is encrypted on the device before it's uploaded; the server only holds ciphertext and a hash of your space key. Losing every device means losing the key, and with it the synced copy.
+Sync is end-to-end encrypted: everything is sealed on the device, and the key never goes to the server. Requests carry a token derived one way from it, and linking passes the key sealed from one device to the other. Losing every device means losing the key, and with it the synced copy. *Turn off here* stops a device syncing; *Delete server copy…* removes everything the server holds for your devices.
 
 **Instant iPhone updates (optional).** Without this, the iPhone catches up whenever it's opened or unlocked into TrueFocus. To have it follow the Mac in the background (Lock Screen, Live Activity, shields), give the server an APNs key — the VocaMonkey one works, since it's the same team:
 
