@@ -140,6 +140,8 @@ private struct WakeUpView: View {
             RadialGradient(colors: [TF.Palette.signal.opacity(glow ? 0.30 : 0.18), .clear],
                            center: .bottom, startRadius: 20, endRadius: 760)
                 .ignoresSafeArea()
+                // Scoped here so the repeating glow can't loop anything else on screen.
+                .animation(reduceMotion ? nil : .easeInOut(duration: 2.4).repeatForever(autoreverses: true), value: glow)
                 .blendMode(.screen)
 
             VStack(spacing: 0) {
@@ -210,7 +212,7 @@ private struct WakeUpView: View {
             withAnimation(reduceMotion ? .easeOut(duration: 0.2) : .easeOut(duration: 0.5)) { appeared = true }
             // A slow breathing glow, unless motion is reduced.
             guard !reduceMotion else { return }
-            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) { glow = true }
+            glow = true
         }
     }
 }

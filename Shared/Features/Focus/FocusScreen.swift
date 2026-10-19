@@ -508,9 +508,12 @@ private struct BreathingDot: View {
             .fill(tint.opacity(0.10))
             .frame(width: 200, height: 200)
             .scaleEffect(expanded || reduceMotion ? 1 : 0.72)
+            // Scoped to this circle: a repeatForever in `withAnimation` would also loop
+            // whatever else changed in the same update.
+            .animation(reduceMotion ? nil : .easeInOut(duration: 4).repeatForever(autoreverses: true), value: expanded)
             .onAppear {
                 guard !reduceMotion else { return }
-                withAnimation(.easeInOut(duration: 4).repeatForever(autoreverses: true)) { expanded = true }
+                expanded = true
             }
             .accessibilityHidden(true)
     }
