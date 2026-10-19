@@ -5,13 +5,23 @@ import TrueFocusKit
 /// The start contract: a ten-second "where does this task happen?" asked when a task starts on
 /// the Mac. Pick the apps and sites it lives in, optionally the first move and when it's done.
 /// The drift guard judges everything else against this.
+///
+/// It's a non-activating panel: when a task starts while you're typing elsewhere (a hotkey,
+/// the extension, the end of a rest), it appears on top without taking the keyboard. Click
+/// into it to answer; Skip or Esc dismisses it, and the guard won't ask about that task again.
 @MainActor
 final class StartContractWindow {
     static let shared = StartContractWindow()
 
-    private var window: NSWindow?
+    private var window: NSPanel?
 
-    func show(for contract: TaskContract) {
+    /// True while you're typing in it (it can be key without TruFocus being the app in front).
+    var isAnswering: Bool { window?.isKeyWindow == true }
+
+    /// - Parameter activate: true when you asked for it (the menu bar's Set/Edit): bring
+    ///   TruFocus forward and focus the panel. False when a task just started: only take the
+    ///   keyboard if TruFocus is already the app in front.
+    func show(for contract: TaskContract, activate: Bool) {
         let watcher = ActivityWatcher.shared
         let view = StartContractView(
             contract: contract,
@@ -29,23 +39,33 @@ final class StartContractWindow {
         window.setContentSize(hosting.view.fittingSize)
         window.center()
         self.window = window
-        NSApp.activate()
-        window.makeKeyAndOrderFront(nil)
+        if activate {
+            NSApp.activate()
+            window.makeKeyAndOrderFront(nil)
+        } else if NSApp.isActive {
+            window.makeKeyAndOrderFront(nil)
+        } else {
+            window.orderFrontRegardless()
+        }
     }
 
     func close() {
         window?.orderOut(nil)
     }
 
-    private func makeWindow() -> NSWindow {
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 460, height: 520),
-                              styleMask: [.titled, .closable, .fullSizeContentView],
-                              backing: .buffered, defer: false)
+    private func makeWindow() -> NSPanel {
+        let window = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 460, height: 520),
+                             styleMask: [.titled, .closable, .fullSizeContentView, .nonactivatingPanel],
+                             backing: .buffered, defer: false)
         window.title = "Where does it happen?"
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isReleasedWhenClosed = false
+        window.isFloatingPanel = true
         window.level = .floating
+        // Panels hide when their app deactivates by default; this one waits for an answer.
+        window.hidesOnDeactivate = false
+        window.becomesKeyOnlyIfNeeded = false
         window.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
         return window
     }

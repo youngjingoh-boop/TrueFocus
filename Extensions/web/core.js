@@ -429,9 +429,11 @@
 
   /**
    * What the Mac's drift guard may hear about the active tab: host and title, only for web
-   * pages, only while a focus task runs, and only when the app's drift guard is on.
+   * pages, only while a focus task runs, only when the app's drift guard is on, and never
+   * for a private (incognito) tab.
    */
-  function tabActivity(url, title, eff, settings) {
+  function tabActivity(url, title, eff, settings, incognito) {
+    if (incognito) { return null; }
     if (!eff || eff.mode !== 'focus' || !eff.task) { return null; }
     if (settings && settings.macDriftGuard === false) { return null; }
     var text = String(url || '');

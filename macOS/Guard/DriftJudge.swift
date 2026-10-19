@@ -33,10 +33,10 @@ final class DriftJudge {
         Task {
             let verdict = await Self.askModel(sample, contract: contract)
             inFlight.remove(key)
-            if let verdict {
-                if cache.count > 500 { cache.removeAll() }
-                cache[key] = verdict
-            }
+            if cache.count > 500 { cache.removeAll() }
+            // A failure (guardrails, unsupported language, model busy) is remembered as "unsure"
+            // for this sample, so the rules decide and the model isn't asked again every 3 s.
+            cache[key] = verdict ?? .unsure
         }
     }
 

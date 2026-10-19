@@ -212,7 +212,7 @@ async function reportActiveTab() {
     return;
   }
   const settings = all.state && all.state.settings;
-  const report = tab ? Core.tabActivity(tab.url, tab.title, eff, settings) : null;
+  const report = tab ? Core.tabActivity(tab.url, tab.title, eff, settings, tab.incognito === true) : null;
   if (!report) return;
   const key = report.host + '\n' + report.title;
   const now = Date.now();
