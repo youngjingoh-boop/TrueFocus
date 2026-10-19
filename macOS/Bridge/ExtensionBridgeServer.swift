@@ -8,6 +8,7 @@ import TrueFocusKit
 ///     GET  http://127.0.0.1:52525/state  → {"snapshot": {...}, "settings": {...}}
 ///     POST http://127.0.0.1:52525/boot   ← {"site": "Instagram", "reason": "binge"}
 ///     POST http://127.0.0.1:52525/command ← {"kind": "switchTo", "taskID": "…"} or {"kind": "wait"}
+///     POST http://127.0.0.1:52525/activity ← {"host": "docs.google.com", "title": "…"} (active tab, while working)
 ///
 /// Only browser-extension origins are answered; ordinary web pages can't read your tasks.
 @MainActor
@@ -167,6 +168,18 @@ private final class BridgeConnection: @unchecked Sendable {
             SharedStore.shared.enqueue(RemoteCommand(kind: kind, taskID: taskID))
             Task { @MainActor in
                 FocusController.shared.drainSharedQueues()
+            }
+            send(status: 200, body: Data(#"{"ok":true}"#.utf8), origin: origin)
+        case ("POST", "/activity"):
+            // The active tab, for the drift guard: host and title only, kept in memory.
+            let json = (try? JSONSerialization.jsonObject(with: request.body)) as? [String: Any] ?? [:]
+            guard let host = json["host"] as? String else {
+                send(status: 400, body: Data(#"{"error":"bad activity"}"#.utf8), origin: origin)
+                return
+            }
+            let title = json["title"] as? String ?? ""
+            Task { @MainActor in
+                ActivityWatcher.shared.receiveBrowserTab(host: host, title: title)
             }
             send(status: 200, body: Data(#"{"ok":true}"#.utf8), origin: origin)
         case ("GET", "/health"):

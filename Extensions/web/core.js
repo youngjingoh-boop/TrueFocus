@@ -425,6 +425,20 @@
     };
   }
 
+  /**
+   * What the Mac's drift guard may hear about the active tab: host and title, only for web
+   * pages, only while a focus task runs, and only when the app's drift guard is on.
+   */
+  function tabActivity(url, title, eff, settings) {
+    if (!eff || eff.mode !== 'focus' || !eff.task) { return null; }
+    if (settings && settings.macDriftGuard === false) { return null; }
+    var text = String(url || '');
+    if (!/^https?:\/\//i.test(text)) { return null; }
+    var host = normalizedSite(text);
+    if (!host) { return null; }
+    return { host: host, title: String(title || '').trim().slice(0, 200) };
+  }
+
   /** The task worth naming right now: the current one, or the next while resting/idle. */
   function currentTask(snapshot) {
     if (!snapshot) { return null; }
@@ -652,6 +666,7 @@
     isStrict: isStrict,
     effective: effective,
     currentTask: currentTask,
+    tabActivity: tabActivity,
     classify: classify,
     cooldownMinutes: cooldownMinutes,
     setCooldown: setCooldown,

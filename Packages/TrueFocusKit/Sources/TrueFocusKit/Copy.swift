@@ -137,6 +137,17 @@ public struct Copy: Sendable {
         return "You're on “\(task)”. Get back to it."
     }
 
+    /// The drift guard noticed you've been somewhere that isn't your task.
+    public func drift(task: String, label: String, minutes: Int) -> Line {
+        let name = quoted(task)
+        let time = minutes == 1 ? "1 min" : "\(minutes) min"
+        switch tone {
+        case .calm: return Line(title: "Drifted from \(name)?", body: "\(time) on \(label). Ready to head back?")
+        case .direct: return Line(title: "That's not \(name).", body: "\(time) on \(label). Back to it.")
+        case .savage: return Line(title: "Wake up.", body: "\(time) on \(label). That isn't \(name).")
+        }
+    }
+
     /// Shield title when the daily scroll budget is spent.
     public var budgetSpentTitle: String {
         switch tone {

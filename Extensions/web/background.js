@@ -5,6 +5,8 @@
  *   (App Group), Chrome-family browsers ask the Mac app's loopback bridge.
  * - Turns the declarativeNetRequest rulesets on and off from the effective settings.
  * - Receives boot-outs from content scripts, counts them, and forwards them to the app.
+ * - While a focus task runs, tells the Mac app which site the active tab is on (host and
+ *   title only) so its drift guard can notice a wander away from the task.
  */
 'use strict';
 
@@ -194,6 +196,53 @@ async function sendCommand(message) {
   return { ok: true };
 }
 
+// ──────────────────────────────────── Activity ────────────────────────────────────
+
+let lastActivity = null;
+
+/** Reports the focused window's active tab to the app, when it changed or every 10s. */
+async function reportActiveTab() {
+  if (!api.tabs || !api.tabs.query) return;
+  const all = await loadAll();
+  const eff = Core.effective(all.state, all.prefs, Date.now(), all.adultOff);
+  let tab;
+  try {
+    [tab] = await api.tabs.query({ active: true, lastFocusedWindow: true });
+  } catch (error) {
+    return;
+  }
+  const settings = all.state && all.state.settings;
+  const report = tab ? Core.tabActivity(tab.url, tab.title, eff, settings) : null;
+  if (!report) return;
+  const key = report.host + '\n' + report.title;
+  const now = Date.now();
+  if (lastActivity && lastActivity.key === key && now - lastActivity.at < 10 * 1000) return;
+  lastActivity = { key, at: now };
+  try {
+    if (IS_SAFARI) {
+      await api.runtime.sendNativeMessage(NATIVE_APP, Object.assign({ type: 'activity' }, report));
+    } else {
+      await fetch(BRIDGE + '/activity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(report),
+      });
+    }
+  } catch (error) {
+    // The app isn't reachable; nothing to do.
+  }
+}
+
+if (api.tabs) {
+  api.tabs.onActivated.addListener(() => { reportActiveTab(); });
+  api.tabs.onUpdated.addListener((tabId, change, tab) => {
+    if (tab && tab.active && (change.url || change.title)) reportActiveTab();
+  });
+}
+if (api.windows && api.windows.onFocusChanged) {
+  api.windows.onFocusChanged.addListener(() => { reportActiveTab(); });
+}
+
 // ──────────────────────────────────── Messages ────────────────────────────────────
 
 async function handle(message, sender) {
@@ -279,7 +328,7 @@ if (api.runtime.onStartup) {
 
 api.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name !== ALARM) return;
-  refreshState();
+  refreshState().then(() => reportActiveTab());
   // Expired cooldowns are pruned so storage doesn't grow.
   loadAll().then(({ cooldowns }) => {
     const pruned = Core.pruneCooldowns(cooldowns, Date.now());

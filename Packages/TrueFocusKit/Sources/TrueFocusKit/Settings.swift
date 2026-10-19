@@ -60,6 +60,10 @@ public struct TFSettings: Codable, Equatable, Sendable {
     public var menuBarShowsTimer: Bool = true
     public var macWatchNativeScrolling: Bool = true
     public var macWatchBrowsers: Bool = true
+    /// Mac: notice when the app or tab in front isn't the task you're on, and nudge you back.
+    public var macDriftGuard: Bool = true
+    /// Mac: use the on-device model to judge windows and tabs the rules can't place.
+    public var macDriftUsesModel: Bool = true
     public var macBlockedApps: [String] = []
 
     // Adult-content filter. On by default. Turning it off asks you to wait out a
@@ -105,6 +109,8 @@ public struct TFSettings: Codable, Equatable, Sendable {
         menuBarShowsTimer = try c.decodeIfPresent(Bool.self, forKey: .menuBarShowsTimer) ?? d.menuBarShowsTimer
         macWatchNativeScrolling = try c.decodeIfPresent(Bool.self, forKey: .macWatchNativeScrolling) ?? d.macWatchNativeScrolling
         macWatchBrowsers = try c.decodeIfPresent(Bool.self, forKey: .macWatchBrowsers) ?? d.macWatchBrowsers
+        macDriftGuard = try c.decodeIfPresent(Bool.self, forKey: .macDriftGuard) ?? d.macDriftGuard
+        macDriftUsesModel = try c.decodeIfPresent(Bool.self, forKey: .macDriftUsesModel) ?? d.macDriftUsesModel
         macBlockedApps = try c.decodeIfPresent([String].self, forKey: .macBlockedApps) ?? d.macBlockedApps
         adultFilterEnabled = try c.decodeIfPresent(Bool.self, forKey: .adultFilterEnabled) ?? d.adultFilterEnabled
         adultFilterOffRequestedAt = try c.decodeIfPresent(Date.self, forKey: .adultFilterOffRequestedAt)

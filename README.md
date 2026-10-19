@@ -36,6 +36,7 @@ Everything syncs through the TruFocus server, end-to-end encrypted, no account a
 | --- | --- | --- |
 | **During focus** | Apps you pick (Instagram, YouTube, TikTok, X…) are shielded by Screen Time. | Apps you pick are hidden the moment they come forward. |
 | **Doom-scroll guard** | Screen Time usage budget: after *N* minutes in your scroll apps you're booted out for a cooldown. | Native feed apps: scroll strokes are counted; skim, binge or linger and you're booted out with a full-screen wake-up. |
+| **Drifting off the task** | — | When a task starts, say where it happens (apps, sites). Something else in front for a minute and a half — a clinic site in the middle of marketing research — and a small card asks if you're heading back. On-device AI settles what the rules can't place. Names and titles only; no screenshots. |
 | **Browser** | Safari extension: scroll strokes counted on feed sites; Reels, Shorts and TikTok removed; Instagram opens to your DMs only. | Same extension in Safari, Chrome, Arc, Brave, Edge. |
 | **Still need to reply** | Shield button **Reply · 2 min** on apps you mark as messaging apps (limited passes per day). | Instagram web stays usable for DMs, minus the feed. |
 | **Notifications** | Use a system Focus with the TruFocus filter; with *Share Across Devices*, turning it on from the Mac silences and shields the iPhone too. | Optional Shortcuts hook flips the Focus when a session starts. |

@@ -40,6 +40,11 @@ final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
                 reply["ok"] = false
                 reply["error"] = "bad command"
             }
+        case "activity":
+            // The active tab, for the Mac's drift guard: host and title only, overwritten each time.
+            if let report = BrowserTabReport.make(host: message["host"] as? String, title: message["title"] as? String) {
+                store.write(report, BrowserTabReport.key)
+            }
         case "state":
             break
         default:

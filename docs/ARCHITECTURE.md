@@ -11,6 +11,7 @@
                  │   ├ ScreenTimeGuard         │        │   ├ DistractionGuard           │
                  │   ├ NudgeScheduler          │        │   ├ ScrollWatch                │
                  │   └ LiveActivityController  │        │   ├ MacNudger / WakeUpOverlay  │
+                 │                             │        │   ├ DriftGuard / DriftPanel    │
                  │        │ LiveSnapshot        │        │   └ FocusModeBridge            │
                  │        ▼ (App Group)         │        │        │ LiveSnapshot          │
                  │  Widgets · Live Activity    │        │        ▼ (App Group + :52525)  │
@@ -64,6 +65,7 @@ Foundation-only Swift package shared by every target and extension, tested on Li
 - `NoteDocument.swift` — the plain-text note format (title, headings, bullets, checklists).
 - `BrainDump.swift` — deterministic brain-dump → task list.
 - `Blocklist.swift` — feed sites, short-form paths, respond paths, adult domains.
+- `Drift.swift` — the drift guard's rules: start contracts, on/neutral/off-task classification, the dwell monitor (warm-up, re-nudge gap) and today's tally.
 - `LiveSnapshot.swift`, `Settings.swift`, `SharedStore.swift` — the App Group contract.
 - `Sync/` — sync payloads, the planner (what to upload, what to apply, merges), and the Supabase client.
 
@@ -76,6 +78,8 @@ Foundation-only Swift package shared by every target and extension, tested on Li
 - Shield UI names the current task; the secondary button grants a short Reply pass on reply apps.
 
 **Mac** (`macOS/Guard`): frontmost-app guard during focus, scroll-stroke detector for native feed apps, full-screen wake-up overlay, optional Shortcuts hook to flip a shared Focus.
+
+**Drift guard** (`macOS/Guard/DriftGuard.swift`): while a focus segment runs, every 3 seconds it samples the frontmost app, its window title (Accessibility) and the active tab (the extension posts host + title to `/activity` on the bridge, or Safari writes it to the App Group). `DriftClassifier` judges the sample against the task's start contract (apps, sites, topic words); what the rules can't place is judged by Apple's on-device model (`DriftJudge`) when available. `DriftMonitor` nudges only after sustained drift — 90 s, doubled in the first five minutes — with a card offering *Back to it*, *Part of the task* (learns the app or site) and *Switch task*. Only names and titles are read; nothing is stored beyond today's on-task / drifted tally.
 
 **Browser** (`Extensions/web`): one MV3 extension. Declarative rules for short-form paths and adult domains; content script for SPA navigation, feed hiding, Instagram messages-only, and the scroll detector. State comes from the app — native messaging in Safari, `http://127.0.0.1:52525/state` from the Mac app for Chrome-family browsers.
 
