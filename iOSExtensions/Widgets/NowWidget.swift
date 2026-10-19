@@ -318,23 +318,38 @@ private struct WidgetActionButton<I: AppIntent>: View {
     var symbol: String
     var prominent: Bool
 
+    /// StandBy, the tinted Home Screen and the Lock Screen repaint widgets in one or two
+    /// tones, so a filled capsule and its label would come out the same colour.
+    @Environment(\.widgetRenderingMode) private var renderingMode
+
     var body: some View {
         Button(intent: intent) {
-            HStack(spacing: 5) {
-                Image(systemName: symbol)
-                    .font(.system(size: 12, weight: .bold))
-                Text(title)
-                    .font(.system(size: 13, weight: .semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+            if renderingMode == .fullColor {
+                label
+                    .foregroundStyle(prominent ? TF.Palette.onSignal : TF.Palette.ink)
+                    .background(Capsule().fill(prominent ? TF.Palette.signal : TF.Palette.surface2))
+            } else {
+                // One-tone modes: the label and an outline in the same tone, nothing filled
+                // behind the text, so it always reads.
+                label
+                    .foregroundStyle(.primary)
+                    .background(Capsule().fill(.primary.opacity(prominent ? 0.18 : 0.08)))
+                    .overlay(Capsule().strokeBorder(.primary.opacity(prominent ? 0.9 : 0.45), lineWidth: 1.5))
             }
-            .foregroundStyle(prominent ? TF.Palette.onSignal : TF.Palette.ink)
-            .frame(maxWidth: .infinity, minHeight: 38)
-            .background(
-                Capsule().fill(prominent ? TF.Palette.signal : TF.Palette.surface2)
-            )
         }
         .buttonStyle(.plain)
         .widgetAccentable(prominent)
+    }
+
+    private var label: some View {
+        HStack(spacing: 5) {
+            Image(systemName: symbol)
+                .font(.system(size: 12, weight: .bold))
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity, minHeight: 38)
     }
 }

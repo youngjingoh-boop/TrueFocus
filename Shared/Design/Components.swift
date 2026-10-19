@@ -229,6 +229,9 @@ struct PrimaryButtonStyle: ButtonStyle {
         configuration.label
             .font(.system(size: 17, weight: .semibold))
             .foregroundStyle(foreground)
+            // A label never wraps inside a capsule; it shrinks a little first.
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
             .padding(.horizontal, 22)
             .frame(minHeight: 52)
             .frame(maxWidth: .infinity)
@@ -247,6 +250,8 @@ struct QuietButtonStyle: ButtonStyle {
         configuration.label
             .font(.system(size: 15, weight: .medium))
             .foregroundStyle(foreground)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
             .padding(.horizontal, 18)
             .frame(minHeight: 44)
             .background(Capsule().strokeBorder(foreground.opacity(0.18), lineWidth: 1))
