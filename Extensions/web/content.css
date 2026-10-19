@@ -54,3 +54,19 @@ html.tf-ig-dm-only a[href^="/stories/"],
 html.tf-ig-dm-only div[aria-label*="Suggested"] {
   display: none !important;
 }
+
+/* Facebook, work only: posts, stories and video on the pages that stay open. */
+html.tf-fb-feedless [role="feed"],
+html.tf-fb-feedless [data-pagelet="Stories"],
+html.tf-fb-feedless [data-pagelet^="ProfileTimeline"],
+html.tf-fb-feedless [data-pagelet^="GroupFeed"],
+html.tf-fb-feedless [aria-label="Stories"],
+html.tf-fb-feedless [aria-label="Video"],
+html.tf-fb-feedless a[href^="/stories/"],
+html.tf-fb-feedless a[href*="facebook.com/stories/"],
+html.tf-fb-feedless a[href^="/watch"],
+html.tf-fb-feedless a[href*="/videos/"],
+html.tf-fb-feedless a[href^="/reel"],
+html.tf-fb-feedless a[href^="/gaming"] {
+  display: none !important;
+}

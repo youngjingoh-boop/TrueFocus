@@ -122,6 +122,9 @@ struct FlowSettingsView<Extra: View>: View {
             ToggleRow(title: "LinkedIn for work only",
                       subtitle: "No feed or video. Messaging, profiles, search, jobs, Sales Navigator and Campaign Manager stay open, even in focus.",
                       isOn: controller.binding(\.linkedInWorkOnly))
+            ToggleRow(title: "Facebook for work only",
+                      subtitle: "No feed, posts, stories or video. Pages, groups, Messenger, events and sign-ins stay open, even in focus.",
+                      isOn: controller.binding(\.facebookWorkOnly))
             AllowedSitesEditor()
         }
     }

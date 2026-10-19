@@ -50,7 +50,12 @@ public enum Blocklist {
         }
 
         public func isSafe(path: String) -> Bool {
-            safePaths.contains { path.hasPrefix($0) }
+            // Facebook's dialogs also live under a Graph API version: /v19.0/dialog/oauth.
+            var p = path
+            if name == "Facebook", let version = p.range(of: #"^/v[0-9]+(\.[0-9]+)?(?=/)"#, options: .regularExpression) {
+                p.removeSubrange(version)
+            }
+            return safePaths.contains { p.hasPrefix($0) }
         }
     }
 
@@ -66,11 +71,14 @@ public enum Blocklist {
                  allShortForm: true),
         // Meta's business tools stay open for running ads: Business Suite and Business Manager
         // (business.facebook.com), Ads Manager, Events and Commerce Manager, the Ad Library.
+        // Sign-in and app-login dialogs (Graph API Explorer, "Log in with Facebook") are safe too.
         FeedSite(name: "Facebook", hosts: ["facebook.com"],
-                 shortFormPaths: ["/reel", "/reels", "/watch"],
+                 shortFormPaths: ["/reel", "/reels", "/watch", "/stories"],
                  respondPath: "/messages/",
                  safePaths: ["/messages", "/settings", "/adsmanager", "/ads/", "/business", "/events_manager",
-                             "/commerce_manager", "/billing_hub", "/ad_center", "/help"],
+                             "/commerce_manager", "/billing_hub", "/ad_center", "/help", "/dialog", "/login", "/oauth",
+                             "/connect", "/checkpoint", "/recover", "/two_step_verification", "/auth", "/device",
+                             "/privacy", "/security", "/policies", "/legal"],
                  workHosts: ["business.facebook.com", "adsmanager.facebook.com", "developers.facebook.com",
                              "accountscenter.facebook.com"]),
         FeedSite(name: "X", hosts: ["x.com", "twitter.com"],
@@ -102,6 +110,16 @@ public enum Blocklist {
     /// LinkedIn's scroll: the home feed. Everything else on LinkedIn is work (see `feedSites`).
     public static func isLinkedInFeed(path: String) -> Bool {
         path.isEmpty || path == "/" || path == "/feed" || path == "/feed/"
+    }
+
+    /// Facebook's scroll: the News Feed and the groups feed. In work-only mode they open Messenger.
+    public static func isFacebookFeed(path: String) -> Bool {
+        ["", "/", "/home.php", "/groups", "/groups/", "/groups/feed", "/groups/feed/"].contains(path)
+    }
+
+    /// Facebook video in work-only mode: Watch, Reels, Stories, Gaming and any page's videos.
+    public static func isFacebookVideo(path: String) -> Bool {
+        path.range(of: #"(^|/)(watch|reel|reels|stories|videos|gaming)(/|$)"#, options: .regularExpression) != nil
     }
 
     /// "https://www.LinkedIn.com/feed/" → "linkedin.com". What you type into "Always allowed".

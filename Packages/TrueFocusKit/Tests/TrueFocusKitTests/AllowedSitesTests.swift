@@ -31,11 +31,29 @@ final class AllowedSitesTests: XCTestCase {
         XCTAssertNil(Blocklist.feedSite(forHost: "business.linkedin.com"))
     }
 
+    func testFacebookSignInIsSafeAndOnlyFeedAndVideoGo() throws {
+        let site = try XCTUnwrap(Blocklist.feedSite(forHost: "www.facebook.com"))
+        for path in ["/v19.0/dialog/oauth", "/dialog/oauth", "/login.php", "/checkpoint/1/", "/messages/t/1"] {
+            XCTAssertTrue(site.isSafe(path: path), path)
+        }
+        XCTAssertFalse(site.isSafe(path: "/v19.0/acmebakery"))
+        XCTAssertTrue(Blocklist.isFacebookFeed(path: "/"))
+        XCTAssertTrue(Blocklist.isFacebookFeed(path: "/home.php"))
+        XCTAssertFalse(Blocklist.isFacebookFeed(path: "/groups/123/"))
+        XCTAssertTrue(Blocklist.isFacebookVideo(path: "/somepage/videos/1/"))
+        XCTAssertTrue(Blocklist.isFacebookVideo(path: "/stories/1/"))
+        XCTAssertFalse(Blocklist.isFacebookVideo(path: "/videoshop"))
+        XCTAssertTrue(site.isShortForm(path: "/stories/1/"))
+        XCTAssertNil(Blocklist.feedSite(forHost: "developers.facebook.com"))
+    }
+
     func testSettingsDefaultsAndOlderSettingsDecode() throws {
+        XCTAssertTrue(TFSettings().facebookWorkOnly)
         XCTAssertTrue(TFSettings().linkedInWorkOnly)
         XCTAssertEqual(TFSettings().allowedSites, [])
         let old = try JSONDecoder().decode(TFSettings.self, from: Data(#"{"tone":"calm"}"#.utf8))
         XCTAssertTrue(old.linkedInWorkOnly)
+        XCTAssertTrue(old.facebookWorkOnly)
         XCTAssertEqual(old.allowedSites, [])
         var s = TFSettings()
         s.allowedSites = ["notion.so"]
