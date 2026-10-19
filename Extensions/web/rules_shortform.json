@@ -137,6 +137,38 @@
       }
     },
     "condition": {
+      "urlFilter": "||linkedin.com/video^",
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 10,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/shorts.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "||linkedin.com/feed/videos^",
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 11,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/shorts.html"
+      }
+    },
+    "condition": {
       "urlFilter": "||snapchat.com/spotlight^",
       "resourceTypes": [
         "main_frame"

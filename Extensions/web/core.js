@@ -193,8 +193,17 @@
       respondPath: null, safePaths: [], allShortForm: false },
     { name: 'Reddit', hosts: ['reddit.com'], shortFormPaths: [],
       respondPath: null, safePaths: ['/message', '/settings', '/submit'], allShortForm: false },
-    { name: 'LinkedIn', hosts: ['linkedin.com'], shortFormPaths: [],
-      respondPath: '/messaging/', safePaths: ['/messaging', '/in/', '/jobs', '/company'], allShortForm: false },
+    // LinkedIn is a work tool with a feed bolted on: only the home feed and video are the scroll.
+    { name: 'LinkedIn', hosts: ['linkedin.com'], shortFormPaths: ['/video', '/feed/videos'],
+      respondPath: '/messaging/',
+      safePaths: ['/messaging', '/in/', '/jobs', '/company', '/school', '/search', '/mynetwork',
+        '/notifications', '/sales', '/talent', '/recruiter', '/campaignmanager', '/ad/',
+        '/analytics', '/dashboard', '/post/', '/feed/update/', '/posts/', '/pulse/',
+        '/newsletters', '/events', '/groups', '/learning', '/premium', '/settings',
+        '/psettings', '/mypreferences', '/help', '/my-items', '/services', '/verify',
+        '/checkpoint', '/login', '/uas', '/signup', '/authwall'],
+      allShortForm: false,
+      workHosts: ['business.linkedin.com', 'developer.linkedin.com', 'learn.linkedin.com'] },
     { name: 'Snapchat', hosts: ['snapchat.com'], shortFormPaths: ['/spotlight'],
       respondPath: null, safePaths: [], allShortForm: false },
     { name: 'Pinterest', hosts: ['pinterest.com'], shortFormPaths: [],
@@ -263,6 +272,30 @@
     return site.shortFormPaths.some(function (p) { return path === p || path.indexOf(p + '/') === 0; });
   }
 
+  /** Blocklist.isLinkedInFeed(path:): the home feed, the only scroll on LinkedIn. */
+  function isLinkedInFeed(path) {
+    return path === '' || path === '/' || path === '/feed' || path === '/feed/';
+  }
+
+  /** Blocklist.normalizedSite: "https://www.Notion.so/x" → "notion.so"; null if not a host. */
+  function normalizedSite(input) {
+    var text = String(input || '').trim().toLowerCase();
+    var scheme = text.indexOf('://');
+    if (scheme !== -1) { text = text.slice(scheme + 3); }
+    text = text.split(/[\/?#:]/)[0];
+    if (text.indexOf('www.') === 0) { text = text.slice(4); }
+    text = text.replace(/^\.+|\.+$/g, '');
+    if (text.indexOf('.') === -1 || text.length > 253 || !/^[a-z0-9.-]+$/.test(text)) { return null; }
+    if (text.split('.').some(function (part) { return part === ''; })) { return null; }
+    return text;
+  }
+
+  /** Blocklist.isAllowed(host:allowedSites:). */
+  function isAllowedHost(host, allowedSites) {
+    var h = String(host || '').toLowerCase();
+    return (allowedSites || []).some(function (site) { return hostMatches(h, site); });
+  }
+
   function isAdultHost(host) {
     var h = String(host || '').toLowerCase();
     for (var i = 0; i < ADULT_DOMAINS.length; i++) {
@@ -276,6 +309,7 @@
   var DEFAULT_PREFS = Object.freeze({
     hideShortForm: true,
     instagramMessagesOnly: true,
+    linkedInWorkOnly: true,
     guardEnabled: true,
     sensitivity: 'standard'
   });
@@ -358,6 +392,10 @@
       hideShortForm: settings && typeof settings.hideShortForm === 'boolean' ? settings.hideShortForm : !!p.hideShortForm,
       instagramMessagesOnly: settings && typeof settings.instagramMessagesOnly === 'boolean'
         ? settings.instagramMessagesOnly : !!p.instagramMessagesOnly,
+      linkedInWorkOnly: settings && typeof settings.linkedInWorkOnly === 'boolean'
+        ? settings.linkedInWorkOnly : !!p.linkedInWorkOnly,
+      allowedSites: (settings && Array.isArray(settings.allowedSites) ? settings.allowedSites : [])
+        .map(normalizedSite).filter(Boolean),
       guardEnabled: p.guardEnabled !== false,
       doomScroll: doomScroll,
       strict: strict,
@@ -381,7 +419,7 @@
    * What to do with a URL.
    *   adult     → wall (only while the adult filter is active)
    *   shortform → shorts wall
-   *   respond   → redirect to `redirect` (Instagram home → DMs)
+   *   respond   → redirect to `redirect` (Instagram home → DMs, LinkedIn feed → Messaging)
    *   cooldown  → booted earlier; wait it out
    *   strict    → focus is running; feeds are closed
    *   safe      → a feed site's messages/settings: leave alone
@@ -395,6 +433,8 @@
     var host = u.hostname.toLowerCase();
     var path = u.pathname || '/';
     if (eff && eff.adult && eff.adult.active && isAdultHost(host)) { return { kind: 'adult', host: host }; }
+    // Sites you always allow are never ours to block or guard.
+    if (eff && isAllowedHost(host, eff.allowedSites)) { return { kind: 'other', host: host, allowed: true }; }
     var site = feedSiteForHost(host);
     if (!site) { return { kind: 'other', host: host }; }
     var base = { site: site.name, host: host, path: path };
@@ -403,6 +443,10 @@
     // Messages-only Instagram: the home feed and the story viewer land you in your DMs.
     if (eff && eff.instagramMessagesOnly && site.name === 'Instagram' &&
         (path === '/' || path === '' || path === '/stories' || path.indexOf('/stories/') === 0)) {
+      return Object.assign({ kind: 'respond', redirect: u.origin + site.respondPath }, base);
+    }
+    // Work-only LinkedIn: the home feed lands you in Messaging; the rest of LinkedIn is safe above.
+    if (eff && eff.linkedInWorkOnly && site.name === 'LinkedIn' && isLinkedInFeed(path)) {
       return Object.assign({ kind: 'respond', redirect: u.origin + site.respondPath }, base);
     }
     var remaining = cooldownRemaining(cooldowns, site.name, nowMs);
@@ -568,6 +612,9 @@
     feedSiteForHost: feedSiteForHost,
     feedSiteByName: feedSiteByName,
     isSafePath: isSafePath,
+    isLinkedInFeed: isLinkedInFeed,
+    normalizedSite: normalizedSite,
+    isAllowedHost: isAllowedHost,
     isShortFormPath: isShortFormPath,
     isAdultHost: isAdultHost,
     adultFilterActive: adultFilterActive,
