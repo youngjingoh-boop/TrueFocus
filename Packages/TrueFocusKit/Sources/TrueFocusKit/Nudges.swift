@@ -58,12 +58,15 @@ public struct NudgeContext: Sendable {
     /// Idle because you paused on `nextTaskTitle`: gentler, later nudges to resume.
     public var paused: Bool
     public var tone: NudgeTone
+    /// Your own words per moment (`TFSettings.customReminders`).
+    public var customReminders: CustomReminders
     public var thinkNudgeMinutes: Double
     public var now: Date
 
     public init(mode: FlowMode, modeStartedAt: Date?, plannedRestEnd: Date? = nil,
                 taskTitle: String? = nil, nextTaskTitle: String? = nil, openTaskCount: Int = 0,
                 dayEnded: Bool = false, paused: Bool = false, tone: NudgeTone = .direct,
+                customReminders: CustomReminders = CustomReminders(),
                 thinkNudgeMinutes: Double = 5, now: Date) {
         self.mode = mode
         self.modeStartedAt = modeStartedAt
@@ -74,6 +77,7 @@ public struct NudgeContext: Sendable {
         self.dayEnded = dayEnded
         self.paused = paused
         self.tone = tone
+        self.customReminders = customReminders
         self.thinkNudgeMinutes = thinkNudgeMinutes
         self.now = now
     }
@@ -84,7 +88,7 @@ public struct NudgeContext: Sendable {
 public enum NudgePlanner {
     public static func plan(_ context: NudgeContext) -> [Nudge] {
         guard !context.dayEnded else { return [] }
-        let copy = Copy(tone: context.tone)
+        let copy = Copy(tone: context.tone, custom: context.customReminders)
         var nudges: [Nudge] = []
 
         switch context.mode {

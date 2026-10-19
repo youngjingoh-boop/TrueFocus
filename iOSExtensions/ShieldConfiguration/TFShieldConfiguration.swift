@@ -58,25 +58,24 @@ final class TFShieldConfiguration: ShieldConfigurationDataSource {
         let store = SharedStore.shared
         let snapshot = store.snapshot
         let settings = store.settings
-        let copy = Copy(tone: settings.tone)
+        let copy = Copy(settings: settings)
         let now = Date()
 
-        let title: String
-        let subtitle: String
+        let line: Copy.Line
         switch kind(snapshot: snapshot, config: config) {
         case .focus:
-            title = copy.shieldTitle(during: snapshot.mode)
             let minutes = Int(snapshot.taskElapsed(now: now) / 60)
-            subtitle = copy.shieldSubtitle(task: snapshot.taskTitle ?? snapshot.headline,
-                                           minutesIn: snapshot.mode == .focus ? minutes : nil)
+            line = copy.shield(during: snapshot.mode, task: snapshot.taskTitle ?? snapshot.headline,
+                               minutesIn: snapshot.mode == .focus ? minutes : nil)
         case .budget:
-            title = copy.budgetSpentTitle
-            subtitle = budgetSubtitle(appName: appName, until: config.budgetShieldUntil, now: now,
-                                      task: snapshot.headline)
+            let subtitle = budgetSubtitle(appName: appName, until: config.budgetShieldUntil, now: now,
+                                          task: snapshot.headline)
+            line = copy.budgetSpent(subtitle: subtitle, task: snapshot.headline)
         case .generic:
-            title = copy.shieldTitle(during: snapshot.mode)
-            subtitle = copy.shieldSubtitle(task: snapshot.headline, minutesIn: nil)
+            line = copy.shield(during: snapshot.mode, task: snapshot.headline, minutesIn: nil)
         }
+        let title = line.title
+        let subtitle = line.body
 
         var secondary: ShieldConfiguration.Label?
         if offersReplyPass {

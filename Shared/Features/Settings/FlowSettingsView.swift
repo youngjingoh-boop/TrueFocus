@@ -43,7 +43,7 @@ struct FlowSettingsView<Extra: View>: View {
                     toneButton(tone)
                 }
             }
-            let sample = Copy(tone: controller.settings.tone).restOver(level: 3, next: "Investor update")
+            let sample = Copy(settings: controller.settings).restOver(level: 3, next: "Investor update")
             VStack(alignment: .leading, spacing: 3) {
                 Text(sample.title).font(.headline).foregroundStyle(TF.Palette.ink)
                 Text(sample.body).font(.subheadline).foregroundStyle(TF.Palette.ink2)
