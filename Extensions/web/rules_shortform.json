@@ -137,7 +137,7 @@
       }
     },
     "condition": {
-      "urlFilter": "||linkedin.com/video^",
+      "urlFilter": "||facebook.com/stories^",
       "resourceTypes": [
         "main_frame"
       ]
@@ -153,7 +153,7 @@
       }
     },
     "condition": {
-      "urlFilter": "||linkedin.com/feed/videos^",
+      "urlFilter": "||linkedin.com/video^",
       "resourceTypes": [
         "main_frame"
       ]
@@ -161,6 +161,22 @@
   },
   {
     "id": 11,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "extensionPath": "/shorts.html"
+      }
+    },
+    "condition": {
+      "urlFilter": "||linkedin.com/feed/videos^",
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 12,
     "priority": 1,
     "action": {
       "type": "redirect",

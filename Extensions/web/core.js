@@ -180,10 +180,14 @@
       respondPath: null, safePaths: ['/upload', '/account'], allShortForm: false },
     { name: 'TikTok', hosts: ['tiktok.com'], shortFormPaths: [],
       respondPath: '/messages', safePaths: ['/messages', '/upload', '/tiktokstudio', '/login', '/setting'], allShortForm: true },
-    { name: 'Facebook', hosts: ['facebook.com'], shortFormPaths: ['/reel', '/reels', '/watch'],
+    // Facebook's sign-in and app-login dialogs (Graph API Explorer, "Log in with Facebook")
+    // are safe, so connecting a tool never hits the focus wall.
+    { name: 'Facebook', hosts: ['facebook.com'], shortFormPaths: ['/reel', '/reels', '/watch', '/stories'],
       respondPath: '/messages/',
       safePaths: ['/messages', '/settings', '/adsmanager', '/ads/', '/business', '/events_manager',
-        '/commerce_manager', '/billing_hub', '/ad_center', '/help'],
+        '/commerce_manager', '/billing_hub', '/ad_center', '/help', '/dialog', '/login', '/oauth',
+        '/connect', '/checkpoint', '/recover', '/two_step_verification', '/auth', '/device',
+        '/privacy', '/security', '/policies', '/legal'],
       allShortForm: false,
       workHosts: ['business.facebook.com', 'adsmanager.facebook.com', 'developers.facebook.com',
         'accountscenter.facebook.com'] },
@@ -264,7 +268,9 @@
   }
 
   function isSafePath(site, path) {
-    return site.safePaths.some(function (p) { return path.indexOf(p) === 0; });
+    // Facebook's dialogs also live under a Graph API version: /v19.0/dialog/oauth.
+    var p = site.name === 'Facebook' ? path.replace(/^\/v\d+(\.\d+)?(?=\/)/, '') : path;
+    return site.safePaths.some(function (prefix) { return p.indexOf(prefix) === 0; });
   }
 
   function isShortFormPath(site, path) {
@@ -275,6 +281,17 @@
   /** Blocklist.isLinkedInFeed(path:): the home feed, the only scroll on LinkedIn. */
   function isLinkedInFeed(path) {
     return path === '' || path === '/' || path === '/feed' || path === '/feed/';
+  }
+
+  /** Blocklist.isFacebookFeed(path:): the News Feed and the groups feed. */
+  function isFacebookFeed(path) {
+    return path === '' || path === '/' || path === '/home.php' ||
+      path === '/groups' || path === '/groups/' || path === '/groups/feed' || path === '/groups/feed/';
+  }
+
+  /** Blocklist.isFacebookVideo(path:): Watch, Reels, Stories and any page's videos. */
+  function isFacebookVideo(path) {
+    return /(^|\/)(watch|reel|reels|stories|videos|gaming)(\/|$)/.test(path);
   }
 
   /** Blocklist.normalizedSite: "https://www.Notion.so/x" → "notion.so"; null if not a host. */
@@ -310,6 +327,7 @@
     hideShortForm: true,
     instagramMessagesOnly: true,
     linkedInWorkOnly: true,
+    facebookWorkOnly: true,
     guardEnabled: true,
     sensitivity: 'standard'
   });
@@ -394,6 +412,8 @@
         ? settings.instagramMessagesOnly : !!p.instagramMessagesOnly,
       linkedInWorkOnly: settings && typeof settings.linkedInWorkOnly === 'boolean'
         ? settings.linkedInWorkOnly : !!p.linkedInWorkOnly,
+      facebookWorkOnly: settings && typeof settings.facebookWorkOnly === 'boolean'
+        ? settings.facebookWorkOnly : !!p.facebookWorkOnly,
       allowedSites: (settings && Array.isArray(settings.allowedSites) ? settings.allowedSites : [])
         .map(normalizedSite).filter(Boolean),
       guardEnabled: p.guardEnabled !== false,
@@ -419,10 +439,10 @@
    * What to do with a URL.
    *   adult     → wall (only while the adult filter is active)
    *   shortform → shorts wall
-   *   respond   → redirect to `redirect` (Instagram home → DMs, LinkedIn feed → Messaging)
+   *   respond   → redirect to `redirect` (Instagram home → DMs, LinkedIn/Facebook feed → messages)
    *   cooldown  → booted earlier; wait it out
    *   strict    → focus is running; feeds are closed
-   *   safe      → a feed site's messages/settings: leave alone
+   *   safe      → a feed site's messages/settings: leave alone (`feedless`: hide posts on the page)
    *   feed      → a feed: run the doom-scroll guard
    *   other     → not ours
    */
@@ -448,6 +468,14 @@
     // Work-only LinkedIn: the home feed lands you in Messaging; the rest of LinkedIn is safe above.
     if (eff && eff.linkedInWorkOnly && site.name === 'LinkedIn' && isLinkedInFeed(path)) {
       return Object.assign({ kind: 'respond', redirect: u.origin + site.respondPath }, base);
+    }
+    // Work-only Facebook: no feed, video or stories; pages, groups, Marketplace, events and
+    // everything else stay open — unguarded, even in focus — with their posts hidden.
+    if (eff && eff.facebookWorkOnly && site.name === 'Facebook') {
+      if (isFacebookVideo(path)) { return Object.assign({ kind: 'shortform' }, base); }
+      if (isFacebookFeed(path)) { return Object.assign({ kind: 'respond', redirect: u.origin + site.respondPath }, base); }
+      // Search results share the feed's markup; keep them so you can find a page or group.
+      return Object.assign({ kind: 'safe', feedless: path.indexOf('/search') !== 0 }, base);
     }
     var remaining = cooldownRemaining(cooldowns, site.name, nowMs);
     if (remaining > 0) { return Object.assign({ kind: 'cooldown', remainingMs: remaining }, base); }
@@ -613,6 +641,8 @@
     feedSiteByName: feedSiteByName,
     isSafePath: isSafePath,
     isLinkedInFeed: isLinkedInFeed,
+    isFacebookFeed: isFacebookFeed,
+    isFacebookVideo: isFacebookVideo,
     normalizedSite: normalizedSite,
     isAllowedHost: isAllowedHost,
     isShortFormPath: isShortFormPath,

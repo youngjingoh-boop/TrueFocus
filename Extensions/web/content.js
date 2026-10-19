@@ -1,7 +1,8 @@
 /*
  * TrueFocus content script (feed sites only, top frame, document_start).
  *
- * 1. Route guard — short-form, messages-only Instagram, cooldowns and focus mode,
+ * 1. Route guard — short-form, messages-only Instagram, work-only LinkedIn and Facebook,
+ *    cooldowns and focus mode,
  *    re-checked on every SPA navigation.
  * 2. Doom-scroll guard — counts downward strokes (touch, wheel, keys, scroll fallback)
  *    through TFCore.DoomScrollDetector; warns, then boots you out.
@@ -21,6 +22,9 @@
   // Hide short-form immediately; settings may switch it back off a few ms later.
   root.classList.add('tf-hide-shorts');
   if (/(^|\.)instagram\.com$/.test(location.hostname)) root.classList.add('tf-ig-dm-only');
+  if (/(^|\.)facebook\.com$/.test(location.hostname) && !/^\/messages/.test(location.pathname)) {
+    root.classList.add('tf-fb-feedless');
+  }
 
   var state = null;
   var prefs = null;
@@ -99,6 +103,8 @@
     if (leaving) return;
     var verdict = Core.classify(location.href, eff, cooldowns, now());
     currentSite = verdict.site || null;
+    // Work-only Facebook: the page stays, its posts and stories go.
+    root.classList.toggle('tf-fb-feedless', !!verdict.feedless);
     switch (verdict.kind) {
       case 'adult': return leave(api.runtime.getURL('wall.html'));
       case 'shortform': return leave(blockedURL('shortform', verdict.site));

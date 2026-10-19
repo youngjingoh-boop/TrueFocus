@@ -52,8 +52,9 @@ test("Meta's business tools stay open while Facebook and Instagram are blocked",
   ]) {
     assert.ok(['safe', 'other'].includes(core.classify(url, e, booted, NOW).kind), url);
   }
-  assert.equal(core.classify('https://www.facebook.com/', e, {}, NOW).kind, 'strict');
-  assert.equal(core.classify('https://www.facebook.com/', eff(), booted, NOW).kind, 'cooldown');
+  const classic = { facebookWorkOnly: false };
+  assert.equal(core.classify('https://www.facebook.com/', eff({ ...classic, strict: true }), {}, NOW).kind, 'strict');
+  assert.equal(core.classify('https://www.facebook.com/', eff(classic), booted, NOW).kind, 'cooldown');
   assert.equal(core.classify('https://www.facebook.com/reel/1', eff(), {}, NOW).kind, 'shortform');
   assert.equal(core.classify('https://www.instagram.com/', e, {}, NOW).kind, 'respond');
 });

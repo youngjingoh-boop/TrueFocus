@@ -43,6 +43,9 @@ public struct TFSettings: Codable, Equatable, Sendable {
     /// Web: LinkedIn without the feed. The home feed opens Messaging; video is gone; profiles,
     /// search, jobs, Sales Navigator and Campaign Manager stay open, unguarded, even in focus.
     public var linkedInWorkOnly: Bool = true
+    /// Web: Facebook without the feed. The News Feed opens Messenger; posts, stories, Reels and
+    /// video are gone; pages, groups, events, Marketplace and sign-ins stay open, even in focus.
+    public var facebookWorkOnly: Bool = true
     /// Web: sites you always allow (host names like "notion.so"). Never blocked, guarded or
     /// cooled down. The adult filter still applies.
     public var allowedSites: [String] = []
@@ -91,6 +94,7 @@ public struct TFSettings: Codable, Equatable, Sendable {
         instagramMessagesOnly = try c.decodeIfPresent(Bool.self, forKey: .instagramMessagesOnly) ?? d.instagramMessagesOnly
         hideShortForm = try c.decodeIfPresent(Bool.self, forKey: .hideShortForm) ?? d.hideShortForm
         linkedInWorkOnly = try c.decodeIfPresent(Bool.self, forKey: .linkedInWorkOnly) ?? d.linkedInWorkOnly
+        facebookWorkOnly = try c.decodeIfPresent(Bool.self, forKey: .facebookWorkOnly) ?? d.facebookWorkOnly
         allowedSites = try c.decodeIfPresent([String].self, forKey: .allowedSites) ?? d.allowedSites
         macRunFocusShortcuts = try c.decodeIfPresent(Bool.self, forKey: .macRunFocusShortcuts) ?? d.macRunFocusShortcuts
         macFocusOnShortcut = try c.decodeIfPresent(String.self, forKey: .macFocusOnShortcut) ?? d.macFocusOnShortcut
