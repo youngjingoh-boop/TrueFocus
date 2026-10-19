@@ -14,10 +14,10 @@
 
 | Token | Light | Dark | Use |
 | --- | --- | --- | --- |
-| `ink` | `#111113` | `#F2F1EC` | Text, solid controls |
+| `ink` | `#050506` | `#F4F3EE` | Text, solid controls (brand Ink / Paper) |
 | `ink2` | `#6B6B70` | `#9A9AA0` | Secondary text |
 | `ink3` | `#A9A9AE` | `#58585E` | Placeholders, empty circles |
-| `paper` | `#FAF9F6` | `#0A0A0B` | Background |
+| `paper` | `#F4F3EE` | `#0A0A0B` | Background (brand Paper) |
 | `surface` | `#FFFFFF` | `#151517` | Cards |
 | **Ember** `signal` | `#FF5A1F` | | Focus, Done, the live dot |
 | Think | `#7C7CFF` | | Stuck / think time |
@@ -45,4 +45,4 @@ Short. Specific. Always names the task. Three tones — Calm, Direct (the defaul
 
 ## Icon
 
-A single focus point: an Ember ring around a solid dot, on near-black with a warm glow. Generated (with the extension icons) so it stays pixel-exact at every size.
+Ember Open, from the brand handover in `docs/brand` (v2.0): one ring, one point of light. A thin ring with a top-to-bottom gradient (`#FF7A40` → `#E2460E`) around a glowing core (`#FFE6D6` → `#FF9560` → `#FF5A1F`). Glow on dark, flat on light, and below 24 px the small cut: thicker solid ring, solid core. The iOS icon ships Any, Dark and Tinted appearances plus an alternate Paper icon (Settings ▸ App icon); the Mac icon, the menu bar template, the browser extension icons and the website's favicons all come from the same kit. In SwiftUI the mark is `TFMark`. The wordmark is outlined Geist SemiBold; use the lockup files, never live type.

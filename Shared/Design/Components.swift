@@ -343,3 +343,57 @@ enum TFHaptics {
         #endif
     }
 }
+
+// MARK: - Brand mark
+
+/// The TruFocus symbol: one ring, one point of light (docs/brand, "Ember Open").
+/// Drawn on a 100-unit field: ring radius 37, core radius 17. The glow is for dark surfaces only,
+/// and below 24 pt the mark switches to the small cut: thicker ring, solid core, no gradient or glow.
+struct TFMark: View {
+    var size: CGFloat = 28
+    /// Glow on dark, flat on light.
+    var onDark: Bool = true
+
+    private static let ringTop = Color(tfHex: 0xFF7A40)
+    private static let ringBottom = Color(tfHex: 0xE2460E)
+    private static let coreHot = Color(tfHex: 0xFFE6D6)
+    private static let coreMid = Color(tfHex: 0xFF9560)
+
+    var body: some View {
+        let u = size / 100
+        let small = size < 24
+        ZStack {
+            if onDark && !small {
+                Circle()
+                    .stroke(TF.Palette.signal.opacity(0.3), lineWidth: 5.5 * u)
+                    .frame(width: 74 * u, height: 74 * u)
+                    .blur(radius: 3.2 * u)
+                Circle()
+                    .fill(TF.Palette.signal.opacity(0.65))
+                    .frame(width: 44.2 * u, height: 44.2 * u)
+                    .blur(radius: 6 * u)
+            }
+            if small {
+                Circle()
+                    .stroke(TF.Palette.signal, lineWidth: 9 * u)
+                    .frame(width: 74 * u, height: 74 * u)
+                Circle()
+                    .fill(Color(tfHex: 0xFF8A55))
+                    .frame(width: 36 * u, height: 36 * u)
+            } else {
+                Circle()
+                    .stroke(LinearGradient(colors: [Self.ringTop, Self.ringBottom], startPoint: .top, endPoint: .bottom),
+                            lineWidth: 5.5 * u)
+                    .frame(width: 74 * u, height: 74 * u)
+                Circle()
+                    .fill(RadialGradient(stops: [.init(color: Self.coreHot, location: 0),
+                                                 .init(color: Self.coreMid, location: 0.45),
+                                                 .init(color: TF.Palette.signal, location: 1)],
+                                         center: .center, startRadius: 0, endRadius: 17 * u))
+                    .frame(width: 34 * u, height: 34 * u)
+            }
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
+    }
+}

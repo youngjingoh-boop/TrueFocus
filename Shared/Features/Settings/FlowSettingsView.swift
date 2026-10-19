@@ -24,6 +24,9 @@ struct FlowSettingsView<Extra: View>: View {
                 #if os(macOS)
                 LoginItemSection()
                 #endif
+                #if os(iOS)
+                AppIconSection()
+                #endif
                 extra
             }
             .padding(.horizontal, TF.Space.page)
@@ -241,3 +244,52 @@ struct SliderRow: View {
         }
     }
 }
+
+#if os(iOS)
+import UIKit
+
+/// Ember (the default) or Paper, the alternate icon from the brand kit for light Home Screens.
+private struct AppIconSection: View {
+    @State private var current: String? = UIApplication.shared.alternateIconName
+    @State private var failed = false
+
+    var body: some View {
+        SettingsSection("App icon", footnote: failed ? "iOS didn't change the icon. Try again in a moment." : "Paper suits a light Home Screen.") {
+            HStack(spacing: 14) {
+                option(name: nil, title: "Ember", dark: true)
+                option(name: "AppIconPaper", title: "Paper", dark: false)
+            }
+        }
+    }
+
+    private func option(name: String?, title: String, dark: Bool) -> some View {
+        let selected = current == name
+        return Button {
+            guard UIApplication.shared.supportsAlternateIcons, !selected else { return }
+            UIApplication.shared.setAlternateIconName(name) { error in
+                Task { @MainActor in
+                    failed = error != nil
+                    if error == nil { current = name }
+                }
+            }
+        } label: {
+            VStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(dark ? TF.Palette.night : Color(tfHex: 0xF4F3EE))
+                    .frame(width: 64, height: 64)
+                    .overlay(TFMark(size: 40, onDark: dark))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .strokeBorder(selected ? TF.Palette.signal : TF.Palette.hairline, lineWidth: selected ? 2 : 1)
+                    )
+                Text(title)
+                    .font(.tfCaption)
+                    .foregroundStyle(selected ? TF.Palette.ink : TF.Palette.ink2)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title) app icon")
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+}
+#endif

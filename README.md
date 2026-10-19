@@ -70,6 +70,7 @@ iOSExtensions/          Widgets + Live Activity + Controls, Device Activity moni
 macOS/                  Menu bar, window, wake-up overlay, distraction guard, scroll watch, hotkeys.
 Extensions/web          One Manifest V3 extension for Safari (bundled) and Chrome (load unpacked).
 supabase/               Sync server: tables + row-level security, device-link and wake-up edge functions.
+website/                Marketing site: one static page with a three.js scroll story.
 ```
 
 More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and [docs/DESIGN.md](docs/DESIGN.md).
