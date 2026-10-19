@@ -66,7 +66,7 @@ struct TaskRow: View {
         .onChange(of: task.title) { _, title in
             if !editing { draft = title }
         }
-        .contextMenu { menu }
+        .modifier(RowMenu(enabled: rowMenuEnabled) { menu })
         .opacity(task.isDone ? 0.75 : 1)
     }
 
@@ -135,6 +135,17 @@ struct TaskRow: View {
         }
         Divider()
         Button("Delete", systemImage: "trash", role: .destructive) { controller.delete(task) }
+    }
+
+    /// iPhone: holding an open task picks it up to reorder (in either direction), so its
+    /// actions live behind a swipe (More) instead of a long-press menu, which would win the
+    /// gesture. Done tasks don't reorder, so they keep the menu. The Mac uses right-click.
+    private var rowMenuEnabled: Bool {
+        #if os(iOS)
+        task.isDone
+        #else
+        true
+        #endif
     }
 
     private func commit() {
@@ -207,5 +218,19 @@ enum TaskRowMetrics {
 
     static func padding(dense: Bool) -> CGFloat {
         dense ? 2 : 6
+    }
+}
+
+/// The row's long-press / right-click menu, attached only when `enabled`.
+private struct RowMenu<MenuItems: View>: ViewModifier {
+    var enabled: Bool
+    @ViewBuilder var items: () -> MenuItems
+
+    func body(content: Content) -> some View {
+        if enabled {
+            content.contextMenu { items() }
+        } else {
+            content
+        }
     }
 }

@@ -9,6 +9,8 @@ struct TodayView: View {
     @State private var showSettings = false
     @State private var showDone = true
     @State private var newTaskFocused = false
+    /// iPhone: the task whose More actions are showing (swipe › More).
+    @State private var actionsFor: FocusTask?
 
     var body: some View {
         List {
@@ -61,6 +63,12 @@ struct TodayView: View {
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
+                            Button {
+                                actionsFor = task
+                            } label: {
+                                Label("More", systemImage: "ellipsis.circle")
+                            }
+                            .tint(TF.Palette.ink2)
                             Button {
                                 if task.inPlay { controller.drop(task) } else { controller.juggle(task) }
                             } label: {
@@ -118,6 +126,29 @@ struct TodayView: View {
             BrainDumpView()
                 .environment(controller)
         }
+        #if os(iOS)
+        .confirmationDialog(actionsFor?.title ?? "Task",
+                            isPresented: Binding(get: { actionsFor != nil }, set: { if !$0 { actionsFor = nil } }),
+                            titleVisibility: .visible,
+                            presenting: actionsFor) { task in
+            Button("Focus on This") {
+                controller.start(task)
+                controller.isFocusScreenPresented = true
+            }
+            if task.inPlay {
+                Button("Drop from Juggle") { controller.drop(task) }
+            } else if controller.canJuggleMore {
+                Button("Juggle") { _ = controller.juggle(task) }
+            }
+            if controller.nowTask?.id != task.id {
+                Button(task.waitingSince != nil ? "Not Waiting Anymore" : "Waiting on It") {
+                    controller.setWaiting(task, task.waitingSince == nil)
+                }
+            }
+            Button("Do Next") { controller.makeNext(task) }
+            Button("Delete", role: .destructive) { controller.delete(task) }
+        }
+        #endif
         .sheet(isPresented: $showReview) {
             ReviewView()
                 .environment(controller)
