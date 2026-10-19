@@ -83,6 +83,32 @@ struct StartNextTaskIntent: TFFlowIntent {
     }
 }
 
+struct PauseIntent: TFFlowIntent {
+    static let title: LocalizedStringResource = "Pause Focus"
+    static let description: IntentDescription? = IntentDescription("Stops the clock on the current task. Resume picks up where you left off.")
+
+    init() {}
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        IntentRouter.run(.pause)
+        return .result()
+    }
+}
+
+struct ResumeIntent: TFFlowIntent {
+    static let title: LocalizedStringResource = "Resume Focus"
+    static let description: IntentDescription? = IntentDescription("Picks the paused task back up, its clock continuing from where it stopped.")
+
+    init() {}
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        IntentRouter.run(.resume)
+        return .result()
+    }
+}
+
 struct WaitOnTaskIntent: TFFlowIntent {
     static let title: LocalizedStringResource = "Waiting on Current Task"
     static let description: IntentDescription? = IntentDescription("Marks the current task as waiting, keeps it juggled, and moves to the next one.")

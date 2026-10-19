@@ -29,11 +29,13 @@ struct FocusActivityAttributes: ActivityAttributes {
         var momentum: Int
         /// The other tasks in the air, in slot order. Optional so older states decode.
         var juggling: [JuggledTask]?
+        /// Paused on `nextTitle` since then. Optional so older states decode.
+        var pausedAt: Date?
 
         init(modeRaw: String, title: String? = nil, nextTitle: String? = nil, breadcrumb: String? = nil,
              modeStartedAt: Date? = nil, taskFocusBefore: Double = 0, plannedRestEnd: Date? = nil,
              doneToday: Int = 0, plannedToday: Int = 0, chain: Int = 0, momentum: Int = 0,
-             juggling: [JuggledTask]? = nil) {
+             juggling: [JuggledTask]? = nil, pausedAt: Date? = nil) {
             self.modeRaw = modeRaw
             self.title = title
             self.nextTitle = nextTitle
@@ -46,6 +48,7 @@ struct FocusActivityAttributes: ActivityAttributes {
             self.chain = chain
             self.momentum = momentum
             self.juggling = juggling
+            self.pausedAt = pausedAt
         }
 
         init(snapshot: LiveSnapshot) {
@@ -62,12 +65,18 @@ struct FocusActivityAttributes: ActivityAttributes {
                       momentum: snapshot.momentum,
                       juggling: snapshot.juggledOthers.map {
                           JuggledTask(id: $0.id, title: $0.title, waiting: $0.isWaiting)
-                      })
+                      },
+                      pausedAt: snapshot.isPaused ? snapshot.pausedAt : nil)
         }
 
         var mode: FlowMode { FlowMode(rawValue: modeRaw) ?? .idle }
 
         var juggled: [JuggledTask] { juggling ?? [] }
+
+        var isPaused: Bool { mode == .idle && pausedAt != nil }
+
+        /// The mode's symbol, or a pause glyph while paused.
+        var symbol: String { isPaused ? "pause.fill" : mode.symbol }
 
         /// The task title worth showing: the current task, or the next one while resting.
         var headline: String {

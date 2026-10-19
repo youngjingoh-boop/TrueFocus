@@ -78,33 +78,13 @@ struct FocusScreen: View {
             .keyboardShortcut(.cancelAction)
             .accessibilityLabel("Close focus screen")
 
-            if snapshot.mode.isActive {
-                Menu {
-                    if snapshot.mode == .focus {
-                        Button("Waiting on It", systemImage: "hourglass") { controller.waitOnCurrent() }
-                    }
-                    Button("Stop the Clock", systemImage: "stop.circle") {
-                        controller.stopForNow()
-                        close()
-                    }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(TF.Palette.nightInk2)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .menuStyle(.button)
-                .buttonStyle(.plain)
-                .menuIndicator(.hidden)
-                .fixedSize()
-                .accessibilityLabel("More")
-            }
+            // Keeps the mode label centred against the close button.
+            Color.clear.frame(width: 44, height: 44)
 
             Spacer()
 
             VStack(spacing: 2) {
-                ModeLabel(mode: snapshot.mode)
+                ModeLabel(mode: snapshot.mode, text: snapshot.isPaused ? "Paused" : nil)
                 if snapshot.mode.isWorking {
                     MusicQuickButton(onDark: true)
                 }
@@ -185,7 +165,24 @@ struct FocusScreen: View {
                     .accessibilityLabel("Choose the next task")
             }
         case .idle:
-            if controller.nextTask != nil {
+            if let paused = controller.pausedTask {
+                HStack(spacing: 12) {
+                    Button {
+                        TFHaptics.success()
+                        withAnimation(TF.Motion.snappy) { controller.resume() }
+                    } label: {
+                        Label("Resume", systemImage: "play.fill")
+                    }
+                    .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: TF.Palette.onSignal))
+                    .keyboardShortcut(.return, modifiers: .command)
+                    Button {
+                        TFHaptics.success()
+                        withAnimation(TF.Motion.snappy) { controller.toggleDone(paused) }
+                    } label: { Image(systemName: "checkmark") }
+                        .buttonStyle(OrbButtonStyle(tint: TF.Palette.nightInk, size: 52))
+                        .accessibilityLabel("Done")
+                }
+            } else if controller.nextTask != nil {
                 Button("Attack") {
                     TFHaptics.success()
                     controller.startNext()
@@ -233,6 +230,8 @@ private struct FocusStage: View {
             ElapsedText(since: snapshot.modeStartedAt ?? Date(), base: snapshot.taskFocusBefore, font: .tfTimerHero)
                 .foregroundStyle(TF.Palette.nightInk)
 
+            PauseChip()
+
             BreadcrumbField(placeholder: "Next step…")
 
             Text("\(TFFormat.short(snapshot.focusToday(now: Date()))) focused today")
@@ -279,6 +278,8 @@ private struct ThinkStage: View {
 
             ElapsedText(since: snapshot.modeStartedAt ?? Date(), font: .tfTimerSmall)
                 .foregroundStyle(TF.Palette.nightInk2)
+
+            PauseChip()
         }
         .task {
             // A new question every 40 seconds keeps thinking from turning into staring.
@@ -351,7 +352,9 @@ private struct IdleStage: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            if let next = controller.nextTask {
+            if let paused = controller.pausedTask {
+                PausedStage(task: paused, since: controller.pausedAt ?? Date())
+            } else if let next = controller.nextTask {
                 Text("Up next").tfEyebrowStyle(TF.Palette.nightInk2)
                 Text(next.title)
                     .font(.system(size: 30, weight: .semibold))
@@ -383,6 +386,72 @@ private struct IdleStage: View {
                     .foregroundStyle(TF.Palette.nightInk2)
             }
         }
+    }
+}
+
+/// A paused task: its clock frozen where you stopped, and how long ago that was.
+private struct PausedStage: View {
+    let task: FocusTask
+    let since: Date
+
+    var body: some View {
+        VStack(spacing: 18) {
+            HStack(spacing: 7) {
+                Image(systemName: "pause.fill")
+                    .font(.system(size: 10, weight: .bold))
+                Text("Paused").tfEyebrowStyle(TF.Palette.nightInk2)
+            }
+            .foregroundStyle(TF.Palette.nightInk2)
+
+            Text(task.title)
+                .font(.system(size: 30, weight: .semibold))
+                .foregroundStyle(TF.Palette.nightInk)
+                .multilineTextAlignment(.center)
+                .lineLimit(4)
+                .minimumScaleFactor(0.7)
+
+            Text(TFFormat.clock(task.focusSeconds))
+                .font(.tfTimerHero)
+                .foregroundStyle(TF.Palette.nightInk.opacity(0.4))
+
+            if !task.breadcrumb.isEmpty {
+                Text("↳ \(task.breadcrumb)")
+                    .font(.callout)
+                    .foregroundStyle(TF.Palette.nightInk2)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+            }
+
+            TimelineView(.periodic(from: .now, by: 15)) { context in
+                Text(TFFormat.pausedSince(since, now: context.date))
+                    .font(.tfCaption)
+                    .foregroundStyle(TF.Palette.nightInk2)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// The clock's own control: stop it, keep your place.
+private struct PauseChip: View {
+    @Environment(FocusController.self) private var controller
+
+    var body: some View {
+        Button {
+            TFHaptics.tap()
+            withAnimation(TF.Motion.snappy) { controller.pause() }
+        } label: {
+            Label("Pause", systemImage: "pause.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(TF.Palette.nightInk)
+                .padding(.horizontal, 18)
+                .frame(minHeight: 36)
+                .background(Capsule().fill(Color.white.opacity(0.10)))
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("Stops the clock. Resume picks up where you left off.")
     }
 }
 

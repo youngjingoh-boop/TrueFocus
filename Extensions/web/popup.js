@@ -44,11 +44,15 @@
 
     // Now
     var mode = eff.mode;
+    // Paused: idle with the task held (and its clock frozen) until you resume in the app.
+    var paused = mode === 'idle' && !!(snapshot && snapshot.pausedAt && !snapshot.dayEnded);
     $('now').setAttribute('data-mode', mode);
-    $('mode').textContent = mode === 'idle' && snapshot && snapshot.dayEnded ? 'Shut down' : Core.modeLabel(mode);
+    $('mode').textContent = paused ? 'Paused'
+      : mode === 'idle' && snapshot && snapshot.dayEnded ? 'Shut down' : Core.modeLabel(mode);
     var title;
     if (mode === 'focus' || mode === 'think') title = eff.task || 'Focusing';
     else if (mode === 'rest') title = eff.task ? 'Next: ' + eff.task : 'Micro-rest';
+    else if (paused) title = eff.task || 'Paused';
     else title = eff.task ? 'Next: ' + eff.task : 'Nothing running';
     $('task').textContent = title;
 
@@ -60,6 +64,9 @@
       var left = (Core.dateMs(snapshot.plannedRestEnd) - now) / 1000;
       timer.hidden = false;
       timer.textContent = left >= 0 ? Core.clock(left) : '+' + Core.clock(-left);
+    } else if (paused) {
+      timer.hidden = false;
+      timer.textContent = Core.clock(snapshot.taskFocusBefore || 0);
     } else if (snapshot && mode === 'think') {
       var started = Core.dateMs(snapshot.modeStartedAt);
       timer.hidden = started === null;

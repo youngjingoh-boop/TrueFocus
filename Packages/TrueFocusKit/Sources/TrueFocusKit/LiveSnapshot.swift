@@ -44,6 +44,9 @@ public struct LiveSnapshot: Codable, Equatable, Sendable {
     public var outcome: String?
     public var bootsToday: Int
     public var dayEnded: Bool
+    /// Paused: when the clock was stopped on the task you'll resume (`nextTaskID`).
+    /// Idle underneath — shields drop — but the task keeps its place and its time.
+    public var pausedAt: Date?
     /// A system Focus with the TrueFocus filter ("Deep Work shields") is on for this device.
     public var systemFocusOn: Bool
     public var updatedAt: Date
@@ -55,7 +58,7 @@ public struct LiveSnapshot: Codable, Equatable, Sendable {
                 inPlay: [Item] = [], doneToday: Int = 0, plannedToday: Int = 0,
                 focusSecondsToday: TimeInterval = 0, chain: Int = 0, momentum: Int = 0,
                 outcome: String? = nil, bootsToday: Int = 0, dayEnded: Bool = false,
-                systemFocusOn: Bool = false, updatedAt: Date = Date(), originDevice: String = "") {
+                pausedAt: Date? = nil, systemFocusOn: Bool = false, updatedAt: Date = Date(), originDevice: String = "") {
         self.mode = mode
         self.taskID = taskID
         self.taskTitle = taskTitle
@@ -74,6 +77,7 @@ public struct LiveSnapshot: Codable, Equatable, Sendable {
         self.outcome = outcome
         self.bootsToday = bootsToday
         self.dayEnded = dayEnded
+        self.pausedAt = pausedAt
         self.systemFocusOn = systemFocusOn
         self.updatedAt = updatedAt
         self.originDevice = originDevice
@@ -101,12 +105,16 @@ public struct LiveSnapshot: Codable, Equatable, Sendable {
         outcome = try c.decodeIfPresent(String.self, forKey: .outcome)
         bootsToday = try c.decodeIfPresent(Int.self, forKey: .bootsToday) ?? 0
         dayEnded = try c.decodeIfPresent(Bool.self, forKey: .dayEnded) ?? false
+        pausedAt = try c.decodeIfPresent(Date.self, forKey: .pausedAt)
         systemFocusOn = try c.decodeIfPresent(Bool.self, forKey: .systemFocusOn) ?? false
         updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date(timeIntervalSince1970: 0)
         originDevice = try c.decodeIfPresent(String.self, forKey: .originDevice) ?? ""
     }
 
     // MARK: Derived
+
+    /// Idle on a paused task, waiting to resume.
+    public var isPaused: Bool { mode == .idle && pausedAt != nil && !dayEnded }
 
     public func elapsedInMode(now: Date) -> TimeInterval {
         guard let start = modeStartedAt else { return 0 }
@@ -153,7 +161,7 @@ public struct LiveSnapshot: Codable, Equatable, Sendable {
             && plannedRestEnd == other.plannedRestEnd && nextTaskID == other.nextTaskID
             && nextTaskTitle == other.nextTaskTitle && inPlay == other.inPlay
             && doneToday == other.doneToday && plannedToday == other.plannedToday
-            && outcome == other.outcome && dayEnded == other.dayEnded
+            && outcome == other.outcome && dayEnded == other.dayEnded && pausedAt == other.pausedAt
             && systemFocusOn == other.systemFocusOn && bootsToday == other.bootsToday
             && chain == other.chain
     }

@@ -76,7 +76,8 @@ struct FlowCommands: Commands {
             }
             .keyboardShortcut("f", modifiers: [.command, .shift])
 
-            Button("Stop the Clock") { controller.stopForNow() }
+            Button(controller.isPaused ? "Resume" : "Pause") { controller.togglePause() }
+                .keyboardShortcut("p", modifiers: [.command, .shift])
 
             Divider()
 

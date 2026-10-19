@@ -176,6 +176,14 @@ private struct NowSection: View {
                 Button("Back to it") { controller.backToIt() }
                     .buttonStyle(QuietButtonStyle())
             }
+            Button {
+                withAnimation(TF.Motion.snappy) { controller.pause() }
+            } label: {
+                Image(systemName: "pause.fill")
+                    .accessibilityLabel("Pause")
+            }
+            .buttonStyle(QuietButtonStyle())
+            .help("Pause — stop the clock, keep your place (⇧⌘P)")
         }
         .padding(.top, 2)
     }
@@ -217,6 +225,46 @@ private struct NowSection: View {
                 .foregroundStyle(TF.Palette.ink)
             Button("Reopen the day") { controller.reopenDay() }
                 .buttonStyle(QuietButtonStyle())
+        } else if snapshot.isPaused, let title = snapshot.nextTaskTitle {
+            HStack {
+                ModeLabel(mode: .idle, text: "Paused")
+                Spacer()
+                Text(TFFormat.clock(snapshot.taskFocusBefore))
+                    .font(.system(size: 15, weight: .light).monospacedDigit())
+                    .foregroundStyle(TF.Palette.ink3)
+            }
+            Text(title)
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundStyle(TF.Palette.ink)
+                .lineLimit(3)
+            if let crumb = snapshot.breadcrumb {
+                Text("↳ \(crumb)")
+                    .font(.system(size: 13))
+                    .foregroundStyle(TF.Palette.ink2)
+                    .lineLimit(2)
+            }
+            if let since = snapshot.pausedAt {
+                TimelineView(.periodic(from: .now, by: 15)) { context in
+                    Text(TFFormat.pausedSince(since, now: context.date))
+                        .font(.tfCaption)
+                        .foregroundStyle(TF.Palette.ink3)
+                }
+            }
+            HStack(spacing: 8) {
+                Button {
+                    controller.resume()
+                } label: {
+                    Label("Resume", systemImage: "play.fill")
+                }
+                .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: .black))
+                Button {
+                    if let paused = controller.pausedTask { controller.toggleDone(paused) }
+                } label: {
+                    Label("Done", systemImage: "checkmark")
+                }
+                .buttonStyle(QuietButtonStyle())
+            }
+            .padding(.top, 2)
         } else if let next = snapshot.nextTaskTitle {
             ModeLabel(mode: .idle, text: "Up next")
             Text(next)

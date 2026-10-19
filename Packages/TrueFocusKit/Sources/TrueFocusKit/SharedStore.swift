@@ -42,6 +42,8 @@ public struct RemoteCommand: Codable, Equatable, Sendable {
         case switchTo
         /// Mark the current task as waiting and move to the next juggled one.
         case wait
+        /// Stop the clock on the current task, or pick the paused one back up.
+        case pause, resume
     }
 
     public var kind: Kind

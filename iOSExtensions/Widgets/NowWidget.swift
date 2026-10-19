@@ -89,15 +89,16 @@ private struct LockRectangularView: View {
         VStack(alignment: .leading, spacing: 1) {
             HStack(spacing: 4) {
                 ModeGlyph(mode: snapshot.mode, size: 10, tinted: false)
-                Text(WidgetCopy.modeLabel(snapshot.mode).uppercased())
+                Text(WidgetCopy.label(snapshot).uppercased())
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(0.6)
                 Spacer(minLength: 4)
-                if snapshot.mode.isActive {
+                if snapshot.mode.isActive || snapshot.isPaused {
                     FlowTimerText(mode: snapshot.mode,
                                   modeStartedAt: snapshot.modeStartedAt,
                                   taskFocusBefore: snapshot.taskFocusBefore,
                                   plannedRestEnd: snapshot.plannedRestEnd,
+                                  paused: snapshot.isPaused,
                                   now: entry.date)
                         .font(.system(size: 12, weight: .semibold).monospacedDigit())
                         .multilineTextAlignment(.trailing)
@@ -197,7 +198,7 @@ private struct HomeHeader: View {
     var body: some View {
         HStack(spacing: 6) {
             ModeDotMark(mode: snapshot.mode)
-            Text(WidgetCopy.modeLabel(snapshot.mode))
+            Text(WidgetCopy.label(snapshot))
                 .font(.tfEyebrow)
                 .tracking(1.2)
                 .textCase(.uppercase)
@@ -232,11 +233,12 @@ private struct HomeBody: View {
                 .lineLimit(titleLines)
                 .minimumScaleFactor(0.8)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            if snapshot.mode.isActive {
+            if snapshot.mode.isActive || snapshot.isPaused {
                 FlowTimerText(mode: snapshot.mode,
                               modeStartedAt: snapshot.modeStartedAt,
                               taskFocusBefore: snapshot.taskFocusBefore,
                               plannedRestEnd: snapshot.plannedRestEnd,
+                              paused: snapshot.isPaused,
                               now: entry.date)
                     .font(.system(size: 26, weight: .light).monospacedDigit())
                     .foregroundStyle(snapshot.mode == .rest && entry.date >= (snapshot.plannedRestEnd ?? .distantFuture)
@@ -299,7 +301,9 @@ private struct HomeMediumView: View {
             WidgetActionButton(intent: BackToItIntent(), title: "Go now", symbol: "bolt.fill", prominent: true)
             Spacer(minLength: 0)
         case .idle:
-            if snapshot.nextTaskTitle != nil && !snapshot.dayEnded {
+            if snapshot.isPaused {
+                WidgetActionButton(intent: ResumeIntent(), title: "Resume", symbol: "play.fill", prominent: true)
+            } else if snapshot.nextTaskTitle != nil && !snapshot.dayEnded {
                 WidgetActionButton(intent: StartNextTaskIntent(), title: "Start", symbol: "bolt.fill", prominent: true)
             }
             Spacer(minLength: 0)

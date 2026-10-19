@@ -18,6 +18,8 @@ final class AudioDirector: FocusEffect {
     private var cuePlayers: [FlowCue: AVAudioPlayer] = [:]
     private var music: AVAudioPlayer?
     private var musicTrack: String?
+    /// The track that just faded out, kept so a resume picks the music up where it stopped.
+    private var parked: (player: AVAudioPlayer, track: String)?
     private var ambience: AVAudioPlayer?
     private var appleMusicActive = false
     private var appleMusicUnavailable = false
@@ -98,8 +100,11 @@ final class AudioDirector: FocusEffect {
         }
         // Switching tracks: let the old one go, bring the new one in.
         if let old = music { fadeOut(old, over: 0.6) }
-        guard let player = load(name, loops: true) else { return }
-        player.volume = 0
+        // Back from a pause on the same track: carry on from where it stopped.
+        let resumed = parked?.track == name ? parked?.player : nil
+        parked = nil
+        guard let player = resumed ?? load(name, loops: true) else { return }
+        if resumed == nil { player.volume = 0 }
         player.play()
         fade(player, to: volume, over: 1.5)
         music = player
@@ -115,6 +120,8 @@ final class AudioDirector: FocusEffect {
         #endif
         guard let music else { return }
         fadeOut(music, over: 1.2)
+        // `stop()` keeps the play position, so the same player can resume later.
+        if let musicTrack { parked = (music, musicTrack) }
         self.music = nil
         musicTrack = nil
     }

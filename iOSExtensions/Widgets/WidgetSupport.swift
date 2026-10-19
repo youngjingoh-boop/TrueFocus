@@ -7,6 +7,10 @@ import WidgetKit
 // self-contained re-tellings of the same design language.
 
 enum WidgetCopy {
+    static func label(_ snapshot: LiveSnapshot) -> String {
+        snapshot.isPaused ? "Paused" : modeLabel(snapshot.mode)
+    }
+
     static func modeLabel(_ mode: FlowMode) -> String {
         switch mode {
         case .focus: return "Focus"
@@ -52,6 +56,8 @@ struct FlowTimerText: View {
     var modeStartedAt: Date?
     var taskFocusBefore: Double
     var plannedRestEnd: Date?
+    /// Paused (idle on a held task): the clock shows frozen at `taskFocusBefore`.
+    var paused = false
     /// The moment this view is rendered for (the timeline entry date).
     var now: Date
 
@@ -82,7 +88,7 @@ struct FlowTimerText: View {
                 Text("0:00")
             }
         case .idle:
-            Text("—")
+            Text(paused ? TFFormat.clock(taskFocusBefore) : "—")
         }
     }
 

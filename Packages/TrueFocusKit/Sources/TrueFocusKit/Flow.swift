@@ -1,7 +1,8 @@
 import Foundation
 
-/// The four states of a working day. There is deliberately no "paused":
-/// you are either working (focus / think), recovering (rest), or not started (idle).
+/// The four states of a working day: working (focus / think), recovering (rest), or not
+/// running (idle). A pause is idle with a task held for you (`SegmentOutcome.paused`), so
+/// the timeline never has a clock that runs while nobody works.
 public enum FlowMode: String, Codable, Sendable, CaseIterable {
     /// Nothing running. Either the day hasn't started or it has been shut down.
     case idle
@@ -48,6 +49,8 @@ public enum SegmentOutcome: String, Codable, Sendable {
     case resumed
     /// The day was shut down.
     case ended
+    /// You paused: the clock stopped and the task waits for you to resume it.
+    case paused
     /// Another device started a newer segment; this one was closed to keep a single timeline.
     case superseded
 }

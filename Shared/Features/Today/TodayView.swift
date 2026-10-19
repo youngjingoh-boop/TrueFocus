@@ -26,7 +26,7 @@ struct TodayView: View {
                     .tfListRow()
             }
 
-            if controller.mode.isActive {
+            if controller.mode.isActive || controller.isPaused {
                 NowCard()
                     .listRowInsets(rowInsets(top: 0, bottom: 18))
                     .tfListRow()
@@ -243,8 +243,8 @@ struct TodayView: View {
                 controller.isFocusScreenPresented = true
             } label: {
                 HStack(spacing: 10) {
-                    Image(systemName: "bolt.fill")
-                    Text("Attack").fontWeight(.semibold)
+                    Image(systemName: controller.isPaused ? "play.fill" : "bolt.fill")
+                    Text(controller.isPaused ? "Resume" : "Attack").fontWeight(.semibold)
                     Text("· \(next.title)")
                         .fontWeight(.regular)
                         .lineLimit(1)

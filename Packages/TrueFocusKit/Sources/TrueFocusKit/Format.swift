@@ -21,6 +21,12 @@ public enum TFFormat {
         return "\(m)m"
     }
 
+    /// "Paused just now", "Paused 12m ago".
+    public static func pausedSince(_ start: Date, now: Date) -> String {
+        let seconds = now.timeIntervalSince(start)
+        return seconds < 60 ? "Paused just now" : "Paused \(short(seconds)) ago"
+    }
+
     /// "SAT · OCT 17"
     public static func dayEyebrow(_ date: Date, locale: Locale = .current, timeZone: TimeZone = .current) -> String {
         let weekday = DateFormatter()

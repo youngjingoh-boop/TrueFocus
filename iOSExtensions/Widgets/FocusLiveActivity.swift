@@ -19,10 +19,10 @@ struct FocusLiveActivity: Widget {
             return DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(spacing: 6) {
-                        Image(systemName: state.mode.symbol)
+                        Image(systemName: state.symbol)
                             .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(tint)
-                        Text(LiveCopy.label(state.mode))
+                        Text(LiveCopy.label(state))
                             .font(.system(size: 11, weight: .semibold))
                             .tracking(1.1)
                             .foregroundStyle(tint)
@@ -59,7 +59,7 @@ struct FocusLiveActivity: Widget {
                     .padding(.top, 2)
                 }
             } compactLeading: {
-                Image(systemName: state.mode.symbol)
+                Image(systemName: state.symbol)
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(tint)
                     .padding(.leading, 2)
@@ -70,7 +70,7 @@ struct FocusLiveActivity: Widget {
                     .multilineTextAlignment(.trailing)
                     .frame(width: 46, alignment: .trailing)
             } minimal: {
-                Image(systemName: state.mode.symbol)
+                Image(systemName: state.symbol)
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(tint)
             }
@@ -92,7 +92,7 @@ private struct LiveBannerView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 7) {
                 Circle().fill(tint).frame(width: 7, height: 7)
-                Text(LiveCopy.label(state.mode))
+                Text(LiveCopy.label(state))
                     .font(.system(size: 11, weight: .semibold))
                     .tracking(1.4)
                     .foregroundStyle(tint)
@@ -142,7 +142,7 @@ private struct LiveBannerView: View {
                     .frame(maxWidth: 120, alignment: .trailing)
             }
 
-            if state.mode.isActive {
+            if state.mode.isActive || state.isPaused {
                 LiveActions(state: state, compact: false)
             }
         }
@@ -154,6 +154,10 @@ private struct LiveBannerView: View {
 // MARK: - Pieces
 
 private enum LiveCopy {
+    static func label(_ state: FocusActivityAttributes.ContentState) -> String {
+        state.isPaused ? "PAUSED" : label(state.mode)
+    }
+
     static func label(_ mode: FlowMode) -> String {
         switch mode {
         case .focus: return "FOCUS"
@@ -178,7 +182,9 @@ private enum LiveCopy {
         case .rest:
             return "Breathe. Then go."
         case .idle:
-            return nil
+            guard state.isPaused else { return nil }
+            if let crumb = state.breadcrumb, !crumb.isEmpty { return "↳ " + crumb }
+            return "The clock waits for you."
         }
     }
 }
@@ -218,6 +224,7 @@ private struct LiveTimer: View {
                       modeStartedAt: state.modeStartedAt,
                       taskFocusBefore: state.taskFocusBefore,
                       plannedRestEnd: state.plannedRestEnd,
+                      paused: state.isPaused,
                       now: Date())
     }
 }
@@ -233,15 +240,41 @@ private struct LiveActions: View {
             case .focus:
                 LiveButton(intent: CompleteTaskIntent(), title: "Done", symbol: "checkmark", prominent: true, compact: compact)
                 LiveButton(intent: StuckIntent(), title: "Stuck", symbol: "brain", prominent: false, compact: compact)
+                LiveIconButton(intent: PauseIntent(), symbol: "pause.fill", label: "Pause", compact: compact)
             case .think:
                 LiveButton(intent: BackToItIntent(), title: "Back to it", symbol: "bolt.fill", prominent: true, compact: compact)
                 LiveButton(intent: CompleteTaskIntent(), title: "Done", symbol: "checkmark", prominent: false, compact: compact)
+                LiveIconButton(intent: PauseIntent(), symbol: "pause.fill", label: "Pause", compact: compact)
             case .rest:
                 LiveButton(intent: BackToItIntent(), title: "Go now", symbol: "bolt.fill", prominent: true, compact: compact)
             case .idle:
-                LiveButton(intent: StartNextTaskIntent(), title: "Start next", symbol: "bolt.fill", prominent: true, compact: compact)
+                if state.isPaused {
+                    LiveButton(intent: ResumeIntent(), title: "Resume", symbol: "play.fill", prominent: true, compact: compact)
+                } else {
+                    LiveButton(intent: StartNextTaskIntent(), title: "Start next", symbol: "bolt.fill", prominent: true, compact: compact)
+                }
             }
         }
+    }
+}
+
+/// A round, symbol-only control (Pause) beside the labelled ones.
+private struct LiveIconButton<I: AppIntent>: View {
+    var intent: I
+    var symbol: String
+    var label: String
+    var compact: Bool
+
+    var body: some View {
+        Button(intent: intent) {
+            Image(systemName: symbol)
+                .font(.system(size: compact ? 12 : 13, weight: .bold))
+                .foregroundStyle(TF.Palette.nightInk)
+                .frame(width: compact ? 44 : 48, height: compact ? 36 : 42)
+                .background(Capsule().fill(Color.white.opacity(0.12)))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
     }
 }
 
