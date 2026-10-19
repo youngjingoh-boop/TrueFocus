@@ -54,6 +54,8 @@ struct GuardConfig: Codable {
     var focusShieldActive = false
     var budgetShieldActive = false
     var budgetShieldUntil: Date?
+    /// When the current boot-out began, to tell whether it crossed midnight.
+    var budgetShieldSince: Date?
     /// Fingerprint of the selection and budget the daily monitor was started with.
     var monitoringSignature: String?
 
@@ -69,6 +71,7 @@ struct GuardConfig: Codable {
         focusShieldActive = (try? c.decodeIfPresent(Bool.self, forKey: .focusShieldActive)) ?? false
         budgetShieldActive = (try? c.decodeIfPresent(Bool.self, forKey: .budgetShieldActive)) ?? false
         budgetShieldUntil = try? c.decodeIfPresent(Date.self, forKey: .budgetShieldUntil)
+        budgetShieldSince = try? c.decodeIfPresent(Date.self, forKey: .budgetShieldSince)
         monitoringSignature = try? c.decodeIfPresent(String.self, forKey: .monitoringSignature)
     }
 
@@ -103,11 +106,9 @@ struct GuardConfig: Codable {
         replySelection.applicationTokens.contains(token)
     }
 
-    /// Passes left today.
+    /// Passes left today (a TruFocus day: 4 am to 4 am).
     func passesRemaining(settings: TFSettings, now: Date = Date()) -> Int {
-        let today = Calendar.current.tfDayStart(for: now)
-        let used = (passesDay == today) ? passesUsed : 0
-        return max(0, settings.respondPassesPerDay - used)
+        max(0, settings.respondPassesPerDay - GuardTiming.passesUsed(passesUsed, countedOn: passesDay, now: now))
     }
 
     mutating func consumePass(now: Date = Date()) {

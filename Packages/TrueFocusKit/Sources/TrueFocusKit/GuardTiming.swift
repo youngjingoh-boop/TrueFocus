@@ -22,4 +22,26 @@ public enum GuardTiming {
     public static func passWindow(pass: Int) -> TimeInterval {
         Double(max(15, pass + 5)) * 60
     }
+
+    /// Screen Time schedules name whole seconds. Ends round up, so a schedule never ends
+    /// before the moment it stands for: an adult-filter cool-off checked when its schedule
+    /// ends must already be over.
+    public static func scheduleEnd(_ date: Date) -> Date {
+        Date(timeIntervalSince1970: date.timeIntervalSince1970.rounded(.up))
+    }
+
+    /// Post or reply passes used on the TruFocus day (4 am to 4 am) containing `now`, given
+    /// `used` counted on `day`. Passes used late at night still count after midnight.
+    public static func passesUsed(_ used: Int, countedOn day: Date?, now: Date, calendar: Calendar = .current) -> Int {
+        day == calendar.tfDayStart(for: now) ? used : 0
+    }
+
+    /// Whether a boot-out ending at `end` should start a fresh one-off budget until midnight.
+    /// Not when it began on an earlier day: the daily monitor already started counting from
+    /// zero at midnight, and a second monitor would warn and boot out twice.
+    public static func restartsBudget(bootedAt start: Date?, cooldownEndedAt end: Date, calendar: Calendar = .current) -> Bool {
+        guard let start else { return true }
+        return calendar.isDate(start, inSameDayAs: end)
+    }
 }
+
