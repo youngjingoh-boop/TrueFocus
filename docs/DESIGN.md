@@ -27,7 +27,7 @@ The immersive focus canvas is always night (`#050506`) with a faint wash of the 
 
 ## Type
 
-System San Francisco throughout the app. The wordmark is the one exception: "TruFocus" is set in **Lexend SemiBold**, tracked −3.5%. Lexend was drawn to reduce visual stress in reading, which suits who the app is for.
+System San Francisco throughout.
 
 - Focus clock: 96 pt **Thin**, tabular digits. The clock should feel like it's barely there.
 - Display: 34 pt Bold ("Today", "Empty your head.").
@@ -45,4 +45,4 @@ Short. Specific. Always names the task. Three tones — Calm, Direct, Savage —
 
 ## Icon
 
-A clock that keeps counting: a bold Ember ring with a dot that has travelled past twelve o'clock and broken through it, on near-black with a warm glow. The dot sits at 40° clockwise with a clean gap around it, so it reads as one object riding the ring, and the mark holds up at 16 px. The vector source is `docs/brand/mark.svg`; the iOS, Mac and extension icons are rendered from it so they stay pixel-exact at every size. On the website the hero's particles form the same mark, and the dot orbits clockwise.
+A single focus point: an Ember ring around a solid dot, on near-black with a warm glow. Generated (with the extension icons) so it stays pixel-exact at every size.

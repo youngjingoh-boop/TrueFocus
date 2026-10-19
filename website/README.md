@@ -2,7 +2,7 @@
 
 The TruFocus marketing site: one static page, `index.html`, with no build step.
 
-A fixed WebGL stage (three.js 0.169.0, loaded from jsDelivr) runs one particle system that moves between formations as you scroll: the focus point (the app icon), a calm horizon for the outcomes, the noise, and the tunnel behind the count-up clock. Right after the hero, "A day in TruFocus" pins an iPhone and walks through eleven moments of a real day. Each screen is drawn at 390 × 844 points from the app's SwiftUI views and copy (brain dump, focus, shield, Reply pass, think, switch, rest, Lock Screen, scoreboard), and scroll drives what happens on screen. The product, details and research sections use the app's paper palette and follow the viewer's light or dark theme. Without WebGL the page shows a static ember ring and everything else works.
+A fixed WebGL stage (three.js 0.169.0, loaded from jsDelivr) runs one particle system that moves between formations as you scroll: the focus point (the app icon), a calm horizon for the outcomes, the noise, and the tunnel behind the count-up clock. Right after the hero, "A day in TruFocus" pins an iPhone and walks through twelve moments of a real day, with a MacBook stepping in for the two Mac moments. Each screen is drawn from the app's SwiftUI views and copy (brain dump, focus, shield, Reply pass and boot-out, think, switch, rest, nudges, Lock Screen, the Mac menu bar and panel, LinkedIn messaging, the Mac wake-up overlay, scoreboard), and scroll drives what happens on screen. The product, details and research sections use the app's paper palette and follow the viewer's light or dark theme. Without WebGL the page shows a static ember ring and everything else works.
 
 ## Preview
 
