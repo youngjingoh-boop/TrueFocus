@@ -1,6 +1,6 @@
 # Screenshot shot list
 
-Eight iPhone shots and seven Mac shots. Each one lists the screen state, a short caption headline
+Eight iPhone shots and nine Mac shots. Each one lists the screen state, a short caption headline
 (with an optional subline), and how to stage it. The order is the order on the store page. The first
 three shots carry the pitch, because most people never swipe further.
 
@@ -15,6 +15,8 @@ three shots carry the pitch, because most people never swipe further.
   UI (guideline 5.2.1). Where a URL bar would show a brand's domain, crop it out or use the generic
   boot-out page.
 - **No adult domain names** in any shot.
+- **No real browsing in the drift-guard shots** (Mac 8 and 9). Tab titles and window titles show up
+  in the card and the menu bar panel, so use the demo plan's documents and Apple apps only.
 - **Demo data, no personal data.** Use this one plan everywhere:
   - The win: **"Investor update out by noon"**
   - Tasks: **Investor update** (current), **Reply to Sam about the term sheet** (juggled, waiting),
@@ -54,6 +56,9 @@ sample: in Settings it reads "Wake the fuck up."
 
 ## Mac
 
+The Mac app ships as a Developer ID download (`docs/RELEASE.md`), so these shots serve the download
+page and any future Mac App Store record.
+
 | # | Screen state | Caption headline / subline | How to stage it |
 | --- | --- | --- | --- |
 | 1 | **Menu bar and panel.** The menu bar shows the mode glyph, "Investor update" and **23m**. The panel is open, showing the task, the clock, **Done / Stuck / Switch**, the Juggling list and quick-add. | **Your task, in the menu bar.** / *Always in view. One click to Done.* | A clean user account with no other menu bar extras, Dock hidden, a plain dark wallpaper. Leave Settings ▸ "Show minutes next to the task" on (the default). Click the menu bar item and capture the whole screen at 2880 × 1800. |
@@ -63,6 +68,8 @@ sample: in Settings it reads "Wake the fuck up."
 | 5 | **Hotkeys and the hide toast.** Front: the small HUD toast *"Back to 'Investor update'"* / *"[App] is shielded while you focus."* Overlay graphic of keycaps **⌥⌘D Done · ⌥⌘S Stuck · ⌥⌘B Back to it**. | **Done is ⌥⌘D. From anywhere.** / *Blocked apps hide the moment they come forward.* | Settings ▸ Guard ▸ Add App… ▸ a neutral app (e.g. Podcasts). Start the task and bring Podcasts forward. The toast appears as the app hides. Composite the keycap graphic in post. |
 | 6 | **Safari extension popup.** The TruFocus popup over a neutral page (e.g. a blank tab or your own site): current task and clock, Juggling, the toggles *Hide Reels & Shorts · Instagram: messages only · LinkedIn: work only · Facebook: work only · Doom-scroll guard*, and the Adult filter row "On". | **The web, minus the feed.** / *One extension for Safari. Reels, Shorts and feeds gone.* | Enable the Safari extension, open a blank page or your marketing site, and click the toolbar icon. The popup reads "Synced from the TruFocus app" when connected. Keep it, since it shows the integration. |
 | 7 | **Scoreboard.** The same content as iPhone shot 8, in the Mac window. | **Score the day.** / *Momentum, chain, focus time, boot-outs.* | Shut down the day on the Mac after the demo session. |
+| 8 | **Drift guard nudge card.** The small card at the top right of the screen, over a neutral app (Podcasts) in front. Ember dot, title **"That's not “Investor update”."**, message *"2 min on Podcasts. Back to it."* (Direct), the breadcrumb *"↳ Draft numbers done — write the ask"*, and the buttons **Back to it** (Ember) · **Part of the task** · **Switch task**. The menu bar item shows "Investor update". | **It knows what you're working on.** / *Blockers know which sites are bad. Drift off the task and a small card walks you back.* | Drift guard on (Settings ▸ Guard ▸ Drift guard, the default) and Window titles *Allowed*. Start "Investor update" on the Mac, pick **TextEdit** (open a document named "Investor update") in the start window, and Start. Wait out the five-minute warm-up, then bring **Podcasts** forward on its home screen and stay about 90 seconds: the card appears. Use an Apple app, not a browser tab, so no third-party site or logo is in the shot. |
+| 9 | **Start window: "Where does it happen?"** The floating window over the main window: eyebrow **STARTING**, **"Where does “Investor update” happen?"**, *"Pick what this task uses. Anything else for more than a minute or two gets a nudge."*, app chips with **TextEdit** and **Numbers** tapped on, the site chip **docs.google.com** tapped on, a few topic-word chips from Apple Intelligence (whatever it suggests for the title, e.g. *investor*, *numbers*), First move *"Draft the ask"*, **Skip** / **Start**, and the footnote *"Only app names, window titles and sites are read, on this Mac, while a task runs. No screenshots or page contents."* | **Say where the task happens.** / *Apps, sites, a first move. Ten seconds, then go.* | Clear the task's contract first (a new task has none). Open TextEdit and Numbers so they appear as chips; open docs.google.com once in Safari with the extension on during an earlier focus task so it's offered as a site, or type it into *Add a site or app*. Start the task from the Mac window and capture the window before pressing Start. Keep the footnote in the frame: it's the privacy line. Without Apple Intelligence the topic-word chips don't appear; leave them out and keep the rest. |
 
 ---
 
