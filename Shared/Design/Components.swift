@@ -87,30 +87,36 @@ struct DayProgressBar: View {
 }
 
 /// A live dot with the mode's color. Pulses while working.
+///
+/// The ring is drawn from the clock (TimelineView), not a `repeatForever` animation: one
+/// started with `withAnimation` in `onAppear` also captures every other change made in
+/// that update (row text, list backgrounds, the tab highlight) and replays it forever,
+/// which made the Mac window flicker every 1.6 seconds.
 struct ModeDot: View {
     var mode: FlowMode
     var size: CGFloat = 8
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var pulse = false
+
+    private static let period: TimeInterval = 1.6
 
     var body: some View {
+        let pulsing = mode.isWorking && !reduceMotion
         Circle()
             .fill(TF.tint(for: mode))
             .frame(width: size, height: size)
-            .overlay(
-                Circle()
-                    .stroke(TF.tint(for: mode).opacity(0.5), lineWidth: 1)
-                    .scaleEffect(pulse ? 2.4 : 1)
-                    .opacity(pulse ? 0 : 0.8)
-            )
-            .onAppear {
-                guard mode.isWorking, !reduceMotion else { return }
-                withAnimation(.easeOut(duration: 1.6).repeatForever(autoreverses: false)) { pulse = true }
-            }
-            .onChange(of: mode) { _, newValue in
-                pulse = false
-                guard newValue.isWorking, !reduceMotion else { return }
-                withAnimation(.easeOut(duration: 1.6).repeatForever(autoreverses: false)) { pulse = true }
+            .overlay {
+                if pulsing {
+                    TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
+                        let phase = context.date.timeIntervalSinceReferenceDate
+                            .truncatingRemainder(dividingBy: Self.period) / Self.period
+                        // Ease-out: fast out of the dot, slow fade at the edge.
+                        let eased = 1 - pow(1 - phase, 3)
+                        Circle()
+                            .stroke(TF.tint(for: mode).opacity(0.5), lineWidth: 1)
+                            .scaleEffect(1 + 1.4 * eased)
+                            .opacity(0.8 * (1 - eased))
+                    }
+                }
             }
             .accessibilityHidden(true)
     }
