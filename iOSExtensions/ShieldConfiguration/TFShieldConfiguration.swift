@@ -18,7 +18,9 @@ final class TFShieldConfiguration: ShieldConfigurationDataSource {
 
     private static let ember = UIColor(red: 1.0, green: 90.0 / 255.0, blue: 31.0 / 255.0, alpha: 1)
     private static let ink = UIColor(white: 0.96, alpha: 1)
-    private static let ink2 = UIColor(white: 0.62, alpha: 1)
+    private static let ink2 = UIColor(white: 0.74, alpha: 1)
+    /// The secondary button sits on a light glass pill (iOS 26), so its label is dark.
+    private static let onGlass = UIColor(white: 0.08, alpha: 1)
     private static let canvas = UIColor(red: 5.0 / 255.0, green: 5.0 / 255.0, blue: 6.0 / 255.0, alpha: 0.92)
 
     // MARK: ShieldConfigurationDataSource
@@ -81,7 +83,7 @@ final class TFShieldConfiguration: ShieldConfigurationDataSource {
             let remaining = config.passesRemaining(settings: settings, now: now)
             if remaining > 0 {
                 let text = "Reply · \(settings.respondPassMinutes) min  (\(remaining) left)"
-                secondary = ShieldConfiguration.Label(text: text, color: Self.ink2)
+                secondary = ShieldConfiguration.Label(text: text, color: Self.onGlass)
             }
         }
 

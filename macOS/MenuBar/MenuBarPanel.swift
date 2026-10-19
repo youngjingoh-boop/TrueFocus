@@ -160,30 +160,31 @@ private struct NowSection: View {
                 Label("Done", systemImage: "checkmark")
             }
             .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: .black))
+            .layoutPriority(1)
 
+            // Round icon buttons, like the iPhone card, so Done always has room for its label.
             if snapshot.mode == .focus {
-                Button("Stuck") { controller.stuck() }
-                    .buttonStyle(QuietButtonStyle())
+                Button { controller.stuck() } label: { Image(systemName: "brain") }
+                    .buttonStyle(OrbButtonStyle(tint: TF.Palette.think, size: 44))
+                    .accessibilityLabel("I'm stuck")
+                    .help("I'm stuck — think it through (⌘.)")
                 Button {
                     withAnimation(TF.Motion.snappy) { controller.waitOnCurrent() }
-                } label: {
-                    Image(systemName: "hourglass")
-                        .accessibilityLabel("Waiting on it")
-                }
-                .buttonStyle(QuietButtonStyle())
-                .help("Waiting on it — keep it juggled and move to the next task")
+                } label: { Image(systemName: "hourglass") }
+                    .buttonStyle(OrbButtonStyle(tint: TF.Palette.ink2, size: 44))
+                    .accessibilityLabel("Waiting on it")
+                    .help("Waiting on it — keep it juggled and move to the next task")
             } else {
                 Button("Back to it") { controller.backToIt() }
                     .buttonStyle(QuietButtonStyle())
+                    .fixedSize()
             }
             Button {
                 withAnimation(TF.Motion.snappy) { controller.pause() }
-            } label: {
-                Image(systemName: "pause.fill")
-                    .accessibilityLabel("Pause")
-            }
-            .buttonStyle(QuietButtonStyle())
-            .help("Pause — stop the clock, keep your place (⇧⌘P)")
+            } label: { Image(systemName: "pause.fill") }
+                .buttonStyle(OrbButtonStyle(tint: TF.Palette.ink2, size: 44))
+                .accessibilityLabel("Pause")
+                .help("Pause — stop the clock, keep your place (⇧⌘P)")
         }
         .padding(.top, 2)
     }
@@ -322,28 +323,52 @@ private struct NowSection: View {
 
 private struct UpNextList: View {
     @Environment(FocusController.self) private var controller
+    /// "+N more" opens the rest right here, in a scrolling list, instead of the main window.
+    @State private var expanded = false
+
+    private static let collapsedCount = 3
 
     var body: some View {
-        let upcoming = Array(controller.openTasks.filter { $0.id != controller.nowTask?.id && !$0.inPlay }.prefix(3))
-        if !upcoming.isEmpty {
+        let all = controller.openTasks.filter { $0.id != controller.nowTask?.id && !$0.inPlay }
+        if !all.isEmpty {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Up next").tfEyebrowStyle()
                     .padding(.horizontal, 18)
                     .padding(.bottom, 4)
-                ForEach(upcoming) { task in
-                    UpNextRow(task: task)
+                if expanded {
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 2) {
+                            ForEach(all) { task in
+                                UpNextRow(task: task)
+                            }
+                        }
+                    }
+                    .frame(maxHeight: 300)
+                    .scrollIndicators(.automatic)
+                } else {
+                    ForEach(all.prefix(Self.collapsedCount)) { task in
+                        UpNextRow(task: task)
+                    }
                 }
-                let more = controller.juggleCandidates.count - upcoming.count
+                let more = all.count - Self.collapsedCount
                 if more > 0 {
-                    Button("+\(more) more") {
-                        MacUIState.shared.section = .today
-                        WindowOpener.shared.openMain()
+                    Button {
+                        withAnimation(TF.Motion.snappy) { expanded.toggle() }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(expanded ? "Show less" : "+\(more) more")
+                            Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 9, weight: .bold))
+                        }
+                        .frame(minHeight: 28)
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .font(.tfCaption)
-                    .foregroundStyle(TF.Palette.ink3)
+                    .foregroundStyle(TF.Palette.ink2)
                     .padding(.horizontal, 18)
                     .padding(.top, 2)
+                    .help(expanded ? "Show the next three only" : "Show every task left today")
                 }
             }
         }

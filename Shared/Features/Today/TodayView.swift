@@ -131,11 +131,16 @@ struct TodayView: View {
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(TFFormat.dayEyebrow(Date())).tfEyebrowStyle()
-                Text("Today")
-                    .font(.tfDisplay)
-                    .foregroundStyle(TF.Palette.ink)
+            VStack(alignment: .leading, spacing: 8) {
+                // One line: "TODAY · MON · OCT 19".
+                HStack(spacing: 6) {
+                    Text("Today").tfEyebrowStyle(TF.Palette.ink)
+                    Text("·").tfEyebrowStyle(TF.Palette.ink3)
+                    Text(TFFormat.dayEyebrow(Date())).tfEyebrowStyle()
+                }
+                .lineLimit(1)
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isHeader)
                 DayProgressBar(done: controller.doneToday.count,
                                total: controller.doneToday.count + controller.openTasks.count)
                     .frame(width: 120)
