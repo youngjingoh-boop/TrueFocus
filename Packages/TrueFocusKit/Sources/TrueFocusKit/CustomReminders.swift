@@ -35,7 +35,7 @@ public enum ReminderMoment: String, CaseIterable, Codable, Sendable {
         switch self {
         case .restOver: return "A micro-rest is over and the next task hasn't started."
         case .stuck: return "Think mode has gone on a while."
-        case .longFocus: return "75 minutes into one task."
+        case .longFocus: return "75 minutes into one task, when that check-in is on (Rhythm)."
         case .idle: return "Nothing running, tasks still on the list."
         case .paused: return "A paused task is waiting for you."
         case .bootOut: return "The doom-scroll guard closes a feed."
