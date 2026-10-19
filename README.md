@@ -57,7 +57,7 @@ xcodegen
 open TrueFocus.xcodeproj
 ```
 
-Run **TrueFocus** on your iPhone and **TrueFocusMac** on your Mac. Then follow [docs/SETUP.md](docs/SETUP.md) — ten minutes of one-time switches (Screen Time access, the Safari extension, the Focus filter, linking devices). To put it on a partner's or friend's phone without the App Store, see [docs/SHARING.md](docs/SHARING.md).
+Run **TrueFocus** on your iPhone and **TrueFocusMac** on your Mac. Then follow [docs/SETUP.md](docs/SETUP.md) — ten minutes of one-time switches (Screen Time access, the Safari extension, the Focus filter, linking devices). To put it on a partner's or friend's phone without the App Store, see [docs/SHARING.md](docs/SHARING.md). To ship it (TestFlight, App Store, notarized Mac download), see [docs/RELEASE.md](docs/RELEASE.md).
 
 ## Inside
 
