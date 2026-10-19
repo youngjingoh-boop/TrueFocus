@@ -4,8 +4,13 @@ Everything in §1 comes from reading the code at `1da5526`: `Packages/TrueFocusK
 `Shared/App/Sync/*`, `supabase/`, `iOS/`, `macOS/`, `iOSExtensions/` and `Extensions/web/`. The sync
 parts (§1.3, §2, §3) were checked again after the end-to-end change (`1caee66`), against
 `SyncSecrets.swift`, `SyncService.swift`, `SyncSettingsSection.swift`, `TFCloud.swift`,
-`supabase/functions/tf-pair/index.ts` and `supabase/migrations/20261019000000_truefocus_e2e.sql`. Where
-the code doesn't settle a question, this file says **Unclear** instead of guessing.
+`supabase/functions/tf-pair/index.ts` and `supabase/migrations/20261019000000_truefocus_e2e.sql`. The
+Mac drift guard (§1.5) was checked at `306ac2f` against `macOS/Guard/DriftGuard.swift`,
+`ActivityWatcher.swift`, `DriftJudge.swift`, `StartContractWindow.swift`,
+`macOS/Bridge/ExtensionBridgeServer.swift`, `Packages/TrueFocusKit/Sources/TrueFocusKit/Drift.swift`,
+`Extensions/web/background.js` (`reportActiveTab`), `core.js` (`tabActivity`) and
+`Extensions/Safari/SafariWebExtensionHandler.swift`. Where the code doesn't settle a question, this
+file says **Unclear** instead of guessing.
 
 ---
 
@@ -29,9 +34,10 @@ the code doesn't settle a question, this file says **Unclear** instead of guessi
 | iPhone app, Mac app | `fcfbsgvkanuywsmxvuee.supabase.co` (Supabase: PostgREST + Edge Functions) | Only once the user turns sync on or links the device: sync records, push-token registration, linking (public keys and a sealed box), wake-up requests, the one-time `tf-space` `rekey` move, and `tf-space` `delete` when the user deletes the server copy | `TFCloud.swift`, `SyncService.swift` |
 | Supabase Edge Function `tf-notify` | Apple Push Notification service (`api.push.apple.com`) | A silent push `{"aps":{"content-available":1},"tf":"sync"}` to the space's other iPhones. **No content.** | `supabase/functions/tf-notify/index.ts` |
 | iPhone app (only if the user picks "Apple Music" as focus music) | Apple Music (MusicKit) | Music authorization, a subscription check, a catalog search for the playlist "Pure Focus", playback | `AudioDirector.startAppleMusic` |
-| Safari extension | The app, through `sendNativeMessage` and the App Group (stays on the device) | Read state; post boot-out `{site, reason}` and juggling commands | `background.js`, `SafariWebExtensionHandler.swift` |
-| Chrome-family extension | `http://127.0.0.1:52525` (the Mac app, loopback only) | The same, over HTTP | `background.js`, `ExtensionBridgeServer.swift` |
+| Safari extension | The app, through `sendNativeMessage` and the App Group (stays on the device) | Read state; post boot-out `{site, reason}` and juggling commands; during a focus task, the active tab's `{host, title}` for the drift guard (§1.5) | `background.js`, `SafariWebExtensionHandler.swift` |
+| Chrome-family extension | `http://127.0.0.1:52525` (the Mac app, loopback only) | The same, over HTTP: `GET /state`, `POST /boot`, `POST /command`, and `POST /activity` with `{host, title}` during a focus task | `background.js`, `ExtensionBridgeServer.swift` |
 | Brain-dump → tasks | Apple's on-device model (`FoundationModels`). **Nothing goes off the device.** | — | `TaskExtractor.swift` |
+| Mac drift guard | Apple's on-device model (`FoundationModels`). **Nothing goes off the device.** | The task title, first move and topic words, plus the app name, site and title it can't place; the task title and first move, to suggest topic words | `DriftJudge.swift` |
 
 There are no other URLs in the apps or the extension. `rules_*.json` *redirect* matching
 navigations to pages inside the extension, and they send nothing anywhere.
@@ -147,11 +153,84 @@ by this build, or adopted by linking, never make the call.
 - **Browsing.** The extension looks at URLs, scroll and touch events and four scroll keys (Space,
   PageDown, `j`, ↓) on the 14 feed sites in `manifest.json`, and decides locally. It stores only
   preferences, cooldown times per site and a daily boot count in `storage.local`. It never reads
-  page text, form fields or cookies, and it never sends URLs anywhere.
+  page text, form fields or cookies. It never sends a URL to any server. The one thing it passes on
+  is the active tab's **host and title**, to the TruFocus app **on the same device**, during a focus
+  task (§1.5).
 - **Mac scroll watch.** It reads `scrollingDeltaY` while a listed feed app is frontmost: distance only,
   with no screen contents and no keystrokes.
+- **The Mac drift guard** (§1.5): app names, window titles and the browser tab's host and title, read
+  on the Mac while a task runs. None of it is synced or uploaded.
 - **Notes, tasks and the brain dump**, except in their end-to-end encrypted form on the sync server
   once sync is on, as above. With sync off, nothing goes to the server at all.
+
+### 1.5 The Mac drift guard
+
+While a focus segment runs, the Mac app checks every 3 seconds what's in front and judges it against
+the task's *start contract*: the apps, sites and topic words the user says the task happens in
+(`DriftGuard.check`, `DriftClassifier.classify`). After sustained drift (90 s somewhere clearly
+off-task, 4 min somewhere it can't place, doubled during a five-minute warm-up) a small card offers
+*Back to it*, *Part of the task* or *Switch task*.
+
+**On by default?** Yes. `TFSettings.macDriftGuard = true` and `macDriftUsesModel = true`. The user can
+switch both off in Mac Settings ▸ Guard ▸ Drift guard ("Nudge me when I drift off the task", "Let
+on-device AI judge what the rules can't place"). It runs only while a **focus** segment with a task
+is running, not during rest, think, pause or after the day has ended (`DriftGuard.focusDidChange`).
+**Window titles** are read only after the user grants Accessibility with *Allow…* in that section.
+Until then the guard works from app names and the extension's tab reports.
+
+**What it reads** (`ActivityWatcher.sample`):
+
+| Input | Source | Permission |
+| --- | --- | --- |
+| Frontmost app: bundle ID and name | `NSWorkspace.frontmostApplication` | None |
+| Focused window's title (cut to 200 characters) | `AXUIElementCopyAttributeValue` (`kAXFocusedWindowAttribute`, `kAXTitleAttribute`) | **Accessibility** (`AXIsProcessTrusted`), requested only from Settings ▸ Guard ▸ Drift guard ▸ *Allow…* |
+| Browser tab: host (e.g. `docs.google.com`, no path or query) and title (cut to 200 characters) | The TruFocus extension: Chrome-family browsers `POST /activity` to `127.0.0.1:52525`; Safari writes it to the App Group through the native handler | The extension's existing host access (no new permission) |
+| Running regular apps (names and bundle IDs) | `NSWorkspace.runningApplications` | None. Used only to offer chips in the start contract window |
+
+It doesn't take screenshots, read page or window contents, log keystrokes, or read what's inside
+other apps beyond the front window's title.
+
+**When the extension reports a tab** (`core.js` `tabActivity`, `background.js` `reportActiveTab`):
+only while the app's state says a **focus** segment with a task is running, only for `http(s)` pages,
+and only if the app's `macDriftGuard` setting isn't off. It reports when the active tab, its URL or
+title, or the focused window changes, and again on the 30-second refresh alarm, at most once per 10
+seconds for the same host and title. The full URL is
+reduced to its host before it leaves the extension. With the Mac app closed, the Chrome request
+fails and nothing is kept.
+
+**Where it goes:** nowhere off the device. The Chrome-family request goes over loopback only
+(`ExtensionBridgeServer.swift`: the listener is bound to the loopback interface, rejects
+non-loopback `Host` headers and refuses web-page origins, so ordinary sites can't read or post to
+it; a local program that sends no `Origin` header still can). The Safari report stays in the App
+Group. The drift guard isn't part of any sync payload: sync carries only the four record kinds in
+§1.3, and `GET /state` returns only the snapshot and settings.
+
+**The on-device model** (`DriftJudge.swift`): for a window or tab the rules can't place, and only when
+`macDriftUsesModel` is on and Apple Intelligence is available, the guard asks Apple's on-device
+`FoundationModels` language model whether it fits the task. The prompt holds the task title, first
+move and topic words, the app name, and the site and title. When a task starts it also asks the
+model for topic words and likely sites, from the task title and first move. Both run on the Mac.
+Verdicts are cached in memory only (up to 500, cleared when a contract changes).
+
+**What's kept, and for how long:**
+
+| Data | Where | How long |
+| --- | --- | --- |
+| **Today's tally**: per task, seconds on task, off task and neutral, and seconds per drift label (a host such as `reddit.com`, or an app name) | App Group, `DriftBook` (`tf.drift.v1`) | **Today only.** Days roll over at 4 am; the first update of a new day drops the old tallies (`DriftBook.record`) |
+| **Start contracts**: per task, the apps, sites and topic words the user picked, "first move", "done when". *Part of the task* adds the app or site in front | App Group, `DriftBook` | Until the task's contract is one of the 300 oldest; then it's dropped (`DriftBook.save`). These are the user's own choices, not observed activity |
+| **The last Safari tab report** `{host, title, time}` | App Group (`tf.activity.tab.v1`) | One record, overwritten by the next report. Not cleared at day end |
+| The last Chrome tab report, the 12 most recent hosts (for start-contract suggestions), model verdicts | Memory | Until the app quits |
+| Window titles | Not stored | Read, judged and discarded. The tally keeps the app name, not the title |
+
+**On iPhone.** The same extension runs in iPhone Safari, and `tabActivity` doesn't check the platform,
+so during an iPhone focus task the iPhone's Safari extension also writes the active tab's host and
+title to the **iPhone's** App Group (one record, overwritten). Nothing on the iPhone reads it, and it
+isn't synced or uploaded. It's harmless, but it's dead weight: the clean fix is to skip the report on
+iOS (in `background.js` or `SafariWebExtensionHandler`).
+
+**Unclear:** a tab title is whatever the site puts there, so it can carry personal details (an email
+subject, an account address). The guard treats it as text to match, keeps it only as described
+above, and never sends it off the Mac, but it isn't filtered.
 
 ---
 
@@ -177,7 +256,7 @@ the push token.
 | **Sensitive Info** | No | — | — | — | — |
 | **Contacts** | No | — | — | — | — |
 | **User Content** (all subtypes) | No | — | — | — | Task titles, breadcrumbs, the brain dump, the day's win, reflections and note bodies reach the server only end-to-end encrypted, under a key the developer never has (§1.3) |
-| **Browsing History** | No | — | — | — | The extension decides on the device and never transmits URLs |
+| **Browsing History** | No | — | — | — | The extension decides on the device and never transmits URLs off it. During focus it hands the active tab's host and title to the TruFocus app on the same device (on iPhone, into the App Group, where nothing reads it). See note 8 |
 | **Search History** | No | — | — | — | — |
 | **Identifiers → User ID** | No (see note 2) | — | — | — | — |
 | **Identifiers → Device ID** | **Yes (iPhone record only)** | **No** | No | **App Functionality** | The APNs device token in `tf_devices`, used for silent sync wake-ups, stored once sync is on |
@@ -189,7 +268,8 @@ the push token.
 | **Other Data** | No | — | — | — | — |
 
 The **Mac record**, if there ever is one (the Mac app ships as a Developer ID download, see
-`docs/RELEASE.md`), answers **Data Not Collected**: the Mac never registers a push token.
+`docs/RELEASE.md`), answers **Data Not Collected**: the Mac never registers a push token, and the
+drift guard keeps everything on the Mac (note 8).
 
 **Notes on the judgement calls:**
 
@@ -215,6 +295,15 @@ The **Mac record**, if there ever is one (the Mac app ships as a Developer ID do
 7. **Keep the privacy manifests in step.** `PrivacyManifests/iOSApp/PrivacyInfo.xcprivacy` declares
    only `NSPrivacyCollectedDataTypeDeviceID`, and `PrivacyManifests/MacApp/PrivacyInfo.xcprivacy`
    declares nothing, matching Label B. Change them together with the label.
+8. **The drift guard doesn't change the label.** Apple's test is transmission *off the device*. The
+   drift guard reads app names, window titles and the tab's host and title on the Mac, judges them
+   there (rules, or Apple's on-device model), and keeps only today's tally, the user's start
+   contracts and the last Safari tab report in the Mac's App Group (§1.5). The extension's hand-off
+   goes over loopback (Chrome) or the App Group (Safari), both on the same device. Nothing reaches
+   the sync server or anyone else, so **Browsing History**, **Usage Data** and **Other Data** stay
+   *not collected* on both records, and no privacy manifest needs a new collected-data type.
+   Accessibility and the AX calls aren't required-reason APIs, so the Mac manifest doesn't change
+   either. Revisit this if the tally or contracts ever join the sync payloads.
 
 ### Label A: before end-to-end sync (history, don't submit)
 
@@ -228,15 +317,16 @@ tracking) as well as **Identifiers → Device ID** (iPhone). It no longer descri
 ## 3. Privacy policy (ready to host)
 
 > Replace every `[BRACKETED]` placeholder. Host it at the Privacy Policy URL in `listing.md`.
-> It describes the end-to-end sync shipped since `1caee66` (Label B).
+> It describes the end-to-end sync shipped since `1caee66` (Label B) and the Mac drift guard from
+> `306ac2f` (§1.5). It covers the Chrome extension too, so the Chrome Web Store can link to it.
 
 ```markdown
-# TrueFocus Privacy Policy
+# TruFocus Privacy Policy
 
 Effective [EFFECTIVE DATE]
 
-TrueFocus is made by [DEVELOPER LEGAL NAME] ("we"). This policy covers the TrueFocus apps for
-iPhone and Mac and the TrueFocus browser extension for Safari and Chrome.
+TruFocus is made by [DEVELOPER LEGAL NAME] ("we"). This policy covers the TruFocus apps for
+iPhone and Mac and the TruFocus browser extension for Safari and Chrome.
 
 ## The short version
 
@@ -250,26 +340,39 @@ iPhone and Mac and the TrueFocus browser extension for Safari and Chrome.
 
 ## What stays on your device
 
-- **Screen Time.** TrueFocus uses Apple's Screen Time framework, with your permission, to shield the
-  apps you pick, run your scroll budget and filter adult websites. Apple gives TrueFocus only
+- **Screen Time.** TruFocus uses Apple's Screen Time framework, with your permission, to shield the
+  apps you pick, run your scroll budget and filter adult websites. Apple gives TruFocus only
   anonymous tokens for the apps and sites you choose, not their names or your usage history.
   These stay on your iPhone and are never uploaded.
 - **Browsing.** The browser extension checks the address of pages on a short list of feed sites
   (such as Instagram, YouTube, Facebook and LinkedIn) and counts how far you scroll there, so it can
   remove short-form video and stop doom-scrolling. It blocks known adult sites. It decides all of
   this on your device. It doesn't read page text, forms or cookies, and it never sends the pages
-  you visit anywhere. On a Mac, it talks only to the TrueFocus app on the same Mac.
+  you visit to us or anyone else. While a focus task is running, it tells the TruFocus app on the
+  same device which site the active tab is on and the tab's title (not the full address), for the
+  drift guard below. On a Mac, it talks only to the TruFocus app on the same Mac.
 - **Scrolling on the Mac.** While a feed app is in front, the Mac app counts how far you scroll.
   It never reads what's on screen or what you type.
+- **The drift guard on the Mac.** While a focus task is running, the Mac app looks every few seconds
+  at what's in front: the app's name, its window's title, and, from the browser extension, the
+  site and title of the active tab. It compares them with the apps, sites and words you said the
+  task uses, and if you've drifted for a while, it offers to take you back. Reading window titles
+  needs the Accessibility permission, which you grant in macOS settings and can withdraw any time.
+  When the rules can't tell, Apple Intelligence on your Mac decides, if it's available. It never
+  takes screenshots or reads what's inside a page, window or document, and it never records
+  keystrokes. It keeps only today's tally (time on task, time drifted, and the sites or apps the
+  drift went to), the apps and sites you chose for each task, and the last tab Safari reported.
+  None of it leaves your Mac or syncs. The drift guard is on by default; turn it off in Settings ▸
+  Guard ▸ Drift guard.
 - **Settings**, including your tone, your own reminder words, budgets and allowed sites.
-- **Turning a brain dump into tasks** uses Apple Intelligence on your device when it's available.
-  Nothing is sent to us or to anyone else for this.
-- **Everything, while sync is off.** With sync off, TrueFocus sends nothing to our server until
+- **Turning a brain dump into tasks** and **judging drift on the Mac** use Apple Intelligence on
+  your device when it's available. Nothing is sent to us or to anyone else for this.
+- **Everything, while sync is off.** With sync off, TruFocus sends nothing to our server until
   you turn it on or link a device.
 
 ## What we receive when sync is on, and why
 
-TrueFocus syncs your devices through a server we run on Supabase ([SUPABASE REGION, e.g. "the
+TruFocus syncs your devices through a server we run on Supabase ([SUPABASE REGION, e.g. "the
 EU (Frankfurt)" — check in the Supabase dashboard]). When you turn sync on, your device makes a
 random key and keeps it in its Keychain. That key never leaves your devices. The server receives:
 
@@ -292,7 +395,7 @@ random key and keeps it in its Keychain. That key never leaves your devices. The
 - **The usual connection details,** such as your IP address, which our hosting provider sees on
   every internet request.
 
-**If your device used an earlier version of TrueFocus,** it sends its old key to the server once,
+**If your device used an earlier version of TruFocus,** it sends its old key to the server once,
 over an encrypted connection, to move your synced data to the new end-to-end scheme. After that,
 the key never leaves your devices.
 
@@ -301,7 +404,7 @@ or combine it with other data.
 
 ## Apple services
 
-- **Apple Music.** If you choose Apple Music as focus music, TrueFocus asks for permission and plays
+- **Apple Music.** If you choose Apple Music as focus music, TruFocus asks for permission and plays
   a playlist through Apple's MusicKit. Apple handles that under its own privacy policy. We receive
   nothing.
 - **Notifications.** Nudges are scheduled on your device. Silent sync wake-ups go through Apple's
@@ -324,7 +427,7 @@ exists. See the note for the owner below.]
 
 ## Your choices
 
-- **Leave sync off.** It's off until you turn it on in Settings ▸ Sync. TrueFocus works fully on
+- **Leave sync off.** It's off until you turn it on in Settings ▸ Sync. TruFocus works fully on
   one device without it.
 - **Turn sync off on a device:** Settings ▸ Sync ▸ **Turn off here**. That device stops sending
   anything. It keeps its key, so turning sync back on carries on where it was. What's already on the
@@ -336,6 +439,9 @@ exists. See the note for the owner below.]
   too.
 - **Don't grant Screen Time access,** or revoke it any time in Settings ▸ Screen Time. The task flow
   still works without it.
+- **Turn off the drift guard** on the Mac in Settings ▸ Guard ▸ Drift guard, or remove TruFocus's
+  Accessibility access in System Settings ▸ Privacy & Security ▸ Accessibility. Without that access
+  it no longer reads window titles.
 - **Remove the extension** any time from Safari or Chrome settings.
 - **Deleting the app** removes everything on that device.
 - **Access, correction and portability:** your data is on your devices in readable form. On the
@@ -345,7 +451,7 @@ exists. See the note for the owner below.]
 
 ## Children
 
-TrueFocus isn't directed at children under [13 / 16 — match the age rating] and doesn't knowingly
+TruFocus isn't directed at children under [13 / 16 — match the age rating] and doesn't knowingly
 collect data from them.
 
 ## Security
@@ -382,8 +488,8 @@ If this policy changes, we'll update the date above and say what changed in the 
   10,000), so the policy doesn't promise it can never succeed.
 - The Supabase project is **shared with another app (ListingLine)**, according to the migration header and
   `docs/SETUP.md`. That's fine legally, since it's the same controller, but anyone with access to that
-  project can see the TrueFocus tables (ciphertext and metadata). The access group for the project is
-  also the access group for TrueFocus users' sync metadata.
+  project can see the TruFocus tables (ciphertext and metadata). The access group for the project is
+  also the access group for TruFocus users' sync metadata.
 
 ---
 
@@ -404,8 +510,8 @@ whether data is shared.
 | Shield Action extension | `com.youngjingoh.truefocus.shieldaction` |
 
 **What does your app do with Family Controls?**
-TrueFocus is a self-control focus app for adults. The person using the iPhone chooses which of their
-own apps distract them. TrueFocus then (1) shields those apps while they're working on a task,
+TruFocus is a self-control focus app for adults. The person using the iPhone chooses which of their
+own apps distract them. TruFocus then (1) shields those apps while they're working on a task,
 (2) gives them a daily time budget for those apps outside work, after which the apps are
 shielded for a cooldown of 15 minutes or more, (3) lets them open apps they marked for messaging for a
 short "Reply" pass a limited number of times a day, and (4) turns on Screen Time's adult-website
@@ -426,7 +532,7 @@ the filter cool-off). There's no DeviceActivityReport extension.
 **What data do you access?**
 Only what the user picks in `FamilyActivityPicker`: opaque `ApplicationToken`, `ActivityCategoryToken`
 and `WebDomainToken` values, plus DeviceActivity callbacks when a threshold is reached or an interval
-starts or ends. TrueFocus never sees app names (the shield extension gets `localizedDisplayName` from the
+starts or ends. TruFocus never sees app names (the shield extension gets `localizedDisplayName` from the
 system only to display it), app usage history or browsing history.
 
 **Where is that data stored? Is it transmitted, shared or sold?**
@@ -439,7 +545,7 @@ Screen Time is used for advertising, analytics or profiling.
 Yes, at any time. They can revoke access in Settings ▸ Screen Time ▸ (apps with access) or delete the app,
 and either removes every shield and the filter immediately. Inside the app, "Shield during focus" can
 be switched off and the selections cleared. The 24-hour cool-off applies only to switching the adult
-filter off *inside TrueFocus*. It's a speed bump the user signed up for, not a lock, and the
+filter off *inside TruFocus*. It's a speed bump the user signed up for, not a lock, and the
 system-level revoke always works.
 
 **Is this a parental-control app?**
