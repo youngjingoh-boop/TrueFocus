@@ -82,7 +82,7 @@ final class TFShieldConfiguration: ShieldConfigurationDataSource {
         if offersReplyPass {
             let remaining = config.passesRemaining(settings: settings, now: now)
             if remaining > 0 {
-                let text = "Reply · \(settings.respondPassMinutes) min  (\(remaining) left)"
+                let text = "Post or reply · \(settings.respondPassMinutes) min · \(remaining) left"
                 secondary = ShieldConfiguration.Label(text: text, color: Self.onGlass)
             }
         }

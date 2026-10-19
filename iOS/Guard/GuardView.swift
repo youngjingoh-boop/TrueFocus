@@ -104,7 +104,7 @@ struct GuardView: View {
             Hairline()
             HStack(alignment: .top, spacing: TF.Space.l) {
                 StatTile(value: "\(snapshot.bootsToday)", label: "Boot-outs")
-                StatTile(value: "\(shield.passesRemaining(settings: settings))", label: "Reply passes")
+                StatTile(value: "\(shield.passesRemaining(settings: settings))", label: "Passes left")
                 StatTile(value: "\(settings.scrollBudgetMinutes)m", label: "Budget")
             }
         }
@@ -197,7 +197,7 @@ struct GuardView: View {
 
     private var shieldedSection: some View {
         GuardSection(title: "What gets shielded",
-                     footnote: "Reply apps are shielded too, but their shield offers a short pass to answer messages.") {
+                     footnote: "Reply apps are shielded too, but their shield offers a Post or reply pass: a few minutes to post or answer DMs.") {
             SelectionRow(
                 title: "Scroll apps",
                 caption: "Instagram, YouTube, TikTok, X — whatever you open on autopilot. Whole categories work too.",
@@ -231,16 +231,16 @@ struct GuardView: View {
                            isOn: focus.binding(\.shieldDuringFocus))
             Hairline()
             GuardStepper(title: "Boot me out after",
-                         caption: "Minutes of use outside focus.",
+                         caption: "Minutes of use outside focus. You're warned 2 minutes before.",
                          value: focus.binding(\.scrollBudgetMinutes), range: 1...60)
             Hairline()
             GuardStepper(title: "Lock for",
                          caption: "iOS needs at least 15 minutes.",
                          value: focus.binding(\.scrollCooldownMinutes), range: 15...120, step: 5)
             Hairline()
-            GuardStepper(title: "Reply pass",
-                         caption: "How long a reply app opens for.",
-                         value: focus.binding(\.respondPassMinutes), range: 1...10)
+            GuardStepper(title: "Post or reply pass",
+                         caption: "How long a reply app opens for. You're warned a minute before it closes.",
+                         value: focus.binding(\.respondPassMinutes), range: 1...15)
             Hairline()
             GuardStepper(title: "Passes per day",
                          value: focus.binding(\.respondPassesPerDay), range: 0...20, unit: "passes")
@@ -330,7 +330,7 @@ struct GuardView: View {
                   steps: [
                     "Instagram's app can't have Reels removed, so keep it in your scroll apps.",
                     "For messages, use instagram.com in Safari: with the extension on it opens straight to your inbox, with Reels and Explore gone.",
-                    "Or add Instagram as a reply app and use the shield's Reply pass.",
+                    "To post or reply in the app, add Instagram as a reply app: its shield offers a Post or reply pass, and you're warned a minute before it closes.",
                   ],
                   opensSettings: false)
             Hairline()

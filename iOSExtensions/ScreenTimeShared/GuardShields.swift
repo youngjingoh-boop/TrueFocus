@@ -3,6 +3,7 @@ import FamilyControls
 import Foundation
 import ManagedSettings
 import TrueFocusKit
+import UserNotifications
 
 /// Applies and clears the guard's shields. Idempotent: call `reapply` whenever anything
 /// changes and every store ends up matching `GuardConfig`.
@@ -30,7 +31,7 @@ enum GuardShields {
         let pass = config.passTokens
         store.shield.applications = config.shieldedApps.subtracting(pass).tfNilIfEmpty
         // Reply apps are shielded one by one (never through their category) so the
-        // shield can offer them a Reply pass.
+        // shield can offer them a Post or reply pass.
         let categories = config.categories
         if categories.isEmpty {
             store.shield.applicationCategories = nil
@@ -104,13 +105,24 @@ enum GuardMonitoring {
         )
     }
 
-    static func budgetEvent(_ config: GuardConfig, settings: TFSettings) -> DeviceActivityEvent {
+    /// Time in the scroll and reply apps, counted toward a threshold.
+    private static func usageEvent(_ config: GuardConfig, minutes: Int) -> DeviceActivityEvent {
         DeviceActivityEvent(
             applications: config.shieldedApps,
             categories: config.categories,
             webDomains: config.webDomains,
-            threshold: DateComponents(minute: max(1, settings.scrollBudgetMinutes))
+            threshold: DateComponents(minute: max(1, minutes))
         )
+    }
+
+    /// The budget, plus a warning a couple of minutes before it runs out.
+    static func budgetEvents(_ config: GuardConfig, settings: TFSettings) -> [DeviceActivityEvent.Name: DeviceActivityEvent] {
+        let budget = max(1, settings.scrollBudgetMinutes)
+        var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [.budgetReached: usageEvent(config, minutes: budget)]
+        if let warn = GuardTiming.budgetWarningMinute(budget: budget) {
+            events[.budgetWarning] = usageEvent(config, minutes: warn)
+        }
+        return events
     }
 
     /// (Re)starts the daily budget. Stops everything budget-related if nothing is selected.
@@ -121,7 +133,7 @@ enum GuardMonitoring {
         }
         do {
             try center.startMonitoring(.scrollBudget, during: dailySchedule,
-                                       events: [.budgetReached: budgetEvent(config, settings: settings)])
+                                       events: budgetEvents(config, settings: settings))
         } catch {
             print("TrueFocus: daily budget monitoring failed: \(error)")
         }
@@ -134,7 +146,7 @@ enum GuardMonitoring {
               let schedule = oneShot(from: now, to: end) else { return }
         do {
             try center.startMonitoring(.budgetRestart, during: schedule,
-                                       events: [.budgetReached: budgetEvent(config, settings: settings)])
+                                       events: budgetEvents(config, settings: settings))
         } catch {
             print("TrueFocus: budget restart failed: \(error)")
         }
@@ -155,18 +167,21 @@ enum GuardMonitoring {
         return end
     }
 
-    /// A Reply pass: lasts `minutes` of use of that app, or 15 minutes of clock time,
-    /// whichever comes first.
+    /// A Post or reply pass: lasts `minutes` of use of that app, or a little longer in clock
+    /// time (iOS needs at least 15 minutes), whichever comes first. Warns a minute before.
     static func startReplyPass(for token: ApplicationToken, minutes: Int, from now: Date = Date()) -> Bool {
-        guard let schedule = oneShot(from: now, to: now.addingTimeInterval(minimumInterval)) else { return false }
-        let event = DeviceActivityEvent(
-            applications: [token],
-            categories: [],
-            webDomains: [],
-            threshold: DateComponents(minute: max(1, minutes))
-        )
+        let length = max(1, minutes)
+        guard let schedule = oneShot(from: now, to: now.addingTimeInterval(GuardTiming.passWindow(pass: length))) else { return false }
+        func used(_ minutes: Int) -> DeviceActivityEvent {
+            DeviceActivityEvent(applications: [token], categories: [], webDomains: [],
+                                threshold: DateComponents(minute: minutes))
+        }
+        var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [.replyPassUsed: used(length)]
+        if let warn = GuardTiming.passWarningMinute(pass: length) {
+            events[.replyPassWarning] = used(warn)
+        }
         do {
-            try center.startMonitoring(.replyPass, during: schedule, events: [.replyPassUsed: event])
+            try center.startMonitoring(.replyPass, during: schedule, events: events)
             return true
         } catch {
             print("TrueFocus: reply pass monitoring failed: \(error)")
@@ -227,7 +242,25 @@ enum GuardReactions {
         GuardMonitoring.restartBudget(config, settings: settings, from: now)
     }
 
-    /// A Reply pass ran out: shield those apps again.
+    /// A couple of minutes before the budget shields: a heads-up, so it isn't a surprise.
+    static func budgetWarning() {
+        let config = GuardStore.load()
+        // Nothing to warn about while a boot-out or a focus shield is already up.
+        guard !config.budgetShieldActive, !config.focusShieldActive else { return }
+        let store = SharedStore.shared
+        let minutes = store.settings.scrollBudgetMinutes
+        guard let warn = GuardTiming.budgetWarningMinute(budget: minutes) else { return }
+        let line = Copy(tone: store.settings.tone).budgetWarning(minutesLeft: minutes - warn, task: store.snapshot.headline)
+        GuardNotice.post(line, id: "tf.guard.budgetWarning")
+    }
+
+    /// A minute before a pass closes.
+    static func replyPassWarning() {
+        guard !GuardStore.load().passTokens.isEmpty else { return }
+        GuardNotice.post(Copy(tone: SharedStore.shared.settings.tone).passEnding, id: "tf.guard.passWarning")
+    }
+
+    /// A Post or reply pass ran out: shield those apps again.
     static func replyPassEnded() {
         let config = GuardStore.update { $0.passTokens = [] }
         GuardMonitoring.stopReplyPass()
@@ -250,7 +283,7 @@ enum GuardReactions {
         GuardShields.reapply(config)
     }
 
-    /// Grants a Reply pass for a shielded reply app. Returns false if none are left.
+    /// Grants a Post or reply pass for a shielded reply app. Returns false if none are left.
     static func grantReplyPass(for token: ApplicationToken, now: Date = Date()) -> Bool {
         let settings = SharedStore.shared.settings
         var config = GuardStore.load()
@@ -262,5 +295,20 @@ enum GuardReactions {
         GuardStore.save(config)
         GuardShields.reapply(config)
         return true
+    }
+}
+
+/// Local notifications from the guard. The Monitor extension posts them while you're in
+/// another app; TrueFocus asked for notification permission when it set up nudges.
+enum GuardNotice {
+    static func post(_ line: Copy.Line, id: String) {
+        let content = UNMutableNotificationContent()
+        content.title = line.title
+        content.body = line.body
+        content.sound = .default
+        let request = UNNotificationRequest(identifier: id, content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error { print("TrueFocus: guard notice failed: \(error)") }
+        }
     }
 }

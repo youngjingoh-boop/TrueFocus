@@ -4,7 +4,8 @@ import ManagedSettings
 import TrueFocusKit
 
 /// Runs in the background whenever a TrueFocus Screen Time schedule or threshold fires:
-/// the scroll budget, its cooldown, Reply passes, and the adult-filter cool-off.
+/// the scroll budget and its warning, the cooldown, Post or reply passes, and the
+/// adult-filter cool-off.
 final class TFMonitor: DeviceActivityMonitor {
     override func intervalDidStart(for activity: DeviceActivityName) {
         super.intervalDidStart(for: activity)
@@ -34,8 +35,12 @@ final class TFMonitor: DeviceActivityMonitor {
             // Ignore a stale event while a boot-out is already running.
             if GuardStore.load().budgetShieldActive { return }
             GuardReactions.budgetReached()
+        case .budgetWarning:
+            GuardReactions.budgetWarning()
         case .replyPassUsed:
             GuardReactions.replyPassEnded()
+        case .replyPassWarning:
+            GuardReactions.replyPassWarning()
         default:
             break
         }

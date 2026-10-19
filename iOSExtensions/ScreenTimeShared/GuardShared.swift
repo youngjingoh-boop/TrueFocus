@@ -24,7 +24,7 @@ extension DeviceActivityName {
     static let budgetRestart = Self("tf.budgetRestart")
     /// One-off: how long a boot-out lasts.
     static let cooldown = Self("tf.cooldown")
-    /// One-off: a short pass to answer messages in a reply app.
+    /// One-off: a short pass to post or answer messages in a reply app.
     static let replyPass = Self("tf.replyPass")
     /// One-off: ends when a requested adult-filter turn-off takes effect.
     static let adultCoolOff = Self("tf.adultCoolOff")
@@ -33,6 +33,10 @@ extension DeviceActivityName {
 extension DeviceActivityEvent.Name {
     static let budgetReached = Self("tf.budgetReached")
     static let replyPassUsed = Self("tf.replyPassUsed")
+    /// A couple of minutes before `budgetReached`: "Still scrolling? 2 minutes left."
+    static let budgetWarning = Self("tf.budgetWarning")
+    /// A minute before `replyPassUsed`.
+    static let replyPassWarning = Self("tf.replyPassWarning")
 }
 
 /// What the guard shields and its live state, persisted in the App Group.
@@ -40,9 +44,9 @@ struct GuardConfig: Codable {
     /// Feeds you lose time in: Instagram, YouTube, TikTok, X…
     var scrollSelection = FamilyActivitySelection()
     /// Apps you still need to answer messages in. They're shielded too, but the shield
-    /// offers a short Reply pass.
+    /// offers a Post or reply pass.
     var replySelection = FamilyActivitySelection()
-    /// Apps currently let through on a Reply pass.
+    /// Apps currently let through on a Post or reply pass.
     var passTokens: Set<ApplicationToken> = []
     var passesUsed = 0
     var passesDay: Date?
@@ -121,7 +125,8 @@ struct GuardConfig: Codable {
         encoder.outputFormatting = .sortedKeys
         let scroll = (try? encoder.encode(scrollSelection)) ?? Data()
         let reply = (try? encoder.encode(replySelection)) ?? Data()
-        return "\(settings.scrollBudgetMinutes)|\(GuardConfig.stableHash(scroll))|\(GuardConfig.stableHash(reply))"
+        // "v2": the budget gained a warning event, so monitors started before it restart once.
+        return "v2|\(settings.scrollBudgetMinutes)|\(GuardConfig.stableHash(scroll))|\(GuardConfig.stableHash(reply))"
     }
 
     /// FNV-1a. `hashValue` is seeded per launch, so it can't be persisted.
