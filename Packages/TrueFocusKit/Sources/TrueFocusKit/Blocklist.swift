@@ -77,8 +77,19 @@ public enum Blocklist {
                  respondPath: "/messages", safePaths: ["/messages", "/compose", "/settings"]),
         FeedSite(name: "Threads", hosts: ["threads.net", "threads.com"]),
         FeedSite(name: "Reddit", hosts: ["reddit.com"], safePaths: ["/message", "/settings", "/submit"]),
+        // LinkedIn is a work tool with a feed bolted on. Everything you work in stays open —
+        // messaging, profiles, search, jobs, Sales Navigator, Recruiter, Campaign Manager, a
+        // single post someone sent you. Only the home feed and the video feed are the scroll.
         FeedSite(name: "LinkedIn", hosts: ["linkedin.com"],
-                 respondPath: "/messaging/", safePaths: ["/messaging", "/in/", "/jobs", "/company"]),
+                 shortFormPaths: ["/video", "/feed/videos"],
+                 respondPath: "/messaging/",
+                 safePaths: ["/messaging", "/in/", "/jobs", "/company", "/school", "/search", "/mynetwork",
+                             "/notifications", "/sales", "/talent", "/recruiter", "/campaignmanager", "/ad/",
+                             "/analytics", "/dashboard", "/post/", "/feed/update/", "/posts/", "/pulse/",
+                             "/newsletters", "/events", "/groups", "/learning", "/premium", "/settings",
+                             "/psettings", "/mypreferences", "/help", "/my-items", "/services", "/verify",
+                             "/checkpoint", "/login", "/uas", "/signup", "/authwall"],
+                 workHosts: ["business.linkedin.com", "developer.linkedin.com", "learn.linkedin.com"]),
         FeedSite(name: "Snapchat", hosts: ["snapchat.com"], shortFormPaths: ["/spotlight"]),
         FeedSite(name: "Pinterest", hosts: ["pinterest.com"]),
         FeedSite(name: "Twitch", hosts: ["twitch.tv"]),
@@ -86,6 +97,32 @@ public enum Blocklist {
 
     public static func feedSite(forHost host: String) -> FeedSite? {
         feedSites.first { $0.matches(host: host) }
+    }
+
+    /// LinkedIn's scroll: the home feed. Everything else on LinkedIn is work (see `feedSites`).
+    public static func isLinkedInFeed(path: String) -> Bool {
+        path.isEmpty || path == "/" || path == "/feed" || path == "/feed/"
+    }
+
+    /// "https://www.LinkedIn.com/feed/" → "linkedin.com". What you type into "Always allowed".
+    /// Nil for anything that isn't a plausible host.
+    public static func normalizedSite(_ input: String) -> String? {
+        var text = input.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if let range = text.range(of: "://") { text = String(text[range.upperBound...]) }
+        if let cut = text.firstIndex(where: { "/?#:".contains($0) }) { text = String(text[..<cut]) }
+        if text.hasPrefix("www.") { text.removeFirst(4) }
+        text = text.trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-."))
+        guard text.contains("."), text.count <= 253,
+              text.unicodeScalars.allSatisfy({ allowed.contains($0) }),
+              !text.split(separator: ".", omittingEmptySubsequences: false).contains(where: \.isEmpty) else { return nil }
+        return text
+    }
+
+    /// The host is one you always allow (the site itself or any of its subdomains).
+    public static func isAllowed(host: String, allowedSites: [String]) -> Bool {
+        let h = host.lowercased()
+        return allowedSites.contains { site in h == site || h.hasSuffix("." + site) }
     }
 
     /// Native Mac apps (iPad apps on Apple silicon included) that are feeds.

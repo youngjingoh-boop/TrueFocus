@@ -40,6 +40,12 @@ public struct TFSettings: Codable, Equatable, Sendable {
     /// Web: Instagram opens straight to your DMs. Feed, reels and explore are gone.
     public var instagramMessagesOnly: Bool = true
     public var hideShortForm: Bool = true
+    /// Web: LinkedIn without the feed. The home feed opens Messaging; video is gone; profiles,
+    /// search, jobs, Sales Navigator and Campaign Manager stay open, unguarded, even in focus.
+    public var linkedInWorkOnly: Bool = true
+    /// Web: sites you always allow (host names like "notion.so"). Never blocked, guarded or
+    /// cooled down. The adult filter still applies.
+    public var allowedSites: [String] = []
 
     // Mac
     /// Run Shortcuts named below to flip a macOS Focus (which syncs to iPhone) on and off.
@@ -84,6 +90,8 @@ public struct TFSettings: Codable, Equatable, Sendable {
         respondPassesPerDay = try c.decodeIfPresent(Int.self, forKey: .respondPassesPerDay) ?? d.respondPassesPerDay
         instagramMessagesOnly = try c.decodeIfPresent(Bool.self, forKey: .instagramMessagesOnly) ?? d.instagramMessagesOnly
         hideShortForm = try c.decodeIfPresent(Bool.self, forKey: .hideShortForm) ?? d.hideShortForm
+        linkedInWorkOnly = try c.decodeIfPresent(Bool.self, forKey: .linkedInWorkOnly) ?? d.linkedInWorkOnly
+        allowedSites = try c.decodeIfPresent([String].self, forKey: .allowedSites) ?? d.allowedSites
         macRunFocusShortcuts = try c.decodeIfPresent(Bool.self, forKey: .macRunFocusShortcuts) ?? d.macRunFocusShortcuts
         macFocusOnShortcut = try c.decodeIfPresent(String.self, forKey: .macFocusOnShortcut) ?? d.macFocusOnShortcut
         macFocusOffShortcut = try c.decodeIfPresent(String.self, forKey: .macFocusOffShortcut) ?? d.macFocusOffShortcut

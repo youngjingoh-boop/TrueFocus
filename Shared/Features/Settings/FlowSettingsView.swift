@@ -119,6 +119,10 @@ struct FlowSettingsView<Extra: View>: View {
         SettingsSection("On the web", footnote: "Applied by the TrueFocus browser extension in Safari and Chrome.") {
             ToggleRow(title: "Remove Reels, Shorts and TikTok", isOn: controller.binding(\.hideShortForm))
             ToggleRow(title: "Instagram opens to messages only", isOn: controller.binding(\.instagramMessagesOnly))
+            ToggleRow(title: "LinkedIn for work only",
+                      subtitle: "No feed or video. Messaging, profiles, search, jobs, Sales Navigator and Campaign Manager stay open, even in focus.",
+                      isOn: controller.binding(\.linkedInWorkOnly))
+            AllowedSitesEditor()
         }
     }
 }

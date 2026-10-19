@@ -87,6 +87,7 @@
     var managed = eff.appManaged;
     setSwitch('hideShortForm', eff.hideShortForm, managed);
     setSwitch('instagramMessagesOnly', eff.instagramMessagesOnly, managed);
+    setSwitch('linkedInWorkOnly', eff.linkedInWorkOnly, managed);
     setSwitch('guardEnabled', eff.guardEnabled, false);
     var preset = Core.presetName(eff.doomScroll);
     Array.prototype.forEach.call($('sensitivity').querySelectorAll('button'), function (b) {
@@ -183,7 +184,7 @@
     send({ type: 'prefs', prefs: change });
   }
 
-  ['hideShortForm', 'instagramMessagesOnly', 'guardEnabled'].forEach(function (id) {
+  ['hideShortForm', 'instagramMessagesOnly', 'linkedInWorkOnly', 'guardEnabled'].forEach(function (id) {
     $(id).addEventListener('change', function (e) {
       var change = {};
       change[id] = e.target.checked;
