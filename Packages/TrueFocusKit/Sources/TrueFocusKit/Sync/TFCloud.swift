@@ -26,10 +26,16 @@ public struct TFCloudConfig: Equatable, Sendable {
 public struct PairingCode: Equatable, Sendable {
     public var code: String
     public var expiresAt: Date
+
+    public init(code: String, expiresAt: Date) {
+        self.code = code
+        self.expiresAt = expiresAt
+    }
 }
 
 /// The sync backend: Supabase PostgREST + two edge functions, over plain HTTPS.
-/// Every request carries the space key in `x-tf-space`; row-level security does the rest.
+/// Every request carries the space's access token in `x-tf-space` (derived one way from the
+/// space key on device, so the server never sees the key); row-level security does the rest.
 public final class TFCloud: @unchecked Sendable {
     public let config: TFCloudConfig
     private let session: URLSession
@@ -42,7 +48,7 @@ public final class TFCloud: @unchecked Sendable {
     // MARK: Records
 
     /// Records changed since `since` (server time), oldest first, following pages.
-    public func pull(spaceKey: String, since: Date?, pageSize: Int = 500) async throws -> [RemoteRecord] {
+    public func pull(access: String, since: Date?, pageSize: Int = 500) async throws -> [RemoteRecord] {
         var all: [RemoteRecord] = []
         var from = since
         while true {
@@ -52,7 +58,7 @@ public final class TFCloud: @unchecked Sendable {
                 URLQueryItem(name: "limit", value: String(pageSize)),
             ]
             if let from { items.append(URLQueryItem(name: "updated_at", value: "gte." + SyncDates.format(from))) }
-            let request = try makeRequest(path: "/rest/v1/tf_records", query: items, method: "GET", spaceKey: spaceKey)
+            let request = try makeRequest(path: "/rest/v1/tf_records", query: items, method: "GET", access: access)
             let data = try await send(request)
             let page = try SyncDates.decoder().decode([RemoteRecord].self, from: data)
             all.append(contentsOf: page)
@@ -63,13 +69,13 @@ public final class TFCloud: @unchecked Sendable {
     }
 
     /// Upserts records (last writer wins is enforced by the server).
-    public func push(spaceKey: String, records: [RemoteRecord]) async throws {
+    public func push(access: String, records: [RemoteRecord]) async throws {
         guard !records.isEmpty else { return }
         for start in stride(from: 0, to: records.count, by: 200) {
             let chunk = Array(records[start..<min(start + 200, records.count)])
             var request = try makeRequest(path: "/rest/v1/tf_records",
                                           query: [URLQueryItem(name: "on_conflict", value: "space,id")],
-                                          method: "POST", spaceKey: spaceKey)
+                                          method: "POST", access: access)
             request.setValue("resolution=merge-duplicates,return=minimal", forHTTPHeaderField: "Prefer")
             request.httpBody = try SyncDates.encoder().encode(chunk)
             _ = try await send(request)
@@ -78,10 +84,10 @@ public final class TFCloud: @unchecked Sendable {
 
     // MARK: Devices and wake-ups
 
-    public func registerDevice(spaceKey: String, token: String, platform: String, environment: String) async throws {
+    public func registerDevice(access: String, token: String, platform: String, environment: String) async throws {
         var request = try makeRequest(path: "/rest/v1/tf_devices",
                                       query: [URLQueryItem(name: "on_conflict", value: "space,token")],
-                                      method: "POST", spaceKey: spaceKey)
+                                      method: "POST", access: access)
         request.setValue("resolution=merge-duplicates,return=minimal", forHTTPHeaderField: "Prefer")
         let row: [String: String] = ["token": token, "platform": platform, "environment": environment,
                                      "updated_at": SyncDates.format(Date())]
@@ -90,41 +96,80 @@ public final class TFCloud: @unchecked Sendable {
     }
 
     /// Asks the server to silently wake this space's other iPhones.
-    public func notify(spaceKey: String, exceptToken: String?) async throws {
-        var request = try makeRequest(path: "/functions/v1/tf-notify", query: [], method: "POST", spaceKey: spaceKey)
+    public func notify(access: String, exceptToken: String?) async throws {
+        var request = try makeRequest(path: "/functions/v1/tf-notify", query: [], method: "POST", access: access)
         request.httpBody = try JSONSerialization.data(withJSONObject: ["except_token": exceptToken ?? ""])
         _ = try await send(request)
     }
 
-    // MARK: Pairing
+    // MARK: Moving and deleting a space
 
-    public func createPairingCode(spaceKey: String) async throws -> PairingCode {
-        var request = try makeRequest(path: "/functions/v1/tf-pair", query: [], method: "POST", spaceKey: nil)
-        request.httpBody = try JSONSerialization.data(withJSONObject: ["action": "create", "key": spaceKey])
+    /// One-time move from the legacy space id (the hash of the space key itself) to the one
+    /// for `access`. Sends the legacy key once; afterwards only the access token travels.
+    @discardableResult
+    public func rekey(legacyKey: String, access: String) async throws -> Int {
+        var request = try makeRequest(path: "/rest/v1/rpc/tf_rekey", query: [], method: "POST", access: legacyKey)
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["p_access": access])
         let data = try await send(request)
-        guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let code = object["code"] as? String,
+        return (try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed) as? Int) ?? 0
+    }
+
+    /// Removes every record and push token the server holds for this space.
+    public func deleteSpace(access: String) async throws {
+        var request = try makeRequest(path: "/rest/v1/rpc/tf_delete_space", query: [], method: "POST", access: access)
+        request.httpBody = Data("{}".utf8)
+        _ = try await send(request)
+    }
+
+    // MARK: Linking (public keys and a sealed box; the key never passes through the server)
+
+    /// Host: opens a code for `publicKey` (base64 X25519).
+    public func pairHost(publicKey: String) async throws -> PairingCode {
+        let object = try await pair(["action": "host", "pk": publicKey])
+        guard let code = object["code"] as? String,
               let expires = (object["expires_at"] as? String).flatMap(SyncDates.parse) else {
             throw SyncError.invalidResponse
         }
         return PairingCode(code: code, expiresAt: expires)
     }
 
-    /// Returns the space key the code stands for.
-    public func redeemPairingCode(_ code: String) async throws -> String {
-        var request = try makeRequest(path: "/functions/v1/tf-pair", query: [], method: "POST", spaceKey: nil)
-        request.httpBody = try JSONSerialization.data(withJSONObject: ["action": "redeem", "code": code])
+    /// Joiner: claims `code` with its public key; returns the host's.
+    public func pairJoin(code: String, publicKey: String) async throws -> String {
+        let object = try await pair(["action": "join", "code": code, "pk": publicKey])
+        guard let host = object["host_pk"] as? String else { throw SyncError.invalidResponse }
+        return host
+    }
+
+    /// Host: the joiner's public key once someone has entered the code, else nil.
+    public func pairWait(code: String, hostKey: String) async throws -> String? {
+        let object = try await pair(["action": "wait", "code": code, "host_pk": hostKey])
+        return object["guest_pk"] as? String
+    }
+
+    /// Host: hands over the sealed space key.
+    public func pairSeal(code: String, hostKey: String, box: String) async throws {
+        _ = try await pair(["action": "seal", "code": code, "host_pk": hostKey, "box": box])
+    }
+
+    /// Joiner: the sealed space key once the host has sent it, else nil.
+    public func pairFetch(code: String, guestKey: String) async throws -> String? {
+        let object = try await pair(["action": "fetch", "code": code, "pk": guestKey])
+        return object["box"] as? String
+    }
+
+    private func pair(_ body: [String: String]) async throws -> [String: Any] {
+        var request = try makeRequest(path: "/functions/v1/tf-pair", query: [], method: "POST", access: nil)
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let data = try await send(request)
-        guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let key = object["key"] as? String, key.count >= 32 else {
+        guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw SyncError.invalidResponse
         }
-        return key
+        return object
     }
 
     // MARK: Plumbing
 
-    func makeRequest(path: String, query: [URLQueryItem], method: String, spaceKey: String?) throws -> URLRequest {
+    func makeRequest(path: String, query: [URLQueryItem], method: String, access: String?) throws -> URLRequest {
         guard var components = URLComponents(url: config.url.appendingPathComponent(path), resolvingAgainstBaseURL: false) else {
             throw SyncError.notConfigured
         }
@@ -138,7 +183,7 @@ public final class TFCloud: @unchecked Sendable {
         request.setValue(config.anonKey, forHTTPHeaderField: "apikey")
         request.setValue("Bearer \(config.anonKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if let spaceKey { request.setValue(spaceKey, forHTTPHeaderField: "x-tf-space") }
+        if let access { request.setValue(access, forHTTPHeaderField: "x-tf-space") }
         return request
     }
 

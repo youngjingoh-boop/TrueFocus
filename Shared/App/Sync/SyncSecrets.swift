@@ -4,7 +4,8 @@ import Security
 import TrueFocusKit
 
 /// The space key lives in this device's Keychain (never iCloud Keychain). Anyone holding it can
-/// read and write the space, so it only leaves the device through a one-time pairing code.
+/// read and write the space. It never goes to the server: requests carry an access token derived
+/// from it, and linking hands it to the other device sealed (see `PairingSecret`).
 enum SyncKeychain {
     enum Read: Equatable {
         case found(String)
@@ -79,6 +80,14 @@ enum SyncKeychain {
         return SecItemAdd(add as CFDictionary, nil)
     }
 
+    /// Forgets the key (both keychains on the Mac).
+    static func delete() {
+        _ = SecItemDelete(query(dataProtection: true) as CFDictionary)
+        #if os(macOS)
+        _ = SecItemDelete(query(dataProtection: false) as CFDictionary)
+        #endif
+    }
+
     @discardableResult
     static func write(_ key: String) -> Bool {
         let status = run { dataProtection in
@@ -91,8 +100,24 @@ enum SyncKeychain {
     }
 }
 
+/// What the server sees instead of the space key: HKDF(key, "access.v1"), base64url. It proves
+/// membership of the space but can't be turned back into the key, so the server (or anyone with
+/// its database or logs) can't derive the payload key below.
+enum SyncAccess {
+    static func token(for spaceKey: String) -> String {
+        let derived = HKDF<SHA256>.deriveKey(inputKeyMaterial: SymmetricKey(data: Data(spaceKey.utf8)),
+                                             salt: Data("truefocus.sync".utf8),
+                                             info: Data("access.v1".utf8),
+                                             outputByteCount: 32)
+        return derived.withUnsafeBytes { Data($0) }.base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+}
+
 /// AES-GCM with a key derived from the space key. The server stores only ciphertext and a hash
-/// of the space key, so neither it nor anyone with database access can read a plan.
+/// of the access token, so neither it nor anyone with database access can read a plan.
 struct SyncCipher: PayloadCipher {
     private let key: SymmetricKey
 
@@ -138,8 +163,8 @@ enum SyncLedgerFile {
         return (try? JSONDecoder().decode(Stored.self, from: data)) != nil
     }
 
-    /// The first 16 hex digits of the space's hash, the same on every linked device (and the
-    /// start of the server's space id). Shown in Settings so two devices can be compared.
+    /// The first 16 hex digits of the space key's hash, the same on every linked device. Shown in
+    /// Settings so two devices can be compared. (Not the server's id, which hashes the access token.)
     static func tag(_ spaceKey: String) -> String {
         SHA256.hash(data: Data(spaceKey.utf8)).prefix(8).map { String(format: "%02x", $0) }.joined()
     }
@@ -151,8 +176,62 @@ enum SyncLedgerFile {
         return stored.ledger
     }
 
+    static func delete() {
+        guard let url else { return }
+        try? FileManager.default.removeItem(at: url)
+    }
+
     static func save(_ ledger: SyncLedger, for spaceKey: String) {
         guard let url, let data = try? JSONEncoder().encode(Stored(space: tag(spaceKey), ledger: ledger)) else { return }
         try? data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+    }
+}
+
+/// One side of linking two devices. They swap X25519 public keys through the server, then both
+/// derive the same box key (to seal the space key) and a 4-digit match number from the shared
+/// secret. A server that swapped the keys would leave the two screens showing different numbers,
+/// so the host only sends the key after you confirm they match.
+struct PairingSecret {
+    private let privateKey = Curve25519.KeyAgreement.PrivateKey()
+
+    /// Base64, as the server expects.
+    var publicKey: String { privateKey.publicKey.rawRepresentation.base64EncodedString() }
+
+    struct Session {
+        fileprivate let boxKey: SymmetricKey
+        /// Four digits, the same on both screens when nobody is in the middle.
+        let match: String
+
+        func seal(_ spaceKey: String) throws -> String {
+            guard let combined = try AES.GCM.seal(Data(spaceKey.utf8), using: boxKey).combined else {
+                throw SyncError.corruptPayload
+            }
+            return combined.base64EncodedString()
+        }
+
+        func open(_ box: String) throws -> String {
+            guard let data = Data(base64Encoded: box),
+                  let key = String(data: try AES.GCM.open(AES.GCM.SealedBox(combined: data), using: boxKey), encoding: .utf8),
+                  key.count >= 32 else { throw SyncError.corruptPayload }
+            return key
+        }
+    }
+
+    /// Both sides pass the keys in host, guest order, so they derive the same session.
+    func session(peer: String, hostKey: String, guestKey: String, code: String) throws -> Session {
+        guard let raw = Data(base64Encoded: peer),
+              let peerKey = try? Curve25519.KeyAgreement.PublicKey(rawRepresentation: raw) else {
+            throw SyncError.invalidResponse
+        }
+        let shared = try privateKey.sharedSecretFromKeyAgreement(with: peerKey)
+        let transcript = Data("\(code)|\(hostKey)|\(guestKey)".utf8)
+        let boxKey = shared.hkdfDerivedSymmetricKey(using: SHA256.self, salt: transcript,
+                                                    sharedInfo: Data("truefocus.pair.box.v1".utf8),
+                                                    outputByteCount: 32)
+        let matchKey = shared.hkdfDerivedSymmetricKey(using: SHA256.self, salt: transcript,
+                                                      sharedInfo: Data("truefocus.pair.match.v1".utf8),
+                                                      outputByteCount: 4)
+        let number = matchKey.withUnsafeBytes { bytes in bytes.reduce(UInt32(0)) { ($0 << 8) | UInt32($1) } }
+        return Session(boxKey: boxKey, match: String(format: "%04d", number % 10_000))
     }
 }

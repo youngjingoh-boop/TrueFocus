@@ -209,42 +209,67 @@ final class SyncLiveTests: XCTestCase {
         let id = UUID()
         let start = Date().addingTimeInterval(-60)
         let payload = try PayloadCoding.encode(NotePayload(body: "live test", createdAt: Date(), updatedAt: Date(), isPinned: false))
-        try await cloud.push(spaceKey: space, records: [
+        try await cloud.push(access: space, records: [
             RemoteRecord(id: id, kind: .note, blob: try cipher.seal(payload), deleted: false, modifiedAt: Date()),
         ])
-        let pulled = try await cloud.pull(spaceKey: space, since: start)
+        let pulled = try await cloud.pull(access: space, since: start)
         XCTAssertEqual(pulled.map(\.id), [id])
         XCTAssertEqual(try cipher.open(pulled[0].blob), payload)
 
-        let strangers = try await cloud.pull(spaceKey: "tftest-" + SpaceKey.generate(), since: start)
+        let strangers = try await cloud.pull(access: "tftest-" + SpaceKey.generate(), since: start)
         XCTAssertTrue(strangers.isEmpty, "another space must not see this record")
 
         // An older edit must not overwrite.
-        try await cloud.push(spaceKey: space, records: [
+        try await cloud.push(access: space, records: [
             RemoteRecord(id: id, kind: .note, blob: "stale", deleted: false, modifiedAt: Date().addingTimeInterval(-3600)),
         ])
-        let afterStale = try await cloud.pull(spaceKey: space, since: start)
+        let afterStale = try await cloud.pull(access: space, since: start)
         XCTAssertEqual(afterStale.first?.blob, try cipher.seal(payload))
 
         // Tombstone, then pairing.
-        try await cloud.push(spaceKey: space, records: [
+        try await cloud.push(access: space, records: [
             RemoteRecord(id: id, kind: .note, blob: "", deleted: true, modifiedAt: Date().addingTimeInterval(1)),
         ])
-        let afterDelete = try await cloud.pull(spaceKey: space, since: start)
+        let afterDelete = try await cloud.pull(access: space, since: start)
         XCTAssertEqual(afterDelete.first?.deleted, true)
 
-        let code = try await cloud.createPairingCode(spaceKey: space)
+        // Linking: the server relays public keys and a sealed box, never the key.
+        let hostKey = Data((0..<32).map { _ in UInt8.random(in: 0...255) }).base64EncodedString()
+        let guestKey = Data((0..<32).map { _ in UInt8.random(in: 0...255) }).base64EncodedString()
+        let code = try await cloud.pairHost(publicKey: hostKey)
         XCTAssertEqual(code.code.count, 6)
-        let redeemed = try await cloud.redeemPairingCode(code.code)
-        XCTAssertEqual(redeemed, space)
+        let waitingAlone = try await cloud.pairWait(code: code.code, hostKey: hostKey)
+        XCTAssertNil(waitingAlone)
+        let joined = try await cloud.pairJoin(code: code.code, publicKey: guestKey)
+        XCTAssertEqual(joined, hostKey)
+        let waited = try await cloud.pairWait(code: code.code, hostKey: hostKey)
+        XCTAssertEqual(waited, guestKey)
+        let early = try await cloud.pairFetch(code: code.code, guestKey: guestKey)
+        XCTAssertNil(early, "nothing to fetch until the host seals")
+        let box = String(repeating: "A", count: 64)
+        try await cloud.pairSeal(code: code.code, hostKey: hostKey, box: box)
+        let fetched = try await cloud.pairFetch(code: code.code, guestKey: guestKey)
+        XCTAssertEqual(fetched, box)
         do {
-            _ = try await cloud.redeemPairingCode(code.code)
-            XCTFail("a code works once")
+            _ = try await cloud.pairJoin(code: code.code, publicKey: guestKey)
+            XCTFail("a code links one device")
         } catch SyncError.http(let status, _) {
             XCTAssertEqual(status, 404)
         }
 
-        try await cloud.registerDevice(spaceKey: space, token: "test-token", platform: "ios", environment: "development")
-        try await cloud.notify(spaceKey: space, exceptToken: "test-token")
+        // Moving from the legacy space keeps the records; deleting removes them.
+        let access = "tftest-" + SpaceKey.generate()
+        let moved = try await cloud.rekey(legacyKey: space, access: access)
+        XCTAssertEqual(moved, 1)
+        let afterMove = try await cloud.pull(access: access, since: start)
+        XCTAssertEqual(afterMove.map(\.id), [id])
+        let legacyAfterMove = try await cloud.pull(access: space, since: start)
+        XCTAssertTrue(legacyAfterMove.isEmpty)
+
+        try await cloud.registerDevice(access: access, token: "test-token", platform: "ios", environment: "development")
+        try await cloud.notify(access: access, exceptToken: "test-token")
+        try await cloud.deleteSpace(access: access)
+        let afterDelete2 = try await cloud.pull(access: access, since: start)
+        XCTAssertTrue(afterDelete2.isEmpty)
     }
 }
