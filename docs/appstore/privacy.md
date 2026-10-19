@@ -231,12 +231,12 @@ tracking) as well as **Identifiers → Device ID** (iPhone). It no longer descri
 > It describes the end-to-end sync shipped since `1caee66` (Label B).
 
 ```markdown
-# TrueFocus Privacy Policy
+# TruFocus Privacy Policy
 
 Effective [EFFECTIVE DATE]
 
-TrueFocus is made by [DEVELOPER LEGAL NAME] ("we"). This policy covers the TrueFocus apps for
-iPhone and Mac and the TrueFocus browser extension for Safari and Chrome.
+TruFocus is made by [DEVELOPER LEGAL NAME] ("we"). This policy covers the TruFocus apps for
+iPhone and Mac and the TruFocus browser extension for Safari and Chrome.
 
 ## The short version
 
@@ -250,26 +250,26 @@ iPhone and Mac and the TrueFocus browser extension for Safari and Chrome.
 
 ## What stays on your device
 
-- **Screen Time.** TrueFocus uses Apple's Screen Time framework, with your permission, to shield the
-  apps you pick, run your scroll budget and filter adult websites. Apple gives TrueFocus only
+- **Screen Time.** TruFocus uses Apple's Screen Time framework, with your permission, to shield the
+  apps you pick, run your scroll budget and filter adult websites. Apple gives TruFocus only
   anonymous tokens for the apps and sites you choose, not their names or your usage history.
   These stay on your iPhone and are never uploaded.
 - **Browsing.** The browser extension checks the address of pages on a short list of feed sites
   (such as Instagram, YouTube, Facebook and LinkedIn) and counts how far you scroll there, so it can
   remove short-form video and stop doom-scrolling. It blocks known adult sites. It decides all of
   this on your device. It doesn't read page text, forms or cookies, and it never sends the pages
-  you visit anywhere. On a Mac, it talks only to the TrueFocus app on the same Mac.
+  you visit anywhere. On a Mac, it talks only to the TruFocus app on the same Mac.
 - **Scrolling on the Mac.** While a feed app is in front, the Mac app counts how far you scroll.
   It never reads what's on screen or what you type.
 - **Settings**, including your tone, your own reminder words, budgets and allowed sites.
 - **Turning a brain dump into tasks** uses Apple Intelligence on your device when it's available.
   Nothing is sent to us or to anyone else for this.
-- **Everything, while sync is off.** With sync off, TrueFocus sends nothing to our server until
+- **Everything, while sync is off.** With sync off, TruFocus sends nothing to our server until
   you turn it on or link a device.
 
 ## What we receive when sync is on, and why
 
-TrueFocus syncs your devices through a server we run on Supabase ([SUPABASE REGION, e.g. "the
+TruFocus syncs your devices through a server we run on Supabase ([SUPABASE REGION, e.g. "the
 EU (Frankfurt)" — check in the Supabase dashboard]). When you turn sync on, your device makes a
 random key and keeps it in its Keychain. That key never leaves your devices. The server receives:
 
@@ -292,7 +292,7 @@ random key and keeps it in its Keychain. That key never leaves your devices. The
 - **The usual connection details,** such as your IP address, which our hosting provider sees on
   every internet request.
 
-**If your device used an earlier version of TrueFocus,** it sends its old key to the server once,
+**If your device used an earlier version of TruFocus,** it sends its old key to the server once,
 over an encrypted connection, to move your synced data to the new end-to-end scheme. After that,
 the key never leaves your devices.
 
@@ -301,7 +301,7 @@ or combine it with other data.
 
 ## Apple services
 
-- **Apple Music.** If you choose Apple Music as focus music, TrueFocus asks for permission and plays
+- **Apple Music.** If you choose Apple Music as focus music, TruFocus asks for permission and plays
   a playlist through Apple's MusicKit. Apple handles that under its own privacy policy. We receive
   nothing.
 - **Notifications.** Nudges are scheduled on your device. Silent sync wake-ups go through Apple's
@@ -324,7 +324,7 @@ exists. See the note for the owner below.]
 
 ## Your choices
 
-- **Leave sync off.** It's off until you turn it on in Settings ▸ Sync. TrueFocus works fully on
+- **Leave sync off.** It's off until you turn it on in Settings ▸ Sync. TruFocus works fully on
   one device without it.
 - **Turn sync off on a device:** Settings ▸ Sync ▸ **Turn off here**. That device stops sending
   anything. It keeps its key, so turning sync back on carries on where it was. What's already on the
@@ -345,7 +345,7 @@ exists. See the note for the owner below.]
 
 ## Children
 
-TrueFocus isn't directed at children under [13 / 16 — match the age rating] and doesn't knowingly
+TruFocus isn't directed at children under [13 / 16 — match the age rating] and doesn't knowingly
 collect data from them.
 
 ## Security
@@ -382,8 +382,8 @@ If this policy changes, we'll update the date above and say what changed in the 
   10,000), so the policy doesn't promise it can never succeed.
 - The Supabase project is **shared with another app (ListingLine)**, according to the migration header and
   `docs/SETUP.md`. That's fine legally, since it's the same controller, but anyone with access to that
-  project can see the TrueFocus tables (ciphertext and metadata). The access group for the project is
-  also the access group for TrueFocus users' sync metadata.
+  project can see the TruFocus tables (ciphertext and metadata). The access group for the project is
+  also the access group for TruFocus users' sync metadata.
 
 ---
 
@@ -404,8 +404,8 @@ whether data is shared.
 | Shield Action extension | `com.youngjingoh.truefocus.shieldaction` |
 
 **What does your app do with Family Controls?**
-TrueFocus is a self-control focus app for adults. The person using the iPhone chooses which of their
-own apps distract them. TrueFocus then (1) shields those apps while they're working on a task,
+TruFocus is a self-control focus app for adults. The person using the iPhone chooses which of their
+own apps distract them. TruFocus then (1) shields those apps while they're working on a task,
 (2) gives them a daily time budget for those apps outside work, after which the apps are
 shielded for a cooldown of 15 minutes or more, (3) lets them open apps they marked for messaging for a
 short "Reply" pass a limited number of times a day, and (4) turns on Screen Time's adult-website
@@ -426,7 +426,7 @@ the filter cool-off). There's no DeviceActivityReport extension.
 **What data do you access?**
 Only what the user picks in `FamilyActivityPicker`: opaque `ApplicationToken`, `ActivityCategoryToken`
 and `WebDomainToken` values, plus DeviceActivity callbacks when a threshold is reached or an interval
-starts or ends. TrueFocus never sees app names (the shield extension gets `localizedDisplayName` from the
+starts or ends. TruFocus never sees app names (the shield extension gets `localizedDisplayName` from the
 system only to display it), app usage history or browsing history.
 
 **Where is that data stored? Is it transmitted, shared or sold?**
@@ -439,7 +439,7 @@ Screen Time is used for advertising, analytics or profiling.
 Yes, at any time. They can revoke access in Settings ▸ Screen Time ▸ (apps with access) or delete the app,
 and either removes every shield and the filter immediately. Inside the app, "Shield during focus" can
 be switched off and the selections cleared. The 24-hour cool-off applies only to switching the adult
-filter off *inside TrueFocus*. It's a speed bump the user signed up for, not a lock, and the
+filter off *inside TruFocus*. It's a speed bump the user signed up for, not a lock, and the
 system-level revoke always works.
 
 **Is this a parental-control app?**
