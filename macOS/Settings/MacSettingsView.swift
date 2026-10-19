@@ -320,7 +320,7 @@ private struct FocusTab: View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text("\(number)")
                 .font(.system(size: 11, weight: .bold).monospacedDigit())
-                .foregroundStyle(TF.Palette.signal)
+                .foregroundStyle(TF.Palette.signalText)
                 .frame(width: 14)
             Text(text).font(.callout)
         }
@@ -369,7 +369,7 @@ private struct BrowserTab: View {
                             .foregroundStyle(TF.Palette.rest)
                     case .unreachable:
                         Label("Not reachable", systemImage: "circle")
-                            .foregroundStyle(TF.Palette.signal)
+                            .foregroundStyle(TF.Palette.signalText)
                     }
                 }
                 Text("Chrome-family browsers read your current task from TruFocus over a local-only connection on this Mac (127.0.0.1:52525).")

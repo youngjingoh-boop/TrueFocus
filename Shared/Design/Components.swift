@@ -276,7 +276,7 @@ struct OrbButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: size * 0.34, weight: .semibold))
-            .foregroundStyle(filled ? Color.black : tint)
+            .foregroundStyle(filled ? TF.Palette.onSignal : tint)
             .frame(width: size, height: size)
             .background(
                 Circle().fill(filled ? tint : tint.opacity(0.12))
@@ -391,6 +391,27 @@ struct TFMark: View {
                                                  .init(color: TF.Palette.signal, location: 1)],
                                          center: .center, startRadius: 0, endRadius: 17 * u))
                     .frame(width: 34 * u, height: 34 * u)
+            }
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
+    }
+}
+
+/// The mark on a surface that follows the system appearance. On light it sits on an Ink
+/// rounded square (the app icon in miniature); on dark the Ember ring stands on its own.
+struct TFMarkBadge: View {
+    var size: CGFloat = 20
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        ZStack {
+            if colorScheme == .dark {
+                TFMark(size: size, onDark: true)
+            } else {
+                RoundedRectangle(cornerRadius: size * 0.225, style: .continuous)
+                    .fill(TF.Palette.night)
+                TFMark(size: size * 0.8, onDark: true)
             }
         }
         .frame(width: size, height: size)

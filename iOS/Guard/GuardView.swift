@@ -177,7 +177,7 @@ struct GuardView: View {
                 Task { await shield.requestAuthorization() }
             } label: {
                 HStack(spacing: 8) {
-                    if shield.isRequesting { ProgressView().tint(TF.Palette.paper) }
+                    if shield.isRequesting { ProgressView().tint(TF.Palette.onSignal) }
                     Text(shield.authorization == .denied ? "Try again" : "Allow Screen Time access")
                 }
             }
@@ -284,7 +284,7 @@ struct GuardView: View {
             if !shield.isAuthorized {
                 Text("Needs Screen Time access.")
                     .font(.footnote.weight(.semibold))
-                    .foregroundStyle(TF.Palette.signal)
+                    .foregroundStyle(TF.Palette.signalText)
             } else if pendingOff, let end = settings.adultFilterOffEffectiveAt {
                 Text("Turns off \(end.formatted(date: .abbreviated, time: .shortened)).")
                     .font(.callout.weight(.medium))

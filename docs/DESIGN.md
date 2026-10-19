@@ -22,12 +22,17 @@
 | **Ember** `signal` | `#FF5A1F` | | Focus, Done, the live dot |
 | Think | `#7C7CFF` | | Stuck / think time |
 | Rest | `#34C98E` | | Micro-rest |
+| `signalText` | `#C2410C` | `#FF7A45` | Ember for small text. The brand's light Ember text, `#D9430C`, is 4.0:1 on Paper and 4.4:1 on white, short of 4.5:1, so light uses the deeper value |
+| `thinkText` / `restText` | `#4B4BC4` / `#1E7A55` | `#9C9CFF` / `#4FD9A2` | Think and rest for small text |
+| `onSignal` | `#050506` | | Labels on Ember, think and rest fills |
+
+Raw Ember, think and rest are for fills, dots and glyphs. Small text in an accent colour uses the text tint. The one Ember primary button has an Ink label (`onSignal`), in the apps, on the shield and on the extension's pages.
 
 The immersive focus canvas is always night (`#050506`) with a faint wash of the mode color from the top.
 
 ## Type
 
-System San Francisco throughout.
+System San Francisco throughout (SF Pro, then Geist on the web).
 
 - Focus clock: 96 pt **Thin**, tabular digits. The clock should feel like it's barely there.
 - Display: 34 pt Bold ("Today", "Empty your head.").
@@ -41,8 +46,10 @@ Springs, never linear, except clocks. Check-off: a 0.28 s spring with a little o
 
 ## Voice
 
+**New-world focus for ADHD brains.** Built for hyperfocus. Not against it.
+
 Short. Specific. Always names the task. Three tones — Calm, Direct (the default), Savage (opt-in, strong language) — chosen in settings. All copy lives in `Packages/TrueFocusKit/Sources/TrueFocusKit/Copy.swift`. Users can replace any moment's line with their own words (`CustomReminders.swift`); `Copy.apply(_:to:task:)` holds the one rule for where those words go.
 
 ## Icon
 
-Ember Open, from the brand handover in `docs/brand` (v2.0): one ring, one point of light. A thin ring with a top-to-bottom gradient (`#FF7A40` → `#E2460E`) around a glowing core (`#FFE6D6` → `#FF9560` → `#FF5A1F`). Glow on dark, flat on light, and below 24 px the small cut: thicker solid ring, solid core. The iOS icon ships Any, Dark and Tinted appearances plus an alternate Paper icon (Settings ▸ App icon); the Mac icon, the menu bar template, the browser extension icons and the website's favicons all come from the same kit. In SwiftUI the mark is `TFMark`. The wordmark is outlined Geist SemiBold; use the lockup files, never live type.
+Ember Open, from the brand handover in `docs/brand` (v2.0): one ring, one point of light. A thin ring with a top-to-bottom gradient (`#FF7A40` → `#E2460E`) around a glowing core (`#FFE6D6` → `#FF9560` → `#FF5A1F`). Glow on dark, flat on light, and below 24 px the small cut: thicker solid ring, solid core. The iOS icon ships Any, Dark and Tinted appearances plus an alternate Paper icon (Settings ▸ App icon); the Mac icon, the menu bar template, the browser extension icons and the website's favicons all come from the same kit. In SwiftUI the mark is `TFMark`, and `TFMarkBadge` sets it on an Ink rounded square on light surfaces (the Ember ring alone on dark). The Screen Time shield draws the same mark with Core Graphics. The wordmark is outlined Geist SemiBold; use the lockup files, never live type.

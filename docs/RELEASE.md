@@ -1,6 +1,6 @@
-# Releasing TrueFocus
+# Releasing TruFocus
 
-The runbook for shipping TrueFocus: the iPhone app through TestFlight and the App Store, and the Mac app as a notarized download. Do the steps in this order. Steps 1–7 are one-time; after that, a release is step 8 onwards.
+The runbook for shipping TruFocus: the iPhone app through TestFlight and the App Store, and the Mac app as a notarized download. Do the steps in this order. Steps 1–7 are one-time; after that, a release is step 8 onwards.
 
 | What | Where it ships | How |
 | --- | --- | --- |
@@ -47,7 +47,7 @@ Register the bundle IDs first (step 3), then:
 
 Ready-to-paste text for the form's description field:
 
-> TrueFocus is a personal focus app for adults that helps the user stay on one task and stop doom-scrolling. It uses the Screen Time APIs only for the person using the device: it calls `AuthorizationCenter.shared.requestAuthorization(for: .individual)`. There is no parent/child mode and no remote management.
+> TruFocus is a personal focus app for adults that helps the user stay on one task and stop doom-scrolling. It uses the Screen Time APIs only for the person using the device: it calls `AuthorizationCenter.shared.requestAuthorization(for: .individual)`. There is no parent/child mode and no remote management.
 >
 > How each API is used:
 > - **FamilyControls**: the user picks the apps, categories and websites that distract them with `FamilyActivityPicker`. The selection is stored only on the device, in the app's App Group.
@@ -56,7 +56,7 @@ Ready-to-paste text for the form's description field:
 > - **ManagedSettingsUI** (extension `com.youngjingoh.truefocus.shieldconfig`): a custom shield that names the task the user is working on ("You're 23 min into 'Investor update'").
 > - **Shield actions** (extension `com.youngjingoh.truefocus.shieldaction`): the shield's buttons, including a limited "Reply · 2 min" pass for messaging apps the user marked.
 >
-> Every shield can be removed by the user, either by ending the session in TrueFocus or by revoking Screen Time access in Settings. TrueFocus never collects, transmits, sells or shares Screen Time or app-usage data; the opaque application tokens never leave the device. App bundle ID: `com.youngjingoh.truefocus`. Extension bundle IDs: `com.youngjingoh.truefocus.monitor`, `com.youngjingoh.truefocus.shieldconfig`, `com.youngjingoh.truefocus.shieldaction`. Team ID `7CVSS54KS4`.
+> Every shield can be removed by the user, either by ending the session in TruFocus or by revoking Screen Time access in Settings. TruFocus never collects, transmits, sells or shares Screen Time or app-usage data; the opaque application tokens never leave the device. App bundle ID: `com.youngjingoh.truefocus`. Extension bundle IDs: `com.youngjingoh.truefocus.monitor`, `com.youngjingoh.truefocus.shieldconfig`, `com.youngjingoh.truefocus.shieldaction`. Team ID `7CVSS54KS4`.
 
 If the form asks whether this is a parental-controls app: **No, it's an individual self-control (Screen Time for yourself) app.**
 
@@ -102,7 +102,7 @@ Why export it: the workflow first tries Apple's cloud-managed Developer ID certi
 [App Store Connect ▸ Apps](https://appstoreconnect.apple.com/apps) ▸ `+` ▸ *New App*:
 
 - Platforms: **iOS** only.
-- Name: the store name from the listing work (it must be unique on the store; if "TrueFocus" is taken, use the listing's fallback).
+- Name: `TruFocus: ADHD Hyperfocus` (docs/appstore/listing.md §1). It must be unique on the store, so reserve it early.
 - Primary language: English (U.S.).
 - Bundle ID: `com.youngjingoh.truefocus`.
 - SKU: `truefocus-ios`.
@@ -153,7 +153,7 @@ You can do this while waiting for Family Controls.
 - Under *iPhone and iPad Apps on Apple Silicon Macs*, **untick** availability: there is a dedicated Mac app, and Screen Time shielding doesn't work in the iPhone app on a Mac.
 - Untick *Apple Vision Pro* for the same reason.
 
-**Export compliance** is answered by the build: `ITSAppUsesNonExemptEncryption` is `false` because TrueFocus only uses encryption built into the OS (HTTPS through URLSession; AES-GCM, HKDF, SHA-256 and X25519 through CryptoKit). TestFlight won't ask the encryption question.
+**Export compliance** is answered by the build: `ITSAppUsesNonExemptEncryption` is `false` because TruFocus only uses encryption built into the OS (HTTPS through URLSession; AES-GCM, HKDF, SHA-256 and X25519 through CryptoKit). TestFlight won't ask the encryption question.
 
 ## 8. Run the Release workflow
 
@@ -172,18 +172,18 @@ If a run fails after the iPhone upload succeeded, use *Re-run failed jobs*, not 
 
 ## 9. Test on TestFlight
 
-1. App Store Connect ▸ TrueFocus ▸ **TestFlight**. The build appears as *Processing*, usually ready in 5–30 minutes. You get an email when it's done.
+1. App Store Connect ▸ TruFocus ▸ **TestFlight**. The build appears as *Processing*, usually ready in 5–30 minutes. You get an email when it's done.
 2. **Internal testing** (up to 100 people on your team, no review): *Internal Testing* ▸ `+` group ▸ add testers ▸ add the build. Install the **TestFlight** app on the iPhone and accept the invite.
 3. **External testing** (friends, up to 10,000, by email or public link): create an external group and add the build. The first build of each version goes through *Beta App Review* (usually under a day). Fill in *Test Information* (what to test, contact email) first.
 4. Test on a real iPhone. The simulator can't run Screen Time. Use this checklist:
    - [ ] First launch, notification permission, Brain dump → tasks → Focus.
    - [ ] Guard ▸ Enable: the Screen Time prompt appears and is approved (this proves the distribution entitlement is in the build).
-   - [ ] Pick scroll apps; start focus; opening one shows the TrueFocus shield with the task name.
+   - [ ] Pick scroll apps; start focus; opening one shows the TruFocus shield with the task name.
    - [ ] Shield **Reply · 2 min** on a reply app; the pass ends after two minutes.
    - [ ] Scroll budget: a small budget shields the apps after it's used up (DeviceActivity monitor).
    - [ ] Adult filter on; turning it off waits 24 hours.
    - [ ] Live Activity on the Lock Screen and Dynamic Island; buttons work while locked.
-   - [ ] Home Screen and Lock Screen widgets; Control Center controls; "Done in TrueFocus" with Siri.
+   - [ ] Home Screen and Lock Screen widgets; Control Center controls; "Done in TruFocus" with Siri.
    - [ ] Safari extension: enable it in Settings ▸ Apps ▸ Safari ▸ Extensions; Reels/Shorts are removed.
    - [ ] Apple Music focus playlist (needs an Apple Music subscription; others hear the built-in music).
    - [ ] Sync is off on a fresh install: Settings ▸ Sync reads "Off on this device", and nothing syncs until *Turn on sync*.
@@ -203,22 +203,22 @@ There is no automatic updater yet: people update by downloading the new zip. Add
 
 ## 11. Submit the iPhone app for review
 
-App Store Connect ▸ TrueFocus ▸ the iOS version (e.g. *1.0 Prepare for Submission*):
+App Store Connect ▸ TruFocus ▸ the iOS version (e.g. *1.0 Prepare for Submission*):
 
 1. **Screenshots**: iPhone 6.9" (1320 × 2868 or 1290 × 2796) are required; the smaller sizes scale from them. No iPad screenshots: the app is iPhone-only.
 2. **Promotional text, description, keywords, support URL, marketing URL** from the listing work. Copyright, e.g. `2026 <your legal name>`.
 3. **Build**: *Add Build* ▸ pick the TestFlight build you tested.
 4. **App Review Information**: *Sign-in required* off (there's no account). Contact details. Notes, ready to paste:
 
-   > TrueFocus is a personal focus app. No account or sign-in is needed.
+   > TruFocus is a personal focus app. No account or sign-in is needed.
    >
    > To see the core loop: open the app, type a few tasks on the Brain dump page, keep them, pick the win, and start the first task. The focus screen shows one task and a clock; Done, Stuck, Switch and Pause are the moves.
    >
-   > Screen Time: Guard ▸ Enable asks for Screen Time access for this device's user (FamilyControls, `.individual`). Then pick a couple of apps under Scroll apps and start a focus session; opening one of those apps shows TrueFocus's shield naming the current task. The shield and all limits go away when the session ends, or if access is revoked in Settings ▸ Screen Time. Screen Time data stays on the device.
+   > Screen Time: Guard ▸ Enable asks for Screen Time access for this device's user (FamilyControls, `.individual`). Then pick a couple of apps under Scroll apps and start a focus session; opening one of those apps shows TruFocus's shield naming the current task. The shield and all limits go away when the session ends, or if access is revoked in Settings ▸ Screen Time. Screen Time data stays on the device.
    >
    > Sync: off until the user turns it on in Settings ▸ Sync. Then tasks and notes sync between the user's own iPhone and Mac through our server, end-to-end encrypted: the key never leaves the devices, and the server only stores ciphertext. Linking a second device is optional: a six-digit code, then both screens show the same four-digit number to confirm. Settings ▸ Sync also has *Turn off here* and *Delete server copy…*.
    >
-   > The Safari extension (Settings ▸ Apps ▸ Safari ▸ Extensions ▸ TrueFocus) removes Reels/Shorts and counts scrolling on feed sites.
+   > The Safari extension (Settings ▸ Apps ▸ Safari ▸ Extensions ▸ TruFocus) removes Reels/Shorts and counts scrolling on feed sites.
    >
    > The default nudge tone is "Direct". "Savage" is opt-in in Settings ▸ Voice and uses strong language.
    >
@@ -267,7 +267,7 @@ What the Mac app does, and how each part fares in the Mac App Store's sandbox an
 | Browser bridge for Chrome-family browsers | `NWListener` on `127.0.0.1:52525` | Allowed with `com.apple.security.network.server`. Not a blocker. |
 | Native doom-scroll watch | `NSEvent.addGlobalMonitorForEvents(.scrollWheel)` while a listed feed app is frontmost. No Accessibility, no `CGEventTap`, no AppleScript (browsers are covered by the extension) | Global mouse/scroll monitors work without Accessibility, but App Review may question a store app watching input in other apps. A risk, not a hard blocker. |
 | Shielding Mac apps during focus | `NSRunningApplication.hide()` on other apps, plus a full-screen overlay at screen-saver level | An app that hides other apps the moment they come forward invites a rejection under guideline 2.4.5 / 2.5.9 (interfering with other apps and system behaviour). Untested in the sandbox. |
-| Focus mode automation | Runs `/usr/bin/shortcuts run "TrueFocus On"` with `Process` | A sandboxed child process inherits the sandbox, and the `shortcuts` tool is unlikely to work there. It would need rewriting (for example `shortcuts://run-shortcut?name=…`, which brings Shortcuts to the front). |
+| Focus mode automation | Runs `/usr/bin/shortcuts run "TruFocus On"` with `Process` | A sandboxed child process inherits the sandbox, and the `shortcuts` tool is unlikely to work there. It would need rewriting (for example `shortcuts://run-shortcut?name=…`, which brings Shortcuts to the front). |
 | Chrome extension hand-off | Copies the bundled extension to Application Support and reveals it for *Load unpacked* | In the sandbox that folder is inside `~/Library/Containers/…`, which is hidden; it would need a save panel. |
 | Open at login | `SMAppService.mainApp.register()`, **on first launch without asking** | Fine in the sandbox, but guideline 2.4.5(iii) requires consent first. It would need an explicit opt-in. |
 | Sandbox today | `macOS/App/TrueFocus.entitlements` has no `com.apple.security.app-sandbox`; the app has never run sandboxed | The Mac App Store requires the sandbox on the app and every extension. |
@@ -315,7 +315,7 @@ Open (owner decisions or code changes outside release config):
 - **MusicKit** App Service must be on for `com.youngjingoh.truefocus`, or the Apple Music playlist falls back to the built-in music (step 3b).
 - ~~Default tone is Savage~~. Resolved in `11f3952`: the default is *Direct*, and Savage is opt-in with a "Strong language" label. Profanity still has to be declared in the age rating (step 7).
 - **Privacy manifests still declare Other User Content**, which no longer matches the App Privacy answers in step 7 now that sync is end-to-end. Fix the two manifests before the first submission.
-- **Login item on first launch without asking** (`macOS/App/LoginItem.swift`). Acceptable for Developer ID, but it's friendlier (and required for the Mac App Store) to ask first. Its footnote also mentions Xcode ("Run TrueFocus from Applications rather than Xcode"), which end users shouldn't see.
-- Mac `NSHumanReadableCopyright` is "Built for momentum." rather than a copyright line.
+- **Login item on first launch without asking** (`macOS/App/LoginItem.swift`). Acceptable for Developer ID, but it's friendlier (and required for the Mac App Store) to ask first. Its footnote also mentions Xcode ("Run TruFocus from Applications rather than Xcode"), which end users shouldn't see.
+- Mac `NSHumanReadableCopyright` is the brand line "Built for hyperfocus. Not against it." rather than a copyright line.
 - No auto-update for the Mac app (Sparkle).
 - The web extension's `manifest.json` version (`1.0.0`) is separate from the app version; bump it with releases if you publish to the Chrome Web Store.

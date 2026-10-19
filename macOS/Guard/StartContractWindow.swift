@@ -159,7 +159,7 @@ private struct StartContractView: View {
                     .fixedSize()
                     .keyboardShortcut(.cancelAction)
                 Button("Start") { onSave(contract) }
-                    .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: .black))
+                    .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: TF.Palette.onSignal))
                     .keyboardShortcut(.defaultAction)
             }
             Text("Only app names, window titles and sites are read, on this Mac, while a task runs. No screenshots or page contents.")
@@ -258,7 +258,7 @@ private struct Chip: View {
                 Text(text).lineLimit(1)
             }
             .font(.system(size: 12.5, weight: .medium))
-            .foregroundStyle(on ? Color.black : TF.Palette.ink)
+            .foregroundStyle(on ? TF.Palette.onSignal : TF.Palette.ink)
             .padding(.horizontal, 11)
             .padding(.vertical, 6)
             .background(Capsule().fill(on ? TF.Palette.signal : TF.Palette.surface2))

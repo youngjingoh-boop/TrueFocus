@@ -11,20 +11,20 @@ line references point to what each statement rests on.
 The Notes field allows 4,000 characters. This block uses 3,913.
 
 ```
-TrueFocus is a self-control focus app for adults. No account or login exists — every feature works on first launch. Please test on a physical iPhone: Screen Time APIs do not run in the Simulator.
+TruFocus is a self-control focus app for adults. No account or login exists — every feature works on first launch. Please test on a physical iPhone: Screen Time APIs do not run in the Simulator.
 
 WHY FAMILY CONTROLS
-TrueFocus uses FamilyControls with INDIVIDUAL authorization (requestAuthorization(for: .individual)) so the device owner can restrict their own distracting apps. There is no parental mode, no child account and no Family Sharing. Screen Time data (opaque tokens from FamilyActivityPicker, DeviceActivity threshold events) stays on the device in the App Group and is never transmitted. The user can revoke access at any time in Settings > Screen Time.
+TruFocus uses FamilyControls with INDIVIDUAL authorization (requestAuthorization(for: .individual)) so the device owner can restrict their own distracting apps. There is no parental mode, no child account and no Family Sharing. Screen Time data (opaque tokens from FamilyActivityPicker, DeviceActivity threshold events) stays on the device in the App Group and is never transmitted. The user can revoke access at any time in Settings > Screen Time.
 
 HOW TO TEST (about 10 minutes)
 1. Launch. Allow notifications when asked. On Today, tap "Start the day", type a few lines (e.g. "email Sam, write report"), tap through to the list and the win, then "Attack". A task is now running with a clock.
 2. Guard tab > "Allow Screen Time access" > approve with Face ID/passcode.
 3. Guard > Scroll apps > pick Apple TV and News (or any app you can open). Done.
-4. Shield: with the task still running, open News. A TrueFocus shield names the task and how long you've been on it. "Back to work" closes it.
+4. Shield: with the task still running, open News. A TruFocus shield names the task and how long you've been on it. "Back to work" closes it.
 5. Reply pass: Guard > Reply apps > pick Podcasts. Open Podcasts while the task runs: the shield shows "Reply · 2 min (8 left)". Tap it and Podcasts opens for 2 minutes of use.
 6. Scroll budget: in Focus, tap Pause (shields drop while paused). Guard > "Boot me out after" > 1 minute. Use News for a little over a minute. A "Budget spent" shield appears and stays for the 15-minute lockout (iOS minimum). DeviceActivity can take a minute or two to fire.
 7. Adult filter: it is on by default once Screen Time access is granted. In Safari, open a well-known adult domain: Screen Time's "restricted" page appears instead. In Guard > Adult filter, "Turn off…" starts a 24-hour cool-off ("Turns off <date>") that can be cancelled with "Keep it on". Revoking Screen Time access in iOS Settings removes it immediately.
-8. Safari extension: Settings > Apps > Safari > Extensions > TrueFocus > on, All Websites > Allow. Then in Safari: youtube.com/shorts and instagram.com/reels open a TrueFocus page instead of short-form video. On reddit.com, swipe the feed quickly ~25 times within a minute: a warning toast, then a full-screen boot-out.
+8. Safari extension: Settings > Apps > Safari > Extensions > TruFocus > on, All Websites > Allow. Then in Safari: youtube.com/shorts and instagram.com/reels open a TruFocus page instead of short-form video. On reddit.com, swipe the feed quickly ~25 times within a minute: a warning toast, then a full-screen boot-out.
 9. Lock the phone while a task runs: a Live Activity with Done / Stuck / Pause. Settings (slider icon on Today) > Sound > Focus music "Drive", then lock: music continues (UIBackgroundModes audio, mixes with other apps).
 10. Sync (optional, off by default): nothing is uploaded until you tap "Turn on sync" or "Enter a code" in Settings > Sync. To link a Mac: "Turn on sync" > "Link a device" shows a 6-digit code; on the other device, "Enter a code". Both show the same 4-digit number; tap "They match" on the first. "Turn off here" and "Delete server copy…" are there too.
 
@@ -46,7 +46,7 @@ Tones in Settings > Voice: Calm, Direct (default), Savage. Savage is opt-in, lab
 **Mac record notes:** use the block above, but replace steps 2 to 9 with:
 
 ```
-On Mac: launch from Applications; TrueFocus lives in the menu bar. Start a task (menu bar > quick-add, or the window). Settings > Guard > "Add App…" > pick e.g. Podcasts; while the task runs, bringing Podcasts forward hides it and shows a "shielded while you focus" toast. Global hotkeys: ⌥⌘D Done, ⌥⌘S Stuck, ⌥⌘B Back to it. Safari > Settings > Extensions > TrueFocus > enable, allow on all websites; then youtube.com/shorts is replaced by a TrueFocus page. Scroll guard: open a listed feed app (e.g. the Instagram iPad app on Apple silicon) and scroll quickly ~25 strokes; a full-screen wake-up appears and the app is hidden for 10 minutes.
+On Mac: launch from Applications; TruFocus lives in the menu bar. Start a task (menu bar > quick-add, or the window). Settings > Guard > "Add App…" > pick e.g. Podcasts; while the task runs, bringing Podcasts forward hides it and shows a "shielded while you focus" toast. Global hotkeys: ⌥⌘D Done, ⌥⌘S Stuck, ⌥⌘B Back to it. Safari > Settings > Extensions > TruFocus > enable, allow on all websites; then youtube.com/shorts is replaced by a TruFocus page. Scroll guard: open a listed feed app (e.g. the Instagram iPad app on Apple silicon) and scroll quickly ~25 strokes; a full-screen wake-up appears and the app is hidden for 10 minutes.
 ```
 
 ---
@@ -54,7 +54,7 @@ On Mac: launch from Applications; TrueFocus lives in the menu bar. Start a task 
 ## 2. Why the app uses Screen Time / Family Controls
 
 - **Purpose: self-control for the device owner.** The user picks their own distracting apps in
-  `FamilyActivityPicker`. TrueFocus shields them while a focus or think segment runs
+  `FamilyActivityPicker`. TruFocus shields them while a focus or think segment runs
   (`ManagedSettingsStore(named: .focus)`), enforces a daily usage budget outside work through a
   `DeviceActivityEvent` threshold that shields the apps for a cooldown (`.scrollBudget`), and applies
   the Screen Time adult-website filter (`.adultFilter`, `webContent.blockedByFilter = .auto(...)`).
@@ -91,8 +91,8 @@ On Mac: launch from Applications; TrueFocus lives in the menu bar. Start a task 
 
 **Enable it:**
 
-- iPhone: Settings ▸ Apps ▸ Safari ▸ Extensions ▸ **TrueFocus** ▸ on, then *All Websites* ▸ **Allow**.
-- Mac: Safari ▸ Settings ▸ Extensions ▸ **TrueFocus** ▸ enable ▸ *Always Allow on Every Website*.
+- iPhone: Settings ▸ Apps ▸ Safari ▸ Extensions ▸ **TruFocus** ▸ on, then *All Websites* ▸ **Allow**.
+- Mac: Safari ▸ Settings ▸ Extensions ▸ **TruFocus** ▸ enable ▸ *Always Allow on Every Website*.
 
 ---
 
@@ -101,7 +101,7 @@ On Mac: launch from Applications; TrueFocus lives in the menu bar. Start a task 
 Guideline numbers follow the App Review Guidelines as I know them through mid-2026. Check them against
 the live page before you quote them to App Review.
 
-| Guideline | How TrueFocus complies | Evidence |
+| Guideline | How TruFocus complies | Evidence |
 | --- | --- | --- |
 | **2.1** App completeness | Full functionality without login. A demo video is recommended because Screen Time needs a device | No account code anywhere |
 | **2.3.1 / 2.3.7 / 2.3.8** Accurate metadata, keywords, 4+ metadata | "End-to-end encrypted sync" is now accurate: the space key never reaches the server (apart from one move per device on an older build, R4), requests carry a one-way access token, and linking hands the key over sealed. No trademarks in keywords, no profanity in metadata or screenshots, and screenshots use the default Direct tone | `listing.md` §4, `privacy.md` §1.3, `SyncSecrets.swift` |

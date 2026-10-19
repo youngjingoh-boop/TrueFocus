@@ -1,6 +1,6 @@
 # TruFocus
 
-**Momentum, not minutes.** A focus system for iPhone and Mac that keeps one task in front of you, takes the feeds away while you work, and pulls you back when you drift.
+**New-world focus for ADHD brains.** Built for hyperfocus. Not against it. A focus system for iPhone and Mac that keeps one task in front of you, takes the feeds away while you work, and pulls you back when you drift.
 
 Not pomodoro. You attack a task until it's done. When you're stuck you switch to *think* without leaving it. When it's done you cross it off and get a micro-rest sized to the work — seconds for an email, a couple of minutes for a long build — and the next task starts on its own.
 

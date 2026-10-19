@@ -1,5 +1,5 @@
 /*
- * TrueFocus content script (feed sites only, top frame, document_start).
+ * TruFocus content script (feed sites only, top frame, document_start).
  *
  * 1. Route guard — short-form, messages-only Instagram, work-only LinkedIn and Facebook,
  *    cooldowns and focus mode,
@@ -313,7 +313,7 @@
 
   // ─────────────────────────────────── UI ───────────────────────────────────
 
-  var FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif';
+  var FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Geist", system-ui, "Segoe UI", sans-serif';
 
   function mount(id, css) {
     var host = document.getElementById(id);
@@ -343,7 +343,8 @@
     '.text { flex: 1; min-width: 0; }',
     '.title { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }',
     '.body { font-size: 13px; color: rgba(244,243,238,.62); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }',
-    'button { all: unset; cursor: pointer; flex: none; font: 600 13px ' + FONT + '; color: #0A0A0B; background: #F4F3EE;',
+    // The primary action is Ember with an Ink label, as on the boot-out page and the shield.
+    'button { all: unset; cursor: pointer; flex: none; font: 600 13px ' + FONT + '; color: #050506; background: #FF5A1F;',
     '  padding: 9px 14px; border-radius: 999px; transition: transform .15s ease; }',
     'button:active { transform: scale(.96); }',
     '.meter { position: absolute; left: 0; bottom: 0; height: 2px; background: #FF5A1F; transition: width .4s ease; }'
@@ -397,11 +398,11 @@
     '  opacity: 0; transition: opacity .32s ease; overflow: hidden; }',
     '.boot.on { opacity: 1; }',
     '.eyebrow { display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 600; letter-spacing: .16em;',
-    '  text-transform: uppercase; color: #FF5A1F; }',
+    '  text-transform: uppercase; color: #FF7A45; }',
     '.eyebrow i { width: 8px; height: 8px; border-radius: 50%; background: #FF5A1F; display: block; }',
     'h1 { margin: 22px 0 0; font-weight: 200; font-size: clamp(44px, 9.5vw, 132px); line-height: .98; letter-spacing: -0.035em; }',
     'p { margin: 26px 0 0; max-width: 34em; font-size: clamp(16px, 1.6vw, 21px); line-height: 1.45; color: rgba(244,243,238,.66); }',
-    '.why { color: rgba(244,243,238,.4); font-size: 14px; margin-top: 10px; }',
+    '.why { color: rgba(244,243,238,.5); font-size: 14px; margin-top: 10px; }',
     '.count { position: absolute; right: max(28px, 7vw); bottom: max(24px, 5vw); font-weight: 100; font-size: clamp(72px, 16vw, 220px);',
     '  line-height: 1; font-variant-numeric: tabular-nums; color: rgba(244,243,238,.14); }'
   ].join('\n');
