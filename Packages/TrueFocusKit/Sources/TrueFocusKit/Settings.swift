@@ -36,8 +36,9 @@ public struct TFSettings: Codable, Equatable, Sendable {
     public var scrollBudgetMinutes: Int = 5
     /// iPhone: how long the boot-out lasts. iOS needs at least 15 minutes.
     public var scrollCooldownMinutes: Int = 15
-    /// iPhone: shield button that lets you reply to messages for a couple of minutes.
-    public var respondPassMinutes: Int = 2
+    /// iPhone: minutes a reply app opens for from its shield's "Post or reply" button —
+    /// long enough to post or answer DMs. A notice comes a minute before it closes.
+    public var respondPassMinutes: Int = 5
     public var respondPassesPerDay: Int = 8
     /// Web: Instagram opens straight to your DMs. Feed, reels and explore are gone.
     public var instagramMessagesOnly: Bool = true
@@ -138,7 +139,7 @@ public struct TFSettings: Codable, Equatable, Sendable {
         musicVolume = min(max(musicVolume, 0), 1)
         scrollBudgetMinutes = min(max(scrollBudgetMinutes, 1), 120)
         scrollCooldownMinutes = min(max(scrollCooldownMinutes, 15), 240)
-        respondPassMinutes = min(max(respondPassMinutes, 1), 10)
+        respondPassMinutes = min(max(respondPassMinutes, 1), 15)
         respondPassesPerDay = min(max(respondPassesPerDay, 0), 30)
         adultFilterCoolOffHours = min(max(adultFilterCoolOffHours, 1), 168)
     }

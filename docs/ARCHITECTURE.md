@@ -75,7 +75,7 @@ Foundation-only Swift package shared by every target and extension, tested on Li
 - `.focus` store — scroll apps + categories shielded while `snapshot.shouldShield`.
 - `.scrollBudget` store — the Device Activity monitor shields scroll apps when the usage budget is spent, then lifts it after the cooldown and restarts the budget.
 - `.adultFilter` store — `webContent.blockedByFilter = .auto(...)` while `settings.adultFilterActive()`.
-- Shield UI names the current task; the secondary button grants a short Reply pass on reply apps.
+- Shield UI names the current task; the secondary button grants a Post or reply pass on reply apps (5 min by default, warned a minute before it closes). The scroll budget warns 2 minutes before it shields.
 
 **Mac** (`macOS/Guard`): frontmost-app guard during focus, scroll-stroke detector for native feed apps, full-screen wake-up overlay, optional Shortcuts hook to flip a shared Focus.
 

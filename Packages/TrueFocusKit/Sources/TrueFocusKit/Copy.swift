@@ -148,6 +148,26 @@ public struct Copy: Sendable {
         }
     }
 
+    /// The heads-up a couple of minutes before the scroll budget shields your apps.
+    public func budgetWarning(minutesLeft: Int, task: String?) -> Line {
+        let left = minutesLeft == 1 ? "1 minute" : "\(minutesLeft) minutes"
+        let back = task.map { " Back to “\($0)”?" } ?? ""
+        switch tone {
+        case .calm: return Line(title: "Still scrolling?", body: "\(left) left, then your apps lock for a while.\(back)")
+        case .direct: return Line(title: "Still scrolling?", body: "\(left) left, then it's locked.\(back)")
+        case .savage: return Line(title: "Still scrolling?", body: "\(left) left. Then it's locked.\(back)")
+        }
+    }
+
+    /// One minute before a Post or reply pass closes.
+    public var passEnding: Line {
+        switch tone {
+        case .calm: return Line(title: "1 minute left", body: "Finish your post or message — the app closes soon.")
+        case .direct: return Line(title: "1 minute left.", body: "Send it or post it. Then it closes.")
+        case .savage: return Line(title: "1 minute left.", body: "Post it, send it, get out.")
+        }
+    }
+
     /// Shield title when the daily scroll budget is spent.
     public var budgetSpentTitle: String {
         switch tone {
