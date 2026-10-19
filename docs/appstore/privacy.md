@@ -26,7 +26,7 @@ the code doesn't settle a question, this file says **Unclear** instead of guessi
 
 | From | To | What | Code |
 | --- | --- | --- | --- |
-| iPhone app, Mac app | `fcfbsgvkanuywsmxvuee.supabase.co` (Supabase: PostgREST + Edge Functions) | Only once the user turns sync on or links the device: sync records, push-token registration, linking (public keys and a sealed box), wake-up requests, the one-time `tf_rekey` move, and `tf_delete_space` when the user deletes the server copy | `TFCloud.swift`, `SyncService.swift` |
+| iPhone app, Mac app | `fcfbsgvkanuywsmxvuee.supabase.co` (Supabase: PostgREST + Edge Functions) | Only once the user turns sync on or links the device: sync records, push-token registration, linking (public keys and a sealed box), wake-up requests, the one-time `tf-space` `rekey` move, and `tf-space` `delete` when the user deletes the server copy | `TFCloud.swift`, `SyncService.swift` |
 | Supabase Edge Function `tf-notify` | Apple Push Notification service (`api.push.apple.com`) | A silent push `{"aps":{"content-available":1},"tf":"sync"}` to the space's other iPhones. **No content.** | `supabase/functions/tf-notify/index.ts` |
 | iPhone app (only if the user picks "Apple Music" as focus music) | Apple Music (MusicKit) | Music authorization, a subscription check, a catalog search for the playlist "Pure Focus", playback | `AudioDirector.startAppleMusic` |
 | Safari extension | The app, through `sendNativeMessage` and the App Group (stays on the device) | Read state; post boot-out `{site, reason}` and juggling commands | `background.js`, `SafariWebExtensionHandler.swift` |
@@ -41,8 +41,8 @@ navigations to pages inside the extension, and they send nothing anywhere.
 Sync is **off on a new install**. Nothing goes to the sync server until the user taps **Turn on sync**
 or links the device with **Enter a code** in Settings ▸ Sync (`SyncService.isEnabled`, stored per
 device as `tf.sync.enabled`). A device that synced with an earlier build stays on: its ledger names a
-space, or its Keychain already holds a key (`SyncService.resolveEnabled`). The same check turns sync
-back on after a reinstall that finds a key left in the Keychain.
+space (`SyncService.resolveEnabled`). A key left in the Keychain by a deleted install doesn't count,
+so a reinstall asks again.
 
 Turning sync on creates a random 256-bit *space key* and stores it in the Keychain
 (`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, not iCloud Keychain). **The space key never goes
@@ -100,7 +100,7 @@ and delete that space's ciphertext, but can't decrypt it. **Unclear:** whether S
 API and edge-function logs keep the `x-tf-space` header. Check Logs Explorer in the dashboard.
 
 **The one-time move.** Older builds filed a space under `sha256(space key)` and sent the raw key on
-every request. On its first sync after the update, each such device calls the RPC `tf_rekey` once
+every request. On its first sync after the update, each such device calls `tf-space` (`rekey`) once
 (`SyncService.cycle`, `TFCloud.rekey`). That request carries the raw key in `x-tf-space`, the last
 time it travels, and the new access token in the body. The server moves the space's records and push
 tokens to `sha256(access token)`, merging by last writer wins, and deletes the old rows. Spaces made
@@ -121,7 +121,7 @@ by this build, or adopted by linking, never make the call.
 >    which are due for removal. No App Store build has the legacy paths, because 1.0 is the first
 >    release. They exist only in development, TestFlight and `docs/SHARING.md` builds made before
 >    `1caee66`.
-> 3. **The one-time `tf_rekey` request sends the legacy key once.** The key isn't rotated by the
+> 3. **The one-time `tf-space` `rekey` request sends the legacy key once.** The key isn't rotated by the
 >    move. For a space that an older build created, the server already saw that key on every earlier
 >    request, so its protection depends on nothing having kept it (a log, for instance). To start
 >    clean, use *Delete server copy…* on every device in the space, then *Turn on sync* on one
@@ -365,7 +365,7 @@ If this policy changes, we'll update the date above and say what changed in the 
 
 **Notes for the owner before hosting:**
 
-- **Retention.** Nothing in `supabase/` deletes rows on a schedule. `tf_delete_space` deletes a
+- **Retention.** Nothing in `supabase/` deletes rows on a schedule. `tf-space` `delete` deletes a
   space when a device asks, but a space whose devices are all lost stays forever, because no one
   can call it any more. Either add a cleanup job (a `pg_cron` job that deletes spaces idle for 12
   months) and state it, or write "until you delete it in Settings ▸ Sync".

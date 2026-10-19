@@ -108,16 +108,17 @@ public final class TFCloud: @unchecked Sendable {
     /// for `access`. Sends the legacy key once; afterwards only the access token travels.
     @discardableResult
     public func rekey(legacyKey: String, access: String) async throws -> Int {
-        var request = try makeRequest(path: "/rest/v1/rpc/tf_rekey", query: [], method: "POST", access: legacyKey)
-        request.httpBody = try JSONSerialization.data(withJSONObject: ["p_access": access])
+        var request = try makeRequest(path: "/functions/v1/tf-space", query: [], method: "POST", access: legacyKey)
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["action": "rekey", "access": access])
         let data = try await send(request)
-        return (try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed) as? Int) ?? 0
+        let object = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        return object?["moved"] as? Int ?? 0
     }
 
     /// Removes every record and push token the server holds for this space.
     public func deleteSpace(access: String) async throws {
-        var request = try makeRequest(path: "/rest/v1/rpc/tf_delete_space", query: [], method: "POST", access: access)
-        request.httpBody = Data("{}".utf8)
+        var request = try makeRequest(path: "/functions/v1/tf-space", query: [], method: "POST", access: access)
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["action": "delete"])
         _ = try await send(request)
     }
 

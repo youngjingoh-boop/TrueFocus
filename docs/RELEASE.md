@@ -189,7 +189,7 @@ If a run fails after the iPhone upload succeeded, use *Re-run failed jobs*, not 
    - [ ] Sync is off on a fresh install: Settings ▸ Sync reads "Off on this device", and nothing syncs until *Turn on sync*.
    - [ ] Sync: *Turn on sync* on the Mac, *Link a device*; on the TestFlight iPhone, *Enter a code*. Both screens show the same four-digit number; *They match* on the Mac links them. A change on the Mac shows on the iPhone within seconds while it's in the background (production APNs).
    - [ ] *Turn off here* stops uploads on that device; *Delete server copy…* empties the space and turns sync off there.
-   - [ ] A device that synced on an older build moves its space once (`tf_rekey`) and keeps its data. Update every device before linking: new and old builds can't link to each other.
+   - [ ] A device that synced on an older build moves its space once (`tf-space` `rekey`) and keeps its data. Update every device before linking: new and old builds can't link to each other.
 5. TestFlight builds expire after 90 days.
 
 ## 10. Publish the Mac download
