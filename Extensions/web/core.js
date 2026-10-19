@@ -6,7 +6,7 @@
  *
  * The doom-scroll detector is a 1:1 port of
  * Packages/TrueFocusKit/Sources/TrueFocusKit/DoomScroll.swift, and the site lists mirror
- * Blocklist.swift. Keep them in step — test/parity.test.mjs checks.
+ * Blocklist.swift. Keep them in step — test/rules.test.mjs and test/reminders.test.mjs check.
  */
 (function (root, factory) {
   'use strict';
