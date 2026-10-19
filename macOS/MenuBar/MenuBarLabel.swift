@@ -27,7 +27,12 @@ struct MenuBarLabel: View {
     var body: some View {
         let snapshot = controller.snapshot
         HStack(spacing: 5) {
-            Image(systemName: symbol(for: snapshot))
+            if snapshot.mode == .idle && !snapshot.dayEnded && !snapshot.isPaused {
+                // The brand mark as a template image, so macOS colours it for light and dark menu bars.
+                Image("MenuBarIcon").renderingMode(.template)
+            } else {
+                Image(systemName: symbol(for: snapshot))
+            }
             Text(text(for: snapshot, now: clock.now))
         }
         .accessibilityLabel("TrueFocus: \(text(for: snapshot, now: clock.now))")

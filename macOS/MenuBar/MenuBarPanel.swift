@@ -43,7 +43,8 @@ struct MenuBarPanel: View {
     private var header: some View {
         let snapshot = controller.snapshot
         return VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline) {
+            HStack(alignment: .center, spacing: 8) {
+                TFMark(size: 18, onDark: false)
                 Text(TFFormat.dayEyebrow(Date())).tfEyebrowStyle()
                 Spacer()
                 Text("\(snapshot.doneToday)/\(max(snapshot.plannedToday, snapshot.doneToday)) done")

@@ -1,0 +1,6 @@
+:root{
+  --tf-signal:#FF5A1F;
+  --tf-ink:#050506;
+  --tf-paper:#F4F3EE;
+  --tf-core: radial-gradient(circle, #FFE6D6 0%, #FF9560 45%, #FF5A1F 100%);
+}

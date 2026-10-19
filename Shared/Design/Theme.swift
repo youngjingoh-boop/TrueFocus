@@ -13,17 +13,17 @@ import AppKit
 /// Compiled into the widget extension too, so keep it free of app-only types.
 enum TF {
     enum Palette {
-        /// Primary text and solid controls.
-        static let ink = Color.tfDynamic(light: 0x111113, dark: 0xF2F1EC)
+        /// Primary text and solid controls. Brand Ink on light, brand Paper on dark (docs/brand/tokens.json).
+        static let ink = Color.tfDynamic(light: 0x050506, dark: 0xF4F3EE)
         /// Secondary text.
         static let ink2 = Color.tfDynamic(light: 0x6B6B70, dark: 0x9A9AA0)
         /// Tertiary text, placeholders, empty check circles.
         static let ink3 = Color.tfDynamic(light: 0xA9A9AE, dark: 0x58585E)
-        /// App background.
-        static let paper = Color.tfDynamic(light: 0xFAF9F6, dark: 0x0A0A0B)
+        /// App background. Brand Paper.
+        static let paper = Color.tfDynamic(light: 0xF4F3EE, dark: 0x0A0A0B)
         /// Raised surfaces: cards, sheets.
         static let surface = Color.tfDynamic(light: 0xFFFFFF, dark: 0x151517)
-        static let surface2 = Color.tfDynamic(light: 0xF1F0EC, dark: 0x1D1D20)
+        static let surface2 = Color.tfDynamic(light: 0xEBE9E2, dark: 0x1D1D20)
         static let hairline = Color.tfDynamic(light: 0x000000, dark: 0xFFFFFF, lightOpacity: 0.08, darkOpacity: 0.10)
 
         /// Ember. Focus, the live dot, the one primary action.
@@ -32,7 +32,7 @@ enum TF {
         static let rest = Color(tfHex: 0x34C98E)
         static let alarm = Color(tfHex: 0xFF3B30)
         /// Text and glyphs on an Ember (or think/rest) fill. Dark reads better than white on Ember.
-        static let onSignal = Color(tfHex: 0x111113)
+        static let onSignal = Color(tfHex: 0x050506)
 
         /// Accent colors deep enough for small text on paper (4.5:1), bright on night.
         static let signalText = Color.tfDynamic(light: 0xC2410C, dark: 0xFF7A47)
