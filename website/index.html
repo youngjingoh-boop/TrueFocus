@@ -1,0 +1,1163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;padding:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>TruFocus</title>
+<meta name="description" content="TruFocus protects your hyperfocus: one task, no feeds, and no timer cutting off your best stretch. For ADHD brains, founders and deep workers. iPhone and Mac.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@100..800&family=Geist+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a fixed WebGL "focus point" stage behind a night scroll story (thesis, outcomes, noise, one task, the clock that never stops),
+   then the app's own "ink on warm paper" for the product and the research, and back to night to close. Tokens follow docs/DESIGN.md. */
+:root {
+  /* night stage: always dark, like the app's focus canvas */
+  --night: #050506;
+  --night-2: #0E0E11;
+  --n-ink: #F2F1EC;
+  --n-ink2: #8E8E94;
+  --n-line: rgba(242, 241, 236, 0.12);
+  --ember: #FF5A1F;
+  --ember-hi: #FF9A6B;
+  --think: #7C7CFF;
+  --rest: #34C98E;
+  /* paper chapters: follow the viewer's theme */
+  --paper: #FAF9F6;
+  --surface: #FFFFFF;
+  --ink: #111113;
+  --ink2: #6B6B70;
+  --ink3: #A9A9AE;
+  --line: #E7E5DF;
+  --ember-text: #D9430C;
+  --tint: #FFF1EA;
+  --display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Geist", system-ui, "Segoe UI", sans-serif;
+  --text: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Geist", system-ui, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SF Mono", "Geist Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --ease: cubic-bezier(.2, .7, .1, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0A0A0B; --surface: #141416; --ink: #F2F1EC; --ink2: #9A9AA0; --ink3: #58585E;
+    --line: #26262A; --ember-text: #FF7A45; --tint: #241510; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0A0A0B; --surface: #141416; --ink: #F2F1EC; --ink2: #9A9AA0; --ink3: #58585E;
+  --line: #26262A; --ember-text: #FF7A45; --tint: #241510; color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { background: var(--night); color: var(--n-ink); font-family: var(--text); font-size: 17px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+h1, h2, h3, p { margin: 0; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--ember); outline-offset: 3px; border-radius: 4px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--n-ink2); }
+.eyebrow.hot { color: var(--ember); }
+.paper .eyebrow { color: var(--ink2); }
+.paper .eyebrow.hot { color: var(--ember-text); }
+
+/* ---------- stage ---------- */
+.stage { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: var(--night); }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage-fallback { position: absolute; inset: 0; display: grid; place-items: center; }
+.stage-fallback i { width: min(56vmin, 520px); aspect-ratio: 1; border-radius: 50%; border: 2px solid rgba(255,90,31,.55); box-shadow: 0 0 80px rgba(255,90,31,.25), inset 0 0 80px rgba(255,90,31,.12); position: relative; transform: translateX(18vw); }
+.stage-fallback i::after { content: ""; position: absolute; inset: 36%; border-radius: 50%; background: radial-gradient(circle, #FFB089 0%, var(--ember) 45%, rgba(255,90,31,0) 72%); }
+.stage.live .stage-fallback { display: none; }
+@media (max-width: 820px) { .stage-fallback i { transform: translateY(-16vh); } }
+
+main { position: relative; z-index: 1; }
+.night { position: relative; }
+
+/* ---------- nav ---------- */
+.nav { position: fixed; top: 0; left: 0; right: 0; z-index: 10; padding-top: env(safe-area-inset-top, 0px); background: rgba(5,5,6,.78); backdrop-filter: saturate(1.4) blur(18px); -webkit-backdrop-filter: saturate(1.4) blur(18px); border-bottom: 1px solid var(--n-line); }
+.nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 56px; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; font-family: var(--display); font-weight: 700; font-size: 18px; letter-spacing: -0.01em; color: var(--n-ink); }
+.brand svg { width: 26px; height: 26px; }
+.nav ul { display: flex; gap: 28px; list-style: none; margin: 0; padding: 0; font-size: 14px; color: var(--n-ink2); }
+.nav ul a { text-decoration: none; transition: color .2s; }
+.nav ul a:hover, .nav ul a.on { color: var(--n-ink); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: 600 15px/1 var(--text); border-radius: 999px; padding: 14px 22px; text-decoration: none; border: 0; cursor: pointer; transition: transform .25s var(--ease), background .25s, box-shadow .25s; }
+.btn-hot { background: var(--ember); color: #fff; box-shadow: 0 0 0 0 rgba(255,90,31,.5); }
+.btn-hot:hover { transform: translateY(-1px); box-shadow: 0 10px 40px -8px rgba(255,90,31,.7); }
+.btn-ghost { color: var(--n-ink); background: rgba(242,241,236,.08); }
+.btn-ghost:hover { background: rgba(242,241,236,.14); }
+.btn-sm { padding: 10px 16px; font-size: 13px; }
+@media (max-width: 820px) { .nav ul { display: none; } }
+
+/* ---------- hero ---------- */
+.hero { min-height: 100svh; display: flex; align-items: center; padding-block: 120px 80px; }
+.hero .wrap { width: 100%; }
+.hero-copy { max-width: 620px; display: flex; flex-direction: column; gap: 26px; }
+.hero h1 { font-size: clamp(54px, 8.4vw, 124px); font-weight: 800; letter-spacing: -0.05em; line-height: .92; }
+.hero h1 span { display: block; color: var(--ember); }
+.hero .sub { font-size: clamp(18px, 1.6vw, 22px); color: var(--n-ink2); max-width: 30ch; }
+.hero .sub b { color: var(--n-ink); font-weight: 600; }
+.cta-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.platforms { font-size: 13px; color: var(--n-ink2); letter-spacing: .02em; }
+.scroll-cue { position: absolute; left: 50%; bottom: max(24px, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); width: 22px; height: 36px; border: 1.5px solid var(--n-line); border-radius: 12px; }
+.scroll-cue::after { content: ""; position: absolute; left: 50%; top: 7px; width: 3px; height: 7px; margin-left: -1.5px; border-radius: 2px; background: var(--ember); animation: cue 2s var(--ease) infinite; }
+@keyframes cue { 0% { transform: translateY(0); opacity: 1 } 70% { transform: translateY(12px); opacity: 0 } 100% { opacity: 0 } }
+@media (max-width: 820px) {
+  .hero { align-items: flex-end; padding-block: 52vh 72px; }
+  .hero h1 { font-size: clamp(48px, 14vw, 72px); }
+}
+
+/* ---------- outcomes ---------- */
+.outcomes { padding-block: 22vh 26vh; }
+.outcomes .lead { display: flex; flex-direction: column; gap: 14px; margin-bottom: 9vh; }
+.outcomes .who { font-size: clamp(17px, 1.5vw, 20px); color: var(--n-ink2); max-width: 46ch; }
+.olist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: clamp(28px, 6vh, 64px); }
+.oline { font-family: var(--display); font-size: clamp(40px, 7.2vw, 104px); font-weight: 700; letter-spacing: -0.045em; line-height: .98; opacity: var(--o, .32); transition: opacity .15s linear; }
+.oline small { display: block; font-family: var(--text); font-size: clamp(15px, 1.3vw, 18px); font-weight: 400; letter-spacing: 0; color: var(--n-ink2); margin-top: 12px; max-width: 44ch; line-height: 1.45; }
+.oline em { font-style: normal; color: var(--ember); }
+.motto { margin-top: 12vh; font-family: var(--display); font-weight: 200; font-size: clamp(28px, 4vw, 52px); letter-spacing: -0.02em; color: var(--n-ink2); }
+.motto b { font-weight: 700; color: var(--n-ink); }
+
+/* ---------- noise + one ---------- */
+.chapter { min-height: 120vh; display: flex; align-items: center; padding-block: 18vh; }
+.chapter .wrap { width: 100%; }
+.center { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.big { font-size: clamp(44px, 7.6vw, 112px); font-weight: 800; letter-spacing: -0.05em; line-height: .95; text-shadow: 0 2px 40px rgba(5,5,6,.8); }
+.chapter p.sub { font-size: clamp(18px, 1.6vw, 22px); color: var(--n-ink2); max-width: 36ch; text-shadow: 0 1px 20px rgba(5,5,6,.9); }
+.noise-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; max-width: 640px; }
+.noise-tags span { font-size: 13px; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--n-line); color: var(--n-ink2); background: rgba(5,5,6,.5); }
+.noise-tags span s { text-decoration-color: var(--ember); text-decoration-thickness: 1.5px; }
+
+.one { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; align-items: center; }
+.one-copy { display: flex; flex-direction: column; gap: 22px; }
+.fcard { width: min(100%, 400px); background: rgba(14,14,17,.72); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid var(--n-line); border-radius: 28px; padding: 24px 22px 20px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 40px 80px -40px rgba(0,0,0,.9); position: relative; overflow: hidden; }
+.fcard::before { content: ""; position: absolute; inset: 0 0 auto; height: 55%; background: radial-gradient(120% 90% at 50% 0%, rgba(255,90,31,.22), rgba(255,90,31,0) 70%); pointer-events: none; }
+.fcard > * { position: relative; }
+.fcard .top { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--n-ink2); }
+.live { display: inline-flex; align-items: center; gap: 7px; color: var(--ember); }
+.live i { width: 7px; height: 7px; border-radius: 50%; background: var(--ember); box-shadow: 0 0 0 4px rgba(255,90,31,.2); animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 7px rgba(255,90,31,0); } }
+.fcard .task { font-family: var(--display); font-size: 24px; font-weight: 600; line-height: 1.2; }
+.fcard .crumb { font-size: 13px; color: var(--n-ink2); margin-top: -8px; }
+.fcard .clk { font-family: var(--display); font-weight: 100; font-size: 76px; line-height: 1; letter-spacing: -0.03em; text-align: center; font-variant-numeric: tabular-nums; }
+.fcard .chain { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--n-ink2); }
+.dots { display: flex; gap: 5px; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--ember); }
+.dots i.off { background: transparent; border: 1px solid rgba(242,241,236,.3); }
+.moves { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.moves span { text-align: center; font-size: 13px; font-weight: 600; padding: 11px 4px; border-radius: 12px; background: rgba(242,241,236,.08); }
+.moves span.done { background: var(--ember); color: #fff; }
+@media (max-width: 820px) {
+  .one { grid-template-columns: 1fr; }
+  .chapter.onechap { align-items: flex-end; padding-top: 46vh; }
+}
+
+/* ---------- the clock ---------- */
+.clocksec { height: 340vh; }
+.clocksec .pin { position: sticky; top: 0; height: 100vh; height: 100svh; display: grid; place-items: center; overflow: hidden; }
+.clockbox { position: relative; display: grid; place-items: center; gap: 18px; text-align: center; padding-inline: 16px; }
+.timer-ring { position: absolute; left: 50%; top: 50%; width: min(66vmin, 580px); aspect-ratio: 1; transform: translate(-50%, -50%) scale(var(--rs, 1)); opacity: var(--ro, .9); transition: opacity .3s, transform .5s var(--ease); pointer-events: none; }
+.timer-ring circle { fill: none; stroke-width: 2; }
+.timer-ring .track { stroke: rgba(242,241,236,.08); }
+.timer-ring .arc { stroke: rgba(242,241,236,.55); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; }
+.timer-ring text { fill: var(--n-ink2); font: 600 5.5px var(--text); letter-spacing: .2em; text-transform: uppercase; }
+.bigclock { font-family: var(--display); font-weight: 100; font-size: clamp(88px, 21vw, 300px); line-height: .9; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; color: var(--n-ink); transition: color .4s; position: relative; }
+.bigclock.rest { color: var(--rest); }
+.caps { position: relative; height: 3.2em; width: min(92vw, 640px); font-size: clamp(18px, 2vw, 26px); }
+.caps p { position: absolute; inset: 0; opacity: 0; transform: translateY(10px); transition: opacity .45s var(--ease), transform .45s var(--ease); color: var(--n-ink2); }
+.caps p.on { opacity: 1; transform: none; }
+.caps p b { color: var(--n-ink); font-weight: 600; }
+.caps p .hot { color: var(--ember); }
+.caps p .rst { color: var(--rest); }
+.clock-eyebrow { position: absolute; top: max(88px, calc(env(safe-area-inset-top, 0px) + 80px)); left: 0; right: 0; text-align: center; }
+
+/* ---------- paper chapters ---------- */
+.paper { background: var(--paper); color: var(--ink); position: relative; z-index: 1; }
+.paper section { padding-block: clamp(88px, 14vh, 160px); }
+.paper section + section { border-top: 1px solid var(--line); }
+.phead { display: flex; flex-direction: column; gap: 14px; margin-bottom: clamp(40px, 7vh, 72px); max-width: 820px; }
+.phead h2 { font-size: clamp(38px, 5.6vw, 76px); font-weight: 800; letter-spacing: -0.045em; line-height: .98; }
+.phead h2 span { color: var(--ember-text); }
+.phead p { font-size: clamp(17px, 1.4vw, 20px); color: var(--ink2); max-width: 56ch; }
+.rv { transform: translateY(18px); opacity: .5; transition: transform .9s var(--ease), opacity .9s var(--ease); }
+.rv.in { transform: none; opacity: 1; }
+
+/* walls */
+.walls { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 28px; align-items: stretch; }
+.device { background: var(--night); color: var(--n-ink); border-radius: 44px; padding: 14px; box-shadow: 0 40px 80px -40px rgba(17,17,19,.5), 0 0 0 1px rgba(17,17,19,.08); max-width: 330px; width: 100%; justify-self: center; }
+.screen { border-radius: 32px; background: radial-gradient(120% 70% at 50% 0%, rgba(255,90,31,.28), rgba(5,5,6,0) 60%), #08080A; aspect-ratio: 9 / 18.5; padding: 22px 20px; display: flex; flex-direction: column; gap: 14px; position: relative; overflow: hidden; }
+.screen .status { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--n-ink2); }
+.island { align-self: center; width: 38%; height: 26px; background: #000; border-radius: 14px; margin-top: -6px; }
+.screen .mark { width: 54px; height: 54px; margin: 18% auto 6px; }
+.screen h3 { text-align: center; font-size: 34px; font-weight: 800; letter-spacing: -0.03em; }
+.screen .msg { text-align: center; font-size: 15px; color: var(--n-ink2); padding-inline: 6px; }
+.screen .msg b { color: var(--n-ink); font-weight: 600; }
+.screen .acts { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+.screen .acts span { text-align: center; font-weight: 600; font-size: 15px; padding: 14px; border-radius: 16px; background: rgba(242,241,236,.1); }
+.screen .acts span.hot { background: var(--ember); color: #fff; }
+.wall-side { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.browser { border-radius: 18px; background: var(--surface); border: 1px solid var(--line); overflow: hidden; box-shadow: 0 30px 60px -40px rgba(17,17,19,.35); }
+.browser .bar { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.browser .bar i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+.browser .url { flex: 1; min-width: 0; font: 12px var(--mono); color: var(--ink2); background: var(--paper); border-radius: 8px; padding: 6px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.browser .body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); min-height: 230px; }
+.dms { border-right: 1px solid var(--line); padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.dm { display: flex; gap: 10px; align-items: center; }
+.dm i { width: 30px; height: 30px; border-radius: 50%; background: var(--line); flex: none; }
+.dm span { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+.dm span::before, .dm span::after { content: ""; height: 7px; border-radius: 4px; background: var(--line); }
+.dm span::after { width: 60%; opacity: .6; }
+.chat { padding: 16px; display: flex; flex-direction: column; gap: 10px; justify-content: flex-end; }
+.bub { max-width: 78%; padding: 9px 12px; border-radius: 16px; font-size: 13px; background: var(--paper); border: 1px solid var(--line); }
+.bub.me { align-self: flex-end; background: var(--ink); color: var(--paper); border-color: transparent; }
+.gone { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink2); }
+.gone s { text-decoration-color: var(--ember-text); text-decoration-thickness: 1.5px; }
+.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.fact { border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; background: var(--surface); display: flex; flex-direction: column; gap: 4px; }
+.fact b { font-size: 15px; }
+.fact span { font-size: 14px; color: var(--ink2); }
+@media (max-width: 900px) { .walls { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .facts { grid-template-columns: 1fr; } .browser .body { grid-template-columns: 1fr; } .dms { display: none; } }
+
+/* juggle */
+.juggle { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 40px; align-items: center; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.tcard { border: 1px solid var(--line); background: var(--surface); border-radius: 18px; padding: 16px 18px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 14px; align-items: center; transition: transform .5s var(--ease), border-color .3s; }
+.tcard:hover { transform: translateX(6px); }
+.tcard .o { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--ink3); grid-row: span 2; }
+.tcard b { font-size: 16px; }
+.tcard span { font-size: 13px; color: var(--ink2); grid-column: 2; }
+.tcard em { font-style: normal; font-size: 12px; color: var(--ink2); font-family: var(--mono); grid-row: span 2; grid-column: 3; grid-row-start: 1; }
+.tcard.now { border-color: var(--ember); box-shadow: 0 0 0 3px var(--tint); }
+.tcard.now .o { border-color: var(--ember); background: var(--ember); }
+.tcard.now em { color: var(--ember-text); }
+.tcard.wait .o { border-color: var(--think); border-style: dashed; }
+.juggle .points { display: flex; flex-direction: column; gap: 18px; }
+.juggle .points div { display: flex; flex-direction: column; gap: 4px; padding-left: 18px; border-left: 2px solid var(--line); }
+.juggle .points b { font-size: 17px; }
+.juggle .points span { color: var(--ink2); font-size: 15px; }
+@media (max-width: 900px) { .juggle { grid-template-columns: 1fr; } }
+
+/* everywhere */
+.where { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.wtile { background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.wtile .art { background: var(--night); color: var(--n-ink); border-radius: 16px; min-height: 150px; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; padding: 14px; position: relative; overflow: hidden; }
+.wtile .art > * { min-width: 0; max-width: 100%; }
+.wtile h3 { font-size: 16px; font-weight: 600; }
+.wtile p { font-size: 14px; color: var(--ink2); margin-top: -10px; }
+.di { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: #000; border-radius: 999px; padding: 9px 12px 9px 9px; width: 100%; max-width: 230px; font-size: 12px; font-weight: 600; box-shadow: 0 0 0 1px rgba(242,241,236,.08); }
+.di .l { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.di .l span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.di .ring { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--ember); display: grid; place-items: center; flex: none; }
+.di .ring::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ember); }
+.di .t { font-variant-numeric: tabular-nums; color: var(--ember); }
+.la { width: 100%; background: rgba(242,241,236,.08); border-radius: 18px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; backdrop-filter: blur(6px); }
+.la .r1 { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.la .r1 b { font-size: 14px; }
+.la .r1 span { font-family: var(--display); font-weight: 200; font-size: 26px; font-variant-numeric: tabular-nums; }
+.la .r2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.la .r2 span { text-align: center; font-size: 12px; font-weight: 600; padding: 7px; border-radius: 10px; background: rgba(242,241,236,.1); }
+.la .r2 span.hot { background: var(--ember); color: #fff; }
+.mb { width: 100%; display: flex; justify-content: flex-end; align-items: center; gap: 12px; font-size: 12px; padding: 7px 10px; border-radius: 8px; background: rgba(242,241,236,.08); color: var(--n-ink2); }
+.mb .tf { display: flex; align-items: center; gap: 6px; color: var(--n-ink); font-weight: 600; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mb .tf i { flex: none; }
+.mb .tf i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid var(--ember); box-shadow: inset 0 0 0 2px #050506, inset 0 0 0 4px var(--ember); }
+.mb u { text-decoration: none; width: 14px; height: 10px; border-radius: 2px; background: rgba(242,241,236,.25); }
+.wg { width: 120px; aspect-ratio: 1; border-radius: 24px; background: #0E0E11; box-shadow: 0 0 0 1px rgba(242,241,236,.1); padding: 12px; display: flex; flex-direction: column; justify-content: space-between; font-size: 11px; }
+.wg b { font-size: 12px; line-height: 1.2; }
+.wg span { font-family: var(--display); font-weight: 200; font-size: 26px; font-variant-numeric: tabular-nums; line-height: 1; }
+.wg .dots i { width: 5px; height: 5px; }
+@media (max-width: 1000px) { .where { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .where { grid-template-columns: 1fr; } }
+
+/* the day */
+.day { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; counter-reset: s; }
+.day li { counter-increment: s; display: flex; flex-direction: column; gap: 8px; padding-top: 16px; border-top: 2px solid var(--line); }
+.day li::before { content: counter(s); font: 500 12px var(--mono); color: var(--ink3); }
+.day li.f { border-top-color: var(--ember); }
+.day li.r { border-top-color: var(--rest); }
+.day b { font-family: var(--display); font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+.day span { font-size: 14px; color: var(--ink2); }
+@media (max-width: 900px) { .day { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 28px; } }
+@media (max-width: 520px) { .day { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* details */
+.specs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
+.spec { background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 12px; min-width: 0; grid-column: span 2; }
+.spec.w3 { grid-column: span 3; }
+.spec h3 { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; }
+.spec > p { font-size: 15px; color: var(--ink2); }
+.spec .num { font-family: var(--display); font-weight: 200; font-size: 56px; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.spec .num small { font-size: 18px; font-weight: 500; color: var(--ink2); letter-spacing: 0; margin-left: 4px; }
+.bars { display: flex; flex-direction: column; gap: 9px; margin-top: 4px; }
+.bars div { display: grid; grid-template-columns: 96px minmax(0, 1fr) 62px; gap: 12px; align-items: center; font-size: 13px; color: var(--ink2); }
+.bars i { height: 8px; border-radius: 4px; background: var(--rest); width: var(--w); transform-origin: left; }
+.bars em { font-style: normal; font-family: var(--mono); font-size: 12px; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tbl th, .tbl td { text-align: left; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.tbl td + td, .tbl th + th { text-align: right; padding-left: 12px; font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.tbl thead th { font: 600 11px var(--text); letter-spacing: .1em; text-transform: uppercase; color: var(--ink2); }
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl td:first-child b { display: block; }
+.tbl td:first-child span { font-size: 12px; color: var(--ink2); }
+.tones { display: flex; flex-direction: column; gap: 10px; }
+.tone { border-radius: 14px; padding: 11px 14px; background: var(--paper); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+.tone small { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ink2); }
+.tone b { font-size: 15px; }
+.tone span { font-size: 13px; color: var(--ink2); }
+.tone.def { border-color: var(--ember); }
+.tone.def small { color: var(--ember-text); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips span { font-size: 13px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--paper); }
+@media (max-width: 1000px) { .specs { grid-template-columns: repeat(2, minmax(0, 1fr)); } .spec, .spec.w3 { grid-column: span 1; } }
+@media (max-width: 640px) { .specs { grid-template-columns: 1fr; } }
+
+/* research */
+.research { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.paperc { background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 24px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.paperc.lead { grid-column: span 3; background: var(--tint); border-color: transparent; display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.4fr); gap: 16px 40px; align-items: start; padding: 32px; }
+.paperc .stat { font-family: var(--mono); font-size: 30px; font-weight: 500; letter-spacing: -0.03em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.paperc.lead .stat { font-size: clamp(40px, 5vw, 64px); }
+.paperc .stat small { display: block; font-family: var(--text); font-size: 13px; letter-spacing: 0; color: var(--ink2); margin-top: 6px; font-weight: 500; }
+.paperc .find { font-size: 15px; }
+.paperc .built { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+.paperc .built b { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ember-text); }
+.paperc .cite { font: 12px var(--mono); color: var(--ink2); }
+.paperc .cite a { text-decoration-color: var(--ink3); text-underline-offset: 2px; }
+.paperc .cite a:hover { text-decoration-color: var(--ember); }
+.paperc .cav { font-size: 13px; color: var(--ink2); font-style: italic; }
+.lead .lcol { display: flex; flex-direction: column; gap: 14px; }
+@media (max-width: 1000px) { .research { grid-template-columns: repeat(2, minmax(0, 1fr)); } .paperc.lead { grid-column: span 2; } }
+@media (max-width: 640px) { .research { grid-template-columns: 1fr; } .paperc.lead { grid-column: span 1; grid-template-columns: 1fr; padding: 24px; } }
+
+/* versus */
+.versus { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 24px; overflow: hidden; }
+.vs { background: var(--surface); padding: 24px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.vs .them { font-size: 14px; color: var(--ink3); text-decoration: line-through; text-decoration-color: var(--ink3); }
+.vs .us { font-family: var(--display); font-size: 21px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+.vs small { font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ink2); }
+.vs small.hot { color: var(--ember-text); }
+.scroll-x { overflow-x: auto; margin-top: 24px; border: 1px solid var(--line); border-radius: 24px; background: var(--surface); }
+.cmp { width: 100%; min-width: 780px; border-collapse: collapse; font-size: 14px; }
+.cmp th, .cmp td { text-align: left; vertical-align: top; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.cmp tr:last-child td, .cmp tr:last-child th { border-bottom: 0; }
+.cmp thead th { font-size: 13px; font-weight: 600; background: var(--paper); }
+.cmp thead th span { display: block; font-weight: 400; font-size: 12px; color: var(--ink2); }
+.cmp tbody th { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink2); width: 15%; }
+.cmp .us { background: var(--tint); font-weight: 600; }
+.cmp .dim { color: var(--ink3); }
+.fine { font-size: 12px; color: var(--ink2); margin-top: 14px; max-width: 90ch; }
+@media (max-width: 900px) { .versus { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .versus { grid-template-columns: 1fr; } }
+
+/* ---------- final ---------- */
+.final { min-height: 110vh; display: flex; align-items: flex-end; padding-block: 30vh 12vh; }
+.final .wrap { width: 100%; }
+.final h2 { font-size: clamp(64px, 13vw, 200px); font-weight: 800; letter-spacing: -0.06em; line-height: .88; }
+.final h2 span { color: var(--ember); }
+.final .row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px 48px; align-items: end; margin-top: 36px; }
+.final .row p { font-size: clamp(17px, 1.5vw, 20px); color: var(--n-ink2); max-width: 40ch; }
+.invite { display: flex; flex-direction: column; gap: 10px; }
+.invite label { font-size: 13px; color: var(--n-ink2); }
+.field { display: flex; gap: 8px; background: rgba(242,241,236,.06); border: 1px solid var(--n-line); border-radius: 999px; padding: 6px; }
+.field input { flex: 1; min-width: 0; background: transparent; border: 0; color: var(--n-ink); font: 16px var(--text); padding: 0 14px; outline: none; }
+.field input::placeholder { color: var(--n-ink2); }
+.field:focus-within { border-color: var(--ember); }
+.invite .note { font-size: 13px; color: var(--n-ink2); min-height: 1.4em; }
+.invite .note.ok { color: var(--n-ink); }
+@media (max-width: 820px) { .final .row { grid-template-columns: 1fr; } }
+
+footer.foot { position: relative; z-index: 1; background: var(--night); border-top: 1px solid var(--n-line); color: var(--n-ink2); font-size: 13px; }
+footer.foot .wrap { padding-block: 48px max(40px, env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 28px; }
+.refs { columns: 2; column-gap: 40px; padding-left: 20px; margin: 0; }
+.refs li { break-inside: avoid; margin-bottom: 8px; }
+.refs a { text-decoration-color: rgba(242,241,236,.25); text-underline-offset: 2px; }
+.refs a:hover { color: var(--n-ink); text-decoration-color: var(--ember); }
+.foot .base { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-top: 20px; border-top: 1px solid var(--n-line); }
+@media (max-width: 700px) { .refs { columns: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .rv { transform: none; opacity: 1; transition: none; }
+  .scroll-cue::after, .live i { animation: none; }
+  .caps p, .timer-ring, .tcard { transition: none; }
+}
+</style>
+<meta property="og:title" content="TruFocus">
+<meta property="og:description" content="Built for hyperfocus. Not against it. One task, no feeds, and no timer cutting off your best stretch.">
+<meta name="theme-color" content="#050506">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'%3E%3Crect width='36' height='36' rx='9' fill='%23050506'/%3E%3Ccircle cx='18' cy='18' r='10' fill='none' stroke='%23FF5A1F' stroke-width='2.4'/%3E%3Ccircle cx='18' cy='18' r='4.2' fill='%23FF5A1F'/%3E%3C/svg%3E">
+</head>
+<body>
+<div class="stage" id="stage" aria-hidden="true">
+  <div class="stage-fallback"><i></i></div>
+</div>
+
+<nav class="nav" aria-label="Main">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="TruFocus home">
+      <svg viewBox="0 0 36 36" aria-hidden="true"><rect width="36" height="36" rx="9" fill="#050506"/><circle cx="18" cy="18" r="10" fill="none" stroke="#FF5A1F" stroke-width="2.4"/><circle cx="18" cy="18" r="4.2" fill="#FF5A1F"/></svg>
+      TruFocus
+    </a>
+    <ul>
+      <li><a href="#outcomes">Outcomes</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#details">Details</a></li>
+      <li><a href="#research">Research</a></li>
+    </ul>
+    <a class="btn btn-hot btn-sm" href="#access">Get early access</a>
+  </div>
+</nav>
+
+<main id="top">
+
+  <!-- 1. Thesis -->
+  <section class="night hero" data-scene="ring" aria-labelledby="h-hero">
+    <div class="wrap">
+      <div class="hero-copy">
+        <p class="eyebrow hot">New-world focus · iPhone and Mac</p>
+        <h1 id="h-hero">Built for hyperfocus. <span>Not against it.</span></h1>
+        <p class="sub">One task on screen. The feeds closed. <b>No timer cutting off your best stretch.</b></p>
+        <div class="cta-row">
+          <a class="btn btn-hot" href="#access">Get early access</a>
+          <a class="btn btn-ghost" href="#clock">See the clock</a>
+        </div>
+        <p class="platforms">iPhone · Mac · Safari, Chrome, Arc, Brave, Edge</p>
+      </div>
+    </div>
+    <span class="scroll-cue" aria-hidden="true"></span>
+  </section>
+
+  <!-- 2. Dream outcomes -->
+  <section class="night outcomes" id="outcomes" data-scene="field" aria-labelledby="h-out">
+    <div class="wrap">
+      <div class="lead">
+        <p class="eyebrow">What changes</p>
+        <h2 id="h-out" class="who">For ADHD and neurodivergent minds, founders, and anyone who does their best work in deep stretches.</h2>
+      </div>
+      <ol class="olist">
+        <li class="oline">Longer deep stretches.<small>Nothing ends a session but you. When hyperfocus lands, it gets to run.</small></li>
+        <li class="oline">Faster starts.<small>The next task begins on its own, so starting is never another decision.</small></li>
+        <li class="oline">Interruptions that keep your place.<small>Every task holds a note of where you left off. One tap back in.</small></li>
+        <li class="oline">Hours back from the feed.<small>Reels, Shorts and doom-scrolling taken out on your phone and your computer.</small></li>
+        <li class="oline">Days that end with <em>done</em>.<small>A clear head in the morning. A scoreboard of finished things at night.</small></li>
+      </ol>
+      <p class="motto">Momentum, <b>not minutes.</b></p>
+    </div>
+  </section>
+
+  <!-- 3. The noise -->
+  <section class="night chapter" data-scene="chaos" aria-labelledby="h-noise">
+    <div class="wrap center">
+      <p class="eyebrow">9:04 am</p>
+      <h2 id="h-noise" class="big">Everything wants<br>a piece of you.</h2>
+      <p class="sub">Feeds, pings, forty tabs and a timer that ends your best stretch at minute 25.</p>
+      <div class="noise-tags" aria-label="Distractions">
+        <span>Reels</span><span>Shorts</span><span>TikTok</span><span>12 notifications</span><span>For You</span><span>Explore</span><span>Inbox (214)</span><span>25:00 Pomodoro</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. One task -->
+  <section class="night chapter onechap" id="how" data-scene="focus" aria-labelledby="h-one">
+    <div class="wrap one">
+      <div class="one-copy">
+        <p class="eyebrow hot">How it works</p>
+        <h2 id="h-one" class="big">TruFocus pulls it<br>into one.</h2>
+        <p class="sub">One task. A clock that counts up. Four moves: Stuck, Waiting, Done, Switch.</p>
+      </div>
+      <div class="fcard" role="img" aria-label="The TruFocus focus screen: Investor update, 12 minutes in, with Stuck, Waiting, Done and Switch">
+        <div class="top"><span class="live"><i></i>In it</span><span>Task 3 of 7</span></div>
+        <div class="task">Investor update</div>
+        <div class="crumb">Left off: rewriting the Q3 revenue paragraph</div>
+        <div class="clk" id="fclk">12:08</div>
+        <div class="chain"><span>Momentum 71</span><span class="dots"><i></i><i></i><i></i><i></i><i class="off"></i><i class="off"></i></span><span>Chain 4</span></div>
+        <div class="moves"><span>Stuck</span><span>Waiting</span><span class="done">Done</span><span>Switch</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. The clock that never stops (signature) -->
+  <section class="night clocksec" id="clock" data-scene="tunnel" aria-labelledby="h-clock">
+    <div class="pin">
+      <p class="eyebrow hot clock-eyebrow" id="h-clock">The deep stretch</p>
+      <div class="clockbox">
+        <svg class="timer-ring" id="tring" viewBox="0 0 200 200" aria-hidden="true">
+          <circle class="track" cx="100" cy="100" r="96"/>
+          <circle class="arc" id="tarc" cx="100" cy="100" r="96" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+          <text x="100" y="192" text-anchor="middle">25:00 timer</text>
+        </svg>
+        <div class="bigclock" id="bigclock" aria-live="off">00:00</div>
+        <div class="caps">
+          <p class="on" data-cap="0">Scroll. <b>The clock counts up.</b></p>
+          <p data-cap="1">A 25-minute timer would <b>stop you here.</b></p>
+          <p data-cap="2"><b class="hot">TruFocus keeps counting.</b> The stretch is yours.</p>
+          <p data-cap="3"><b>Done.</b> Then a rest sized to the work: <b class="rst">1:55</b>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Paper chapters -->
+  <div class="paper">
+
+    <section aria-labelledby="h-walls">
+      <div class="wrap">
+        <div class="phead rv">
+          <p class="eyebrow hot">The walls</p>
+          <h2 id="h-walls">Close the feed. <span>Keep the DMs.</span></h2>
+          <p>Blockers lock the whole app. TruFocus takes out the part that eats your hours and leaves the part you need for work.</p>
+        </div>
+        <div class="walls">
+          <div class="device rv" role="img" aria-label="iPhone shield screen: Wake up. You're 23 minutes into Investor update. Buttons: Back to it, and Reply for 2 minutes.">
+            <div class="screen">
+              <div class="status"><span>9:41</span><span>●●●</span></div>
+              <div class="island"></div>
+              <svg class="mark" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="14" fill="none" stroke="#FF5A1F" stroke-width="2.4"/><circle cx="18" cy="18" r="5.5" fill="#FF5A1F"/></svg>
+              <h3>Wake up.</h3>
+              <p class="msg">You're 23 min into <b>“Investor update”</b>.</p>
+              <div class="acts"><span class="hot">Back to it</span><span>Reply · 2 min</span></div>
+            </div>
+          </div>
+          <div class="wall-side">
+            <div class="browser rv" role="img" aria-label="Instagram in the browser, opened straight to direct messages, with the feed, Reels and Explore removed">
+              <div class="bar"><i></i><i></i><i></i><span class="url">instagram.com/direct/inbox</span></div>
+              <div class="body">
+                <div class="dms"><div class="dm"><i></i><span></span></div><div class="dm"><i></i><span></span></div><div class="dm"><i></i><span></span></div><div class="dm"><i></i><span></span></div></div>
+                <div class="chat"><div class="bub">Can you send the deck tonight?</div><div class="bub me">Sending at 6. Heads down till then.</div></div>
+              </div>
+              <div class="gone"><s>Feed</s><s>Reels</s><s>Explore</s><span>removed while you work</span></div>
+            </div>
+            <div class="facts">
+              <div class="fact rv"><b>Short-form, gone</b><span>Reels, Shorts and TikTok removed in Safari, Chrome, Arc, Brave and Edge.</span></div>
+              <div class="fact rv"><b>Caught by how you scroll</b><span>Skim, binge or linger on a feed and you're booted out with a wake-up.</span></div>
+              <div class="fact rv"><b>Work tools stay open</b><span>Ads Manager, Business Suite and LinkedIn messaging keep working.</span></div>
+              <div class="fact rv"><b>A pass to reply</b><span>Two minutes in a messaging app, a few times a day.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-jug">
+      <div class="wrap juggle">
+        <div>
+          <div class="phead rv">
+            <p class="eyebrow hot">Juggling</p>
+            <h2 id="h-jug">Lost the thread? <span>It's right where you left it.</span></h2>
+            <p>Keep up to four tasks in play by default. Switch with one tap, and each one remembers your last step.</p>
+          </div>
+          <div class="points rv">
+            <div><b>A breadcrumb on every switch</b><span>One line on where you left off, written before you jump.</span></div>
+            <div><b>Waiting parks a blocked task</b><span>It stays in play without nagging you.</span></div>
+            <div><b>Pause keeps your place</b><span>The clock, the music and the shields stop. Resume picks up the same second.</span></div>
+          </div>
+        </div>
+        <div class="stack rv" aria-label="Example tasks in play">
+          <div class="tcard now"><i class="o"></i><b>Investor update</b><em>47m</em><span>In focus now</span></div>
+          <div class="tcard"><i class="o"></i><b>Hiring plan</b><em>18m</em><span>Left off: second-round interview questions</span></div>
+          <div class="tcard wait"><i class="o"></i><b>Pitch deck v3</b><em>waiting</em><span>Waiting on the design review</span></div>
+          <div class="tcard"><i class="o"></i><b>Onboarding fix</b><em>6m</em><span>Left off: reproduced on iOS 26, checking the keyboard</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-where">
+      <div class="wrap">
+        <div class="phead rv">
+          <p class="eyebrow hot">Everywhere you look</p>
+          <h2 id="h-where">Your task follows you <span>to every screen.</span></h2>
+          <p>You rarely need to open the app. Start on the Mac and the iPhone Lock Screen already knows.</p>
+        </div>
+        <div class="where">
+          <div class="wtile rv"><div class="art"><div class="di"><span class="l"><i class="ring"></i><span>Investor update</span></span><span class="t">47:12</span></div></div><h3>Dynamic Island</h3><p>Mode and time at a glance. Expand for Done.</p></div>
+          <div class="wtile rv"><div class="art"><div class="la"><div class="r1"><b>Investor update</b><span>47:12</span></div><div class="r2"><span class="hot">Done</span><span>Stuck</span></div></div></div><h3>Lock Screen</h3><p>A Live Activity. The buttons work without unlocking.</p></div>
+          <div class="wtile rv"><div class="art"><div class="mb"><u></u><u></u><span class="tf"><i></i>Investor update · 47m</span></div></div><h3>Mac menu bar</h3><p>Click for Done, Stuck, Switch or a quick add.</p></div>
+          <div class="wtile rv"><div class="art"><div class="wg"><b>Investor update</b><span>47m</span><span class="dots"><i></i><i></i><i></i><i></i><i class="off"></i></span></div></div><h3>Widgets and Controls</h3><p>Home Screen, Control Center, the Action Button and Siri.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-day">
+      <div class="wrap">
+        <div class="phead rv">
+          <p class="eyebrow hot">The day</p>
+          <h2 id="h-day">How a day runs.</h2>
+          <p>Six steps from a full head to a finished day. After each rest, the next task starts on its own.</p>
+        </div>
+        <ol class="day rv">
+          <li><b>Empty your head</b><span>A blank page each morning. Type everything.</span></li>
+          <li><b>Keep what matters</b><span>On-device Apple Intelligence turns it into tasks.</span></li>
+          <li><b>Pick the win</b><span>One line on what makes today count.</span></li>
+          <li class="f"><b>Get in it</b><span>One task, a clock counting up, feeds closed.</span></li>
+          <li class="r"><b>Rest, then go</b><span>A breathing ring, then the next task starts itself.</span></li>
+          <li><b>Shut it down</b><span>Scoreboard, one line of reflection. Leftovers roll to tomorrow.</span></li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="details" aria-labelledby="h-det">
+      <div class="wrap">
+        <div class="phead rv">
+          <p class="eyebrow hot">The details</p>
+          <h2 id="h-det">Small numbers, <span>chosen on purpose.</span></h2>
+          <p>Every limit in TruFocus is a setting with a reason behind it. These are the defaults.</p>
+        </div>
+        <div class="specs">
+          <article class="spec w3 rv">
+            <h3>Rest sized to the work</h3>
+            <p>Seconds after a quick email, a few minutes after a long build. Overrun by 15 seconds and the nudges start, always naming the next task.</p>
+            <div class="bars" aria-label="Rest length by focus block">
+              <div><span>Under 10 min</span><i style="--w:11%"></i><em>20 s</em></div>
+              <div><span>10 to 25 min</span><i style="--w:25%"></i><em>45 s</em></div>
+              <div><span>25 to 50 min</span><i style="--w:39%"></i><em>70 s</em></div>
+              <div><span>50 to 80 min</span><i style="--w:64%"></i><em>1 m 55 s</em></div>
+              <div><span>80 min or more</span><i style="--w:100%"></i><em>3 min</em></div>
+            </div>
+          </article>
+          <article class="spec w3 rv">
+            <h3>The doom-scroll guard</h3>
+            <p>Three rules watch how you scroll in the browser and in Mac feed apps. Any one of them boots you out. In focus they tighten to 30%.</p>
+            <table class="tbl">
+              <thead><tr><th>Rule</th><th>Normal</th><th>In focus</th></tr></thead>
+              <tbody>
+                <tr><td><b>Burst</b><span>Skimming fast</span></td><td>25 / min</td><td>8 / min</td></tr>
+                <tr><td><b>Binge</b><span>Swiping a sitting</span></td><td>60 strokes</td><td>18</td></tr>
+                <tr><td><b>Dwell</b><span>Just lingering</span></td><td>8 min</td><td>2.4 min</td></tr>
+              </tbody>
+            </table>
+          </article>
+          <article class="spec rv">
+            <h3>Three voices</h3>
+            <div class="tones">
+              <div class="tone"><small>Calm</small><b>Rest is over</b><span>Ready when you are.</span></div>
+              <div class="tone def"><small>Direct · default</small><b>Back in.</b><span>Rest's over. Next: “Investor update”.</span></div>
+              <div class="tone"><small>Savage · opt-in</small><b>Rest's over. Move.</b><span>Next: “Investor update”.</span></div>
+            </div>
+          </article>
+          <article class="spec rv">
+            <h3>iPhone scroll budget</h3>
+            <div class="num">5<small>min</small></div>
+            <p>Then a 15-minute cooldown in your scroll apps. iOS keeps apps from seeing inside each other, so native iPhone apps get a time budget, not scroll counting.</p>
+          </article>
+          <article class="spec rv">
+            <h3>Private by design</h3>
+            <div class="num">6<small>digits</small></div>
+            <p>Link your devices once with a code. Sync is end-to-end encrypted with AES-GCM. No account, no iCloud. The server only sees ciphertext.</p>
+          </article>
+          <article class="spec w3 rv">
+            <h3>Sound for each moment</h3>
+            <p>A chime when a task is crossed off, an airy swell into rest, a gong when the day shuts down. Focus music made for TruFocus, cut to loop without a seam.</p>
+            <div class="chips"><span>Drive · 128 BPM</span><span>Flow · 112 BPM</span><span>Pulse · 172 BPM</span><span>A river under every rest</span></div>
+          </article>
+          <article class="spec w3 rv">
+            <h3>Works where you work</h3>
+            <p>One system across your phone, your computer and your browsers. A session started on one shows up on the others in seconds.</p>
+            <div class="chips"><span>iPhone · iOS 26</span><span>Mac</span><span>Safari</span><span>Chrome</span><span>Arc</span><span>Brave</span><span>Edge</span></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="research" aria-labelledby="h-res">
+      <div class="wrap">
+        <div class="phead rv">
+          <p class="eyebrow hot">The research</p>
+          <h2 id="h-res">Every mechanic starts <span>with a finding.</span></h2>
+          <p>We didn't start from a timer and add features. We started from what studies say about attention, interruption and ADHD, then built one mechanic for each.</p>
+        </div>
+        <div class="research">
+          <article class="paperc lead rv">
+            <div class="lcol">
+              <div class="stat">27 students<small>interviewed · CHI 2026</small></div>
+              <p class="cite"><a href="https://futureofgood.co/focus-apps-are-failing-neurodivergent-minds-new-research-finds/" target="_blank" rel="noopener">University of British Columbia, CHI 2026 [1]</a></p>
+            </div>
+            <div class="lcol">
+              <p class="find">Neurodivergent students who use Forest, Freedom and Apple Screen Time said rigid designs clash with how they focus. Fixed 25-minute blocks cut off hard-won hyperfocus, and many switched blockers off to watch something calming as a way to self-regulate.</p>
+              <div class="built"><b>So we built</b><span>A clock that counts up and never ends your session, nudges in a tone you choose, and rests that open your apps on purpose.</span></div>
+            </div>
+          </article>
+          <article class="paperc rv">
+            <div class="stat">251 + 372<small>adults, two studies</small></div>
+            <p class="find">Adults with more ADHD symptoms reported hyperfocus more often, across work, hobbies and screen time.</p>
+            <p class="cav">Later studies are mixed on whether diagnosed adults differ.</p>
+            <div class="built"><b>So we built</b><span>A system that protects the deep stretch instead of scheduling around it.</span></div>
+            <p class="cite"><a href="https://www.additudemag.com/hyperfocus-adhd-study-news/" target="_blank" rel="noopener">Hupfeld, Abagis &amp; Shah, 2019 [2]</a></p>
+          </article>
+          <article class="paperc rv">
+            <div class="stat">23 min 15 s<small>to resume, on average</small></div>
+            <p class="find">Interrupted work that was picked back up the same day took 23 minutes and 15 seconds on average to get back to.</p>
+            <div class="built"><b>So we built</b><span>Juggling with one-tap switching, and Waiting to park a blocked task.</span></div>
+            <p class="cite"><a href="https://news.gallup.com/businessjournal/23146/too-many-interruptions-work.aspx" target="_blank" rel="noopener">Gloria Mark, UC Irvine [3]</a></p>
+          </article>
+          <article class="paperc rv">
+            <div class="stat">1 short plan<small>before you switch</small></div>
+            <p class="find">A quick "ready-to-resume" note on where to restart reduced attention residue and improved performance on the next task.</p>
+            <div class="built"><b>So we built</b><span>A "where I left off" breadcrumb on every task you switch away from.</span></div>
+            <p class="cite"><a href="https://doi.org/10.1287/orsc.2017.1184" target="_blank" rel="noopener">Leroy &amp; Glomb, 2018 · Organization Science [4]</a></p>
+          </article>
+          <article class="paperc rv">
+            <div class="stat">Plan ≈ done<small>for your head</small></div>
+            <p class="find">Unfinished goals keep pulling at attention. Making a concrete plan for them reduced that pull, before any of the work was done.</p>
+            <div class="built"><b>So we built</b><span>A morning brain dump that turns everything in your head into a task list.</span></div>
+            <p class="cite"><a href="https://doi.org/10.1037/a0024192" target="_blank" rel="noopener">Masicampo &amp; Baumeister, 2011 · JPSP [5]</a></p>
+          </article>
+          <article class="paperc rv">
+            <div class="stat">d = 0.36<small>vigor, across 22 samples</small></div>
+            <p class="find">Micro-breaks raised vigor and reduced fatigue. The benefit to performance grew with break length, so harder work needs a longer break.</p>
+            <div class="built"><b>So we built</b><span>Rest sized to the work: 20 seconds after a quick task, up to 3 minutes after a long one.</span></div>
+            <p class="cite"><a href="https://doaj.org/article/c6f37b6ba159469296b2cb968b65505f" target="_blank" rel="noopener">Albulescu et al., 2022 · PLOS ONE [6]</a></p>
+          </article>
+          <article class="paperc rv">
+            <div class="stat">d = 0.43<small>25 comparisons</small></div>
+            <p class="find">People with ADHD discount delayed rewards more steeply. A reward now counts for more than a reward later.</p>
+            <div class="built"><b>So we built</b><span>A reward the moment a task is done: a chime, a haptic, a dot on the chain.</span></div>
+            <p class="cite"><a href="https://doi.org/10.1016/j.bpsc.2016.01.007" target="_blank" rel="noopener">Jackson &amp; MacKillop, 2016 · Biol. Psychiatry: CNNI [7]</a></p>
+          </article>
+          <article class="paperc rv">
+            <div class="stat">55 studies<small>on time perception</small></div>
+            <p class="find">People with ADHD showed more variable estimates of how long things take. Evidence in adults is still thin.</p>
+            <div class="built"><b>So we built</b><span>Time you can see everywhere: Lock Screen, menu bar, and the shield ("You're 23 min into…").</span></div>
+            <p class="cite"><a href="https://doi.org/10.1016/j.jaac.2021.12.004" target="_blank" rel="noopener">Marx et al., 2022 · JAACAP [8]</a></p>
+          </article>
+          <article class="paperc rv">
+            <div class="stat">15 million<small>US adults with a diagnosis</small></div>
+            <p class="find">About half were diagnosed at 18 or older, and adult diagnoses rose 15% from 2020 to 2023. Most focus tools were designed for a different brain.</p>
+            <div class="built"><b>So we built</b><span>For three moments: getting in, staying in, and getting back in.</span></div>
+            <p class="cite"><a href="https://www.click2houston.com/health/2025/01/27/rise-in-diagnoses-is-prompting-more-us-adults-to-ask-do-i-have-adhd/" target="_blank" rel="noopener">AP, 2025 [9]</a> · <a href="https://www.healthday.com/health-news/adhd-diagnoses-on-the-rise-among-adults" target="_blank" rel="noopener">HealthDay [10]</a></p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-vs">
+      <div class="wrap">
+        <div class="phead rv">
+          <p class="eyebrow hot">Old-world focus vs new-world focus</p>
+          <h2 id="h-vs">Most focus apps work as designed. <span>The design is the problem.</span></h2>
+          <p>Planners help you plan. Blockers stop you. TruFocus keeps you in it.</p>
+        </div>
+        <div class="versus rv">
+          <div class="vs"><small>Old world</small><span class="them">A 25-minute timer ends your best stretch.</span><small class="hot">TruFocus</small><span class="us">We stop at done, not at minute 25.</span></div>
+          <div class="vs"><small>Old world</small><span class="them">Block the whole app, or nothing.</span><small class="hot">TruFocus</small><span class="us">Close the feed. Keep the DMs.</span></div>
+          <div class="vs"><small>Old world</small><span class="them">Streaks, scores and guilt when you slip.</span><small class="hot">TruFocus</small><span class="us">No shame. Just the next step.</span></div>
+          <div class="vs"><small>Old world</small><span class="them">An interruption costs you the thread.</span><small class="hot">TruFocus</small><span class="us">Your place is saved. One tap back in.</span></div>
+        </div>
+        <div class="scroll-x rv">
+          <table class="cmp">
+            <thead>
+              <tr><th></th><th class="us">TruFocus</th><th>ADHD planners<span>Tiimo, Structured</span></th><th>Screen-time blockers<span>Opal, Freedom, Forest</span></th><th>ADHD timers<span>Llama Life, Focus Bear</span></th></tr>
+            </thead>
+            <tbody>
+              <tr><th>Built around</th><td class="us">The task, until it's done</td><td>Your schedule of time blocks</td><td>Sessions and time limits</td><td>Countdown timeboxes</td></tr>
+              <tr><th>When hyperfocus hits</th><td class="us">The clock keeps counting</td><td>The next block starts</td><td>The session ends on time</td><td>The timer runs out</td></tr>
+              <tr><th>When you reach for a feed</th><td class="us">Feed closed, DMs open, task named</td><td class="dim">Not what they're built for</td><td>The whole app is blocked</td><td>Blocked in Focus Bear</td></tr>
+              <tr><th>After an interruption</th><td class="us">A breadcrumb and one tap back</td><td>Re-plan the day</td><td class="dim">Not what they're built for</td><td>Restart the timer</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="fine">Summarised from public App Store listings, October 2026. Individual apps vary and change. These are good apps; Tiimo was Apple's 2025 iPhone App of the Year [11] and Opal says its users have saved over 500 million hours [12].</p>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Close -->
+  <section class="night final" id="access" data-scene="cta" aria-labelledby="h-final">
+    <div class="wrap">
+      <p class="eyebrow hot">Private beta</p>
+      <h2 id="h-final">Get in it<span>.</span></h2>
+      <div class="row">
+        <p>TruFocus is in private beta on iPhone and Mac. Invites go out in small batches through TestFlight.</p>
+        <form class="invite" id="invite" novalidate>
+          <label for="email">Your email</label>
+          <div class="field">
+            <input id="email" name="email" type="email" autocomplete="email" placeholder="you@company.com" required>
+            <button class="btn btn-hot" type="submit">Request an invite</button>
+          </div>
+          <p class="note" id="note" role="status"></p>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <ol class="refs">
+      <li><a href="https://futureofgood.co/focus-apps-are-failing-neurodivergent-minds-new-research-finds/" target="_blank" rel="noopener">Focus apps are failing neurodivergent minds (UBC, CHI 2026)</a></li>
+      <li><a href="https://www.additudemag.com/hyperfocus-adhd-study-news/" target="_blank" rel="noopener">Hupfeld, Abagis &amp; Shah, 2019: hyperfocus in adult ADHD</a></li>
+      <li><a href="https://news.gallup.com/businessjournal/23146/too-many-interruptions-work.aspx" target="_blank" rel="noopener">Gloria Mark on interrupted work (Gallup)</a></li>
+      <li><a href="https://doi.org/10.1287/orsc.2017.1184" target="_blank" rel="noopener">Leroy &amp; Glomb, 2018: Tasks interrupted</a></li>
+      <li><a href="https://doi.org/10.1037/a0024192" target="_blank" rel="noopener">Masicampo &amp; Baumeister, 2011: Consider it done!</a></li>
+      <li><a href="https://doaj.org/article/c6f37b6ba159469296b2cb968b65505f" target="_blank" rel="noopener">Albulescu et al., 2022: micro-breaks meta-analysis</a></li>
+      <li><a href="https://doi.org/10.1016/j.bpsc.2016.01.007" target="_blank" rel="noopener">Jackson &amp; MacKillop, 2016: ADHD and delay discounting</a></li>
+      <li><a href="https://doi.org/10.1016/j.jaac.2021.12.004" target="_blank" rel="noopener">Marx et al., 2022: perceptual timing in ADHD</a></li>
+      <li><a href="https://www.click2houston.com/health/2025/01/27/rise-in-diagnoses-is-prompting-more-us-adults-to-ask-do-i-have-adhd/" target="_blank" rel="noopener">15 million US adults diagnosed (AP)</a></li>
+      <li><a href="https://www.healthday.com/health-news/adhd-diagnoses-on-the-rise-among-adults" target="_blank" rel="noopener">Adult ADHD diagnoses up 15%, 2020 to 2023</a></li>
+      <li><a href="https://tech.yahoo.com/ai/apple-intelligence/articles/apples-iphone-app-ai-tool-123900823.html" target="_blank" rel="noopener">Tiimo, iPhone App of the Year 2025</a></li>
+      <li><a href="https://opalapp.com/blog/opal-saved-humans-over-500-million-hours" target="_blank" rel="noopener">Opal: 500 million hours saved</a></li>
+    </ol>
+    <div class="base">
+      <span>TruFocus is a focus tool. It doesn't diagnose or treat ADHD.</span>
+      <span>End-to-end encrypted sync · no account</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* Page behaviour that doesn't need WebGL: outcome highlight, the clock, reveals, nav, invite form. */
+(function () {
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var vh = window.innerHeight;
+  var olines = Array.prototype.slice.call(document.querySelectorAll('.oline'));
+  var clock = document.getElementById('clock');
+  var big = document.getElementById('bigclock');
+  var arc = document.getElementById('tarc');
+  var ring = document.getElementById('tring');
+  var caps = Array.prototype.slice.call(document.querySelectorAll('.caps p'));
+  var fclk = document.getElementById('fclk');
+  var navLinks = Array.prototype.slice.call(document.querySelectorAll('.nav ul a'));
+  var END_MIN = 52 + 40 / 60; // a 52:40 stretch earns a 1:55 rest (RestPolicy, 50 to 80 min)
+  window.__tf = { clockP: 0 };
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function fmt(totalSec) { var m = Math.floor(totalSec / 60), s = Math.floor(totalSec % 60); return pad(m) + ':' + pad(s); }
+
+  var lastCap = 0;
+  function frame() {
+    var y = window.scrollY;
+    // outcomes: lines brighten as they cross the middle of the screen
+    for (var i = 0; i < olines.length; i++) {
+      var r = olines[i].getBoundingClientRect();
+      var d = Math.abs((r.top + r.height / 2) - vh * 0.5) / (vh * 0.5);
+      var o = Math.max(0.32, Math.min(1, 1.25 - d));
+      olines[i].style.setProperty('--o', o.toFixed(3));
+    }
+    // the clock
+    var cr = clock.getBoundingClientRect();
+    var span = cr.height - vh;
+    var p = Math.max(0, Math.min(1, -cr.top / span));
+    window.__tf.clockP = p;
+    var stopAt = 0.86;
+    var cap = 0;
+    if (p < stopAt) {
+      var mins = (p / stopAt) * END_MIN;
+      big.textContent = fmt(mins * 60);
+      big.classList.remove('rest');
+      var arcP = Math.min(1, mins / 25);
+      arc.setAttribute('stroke-dashoffset', (100 - arcP * 100).toFixed(2));
+      if (mins < 22) cap = 0; else if (mins < 30) cap = 1; else cap = 2;
+      if (mins >= 25) { ring.style.setProperty('--ro', '0'); ring.style.setProperty('--rs', '1.25'); }
+      else { ring.style.setProperty('--ro', mins > 22 ? '1' : '.85'); ring.style.setProperty('--rs', '1'); }
+      arc.style.stroke = mins > 22 ? 'rgba(242,241,236,.95)' : '';
+    } else {
+      var restLeft = 115 * (1 - (p - stopAt) / (1 - stopAt));
+      big.textContent = fmt(Math.max(0, restLeft));
+      big.classList.add('rest');
+      cap = 3;
+    }
+    if (cap !== lastCap) { caps[lastCap].classList.remove('on'); caps[cap].classList.add('on'); lastCap = cap; }
+    // nav state
+    var ids = ['outcomes', 'how', 'details', 'research'];
+    var active = null;
+    for (var k = 0; k < ids.length; k++) {
+      var el = document.getElementById(ids[k]);
+      if (el && el.getBoundingClientRect().top < vh * 0.4) active = ids[k];
+    }
+    navLinks.forEach(function (a) { a.classList.toggle('on', a.getAttribute('href') === '#' + active); });
+  }
+
+  var ticking = false;
+  function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(function () { ticking = false; frame(); }); } }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', function () { vh = window.innerHeight; frame(); });
+  frame();
+
+  // the focus card's clock ticks for real
+  var fsec = 12 * 60 + 8;
+  if (!reduce) setInterval(function () { fsec++; fclk.textContent = fmt(fsec); }, 1000);
+
+  // reveals start visible and settle into place
+  var rvs = document.querySelectorAll('.rv');
+  if ('IntersectionObserver' in window && !reduce) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -8% 0px' });
+    rvs.forEach(function (el) { io.observe(el); });
+  } else {
+    rvs.forEach(function (el) { el.classList.add('in'); });
+  }
+
+  // invite form: no list is connected to this page yet, so it says so plainly
+  var form = document.getElementById('invite');
+  var note = document.getElementById('note');
+  var email = document.getElementById('email');
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var v = email.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+      note.className = 'note';
+      note.textContent = 'Enter an email address like you@company.com.';
+      email.focus();
+      return;
+    }
+    note.className = 'note ok';
+    note.textContent = "You're early. Invite requests open with the public launch, so check back soon.";
+  });
+})();
+</script>
+
+<script type="module">
+/* The stage: one particle system that moves between five formations as you scroll.
+   ring = the focus point (the app icon), field = a calm horizon, chaos = the noise, tunnel = the deep stretch. */
+const stageEl = document.getElementById('stage');
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function webglOK() {
+  try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; }
+}
+
+async function boot() {
+  if (!webglOK()) return;
+  let THREE;
+  try { THREE = await import('https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js'); }
+  catch (e) { return; }
+
+  const isPhone = Math.min(window.innerWidth, window.innerHeight) < 600;
+  const N = isPhone ? 9000 : 20000;
+  const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isPhone ? 1.75 : 2));
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+  renderer.setClearColor(0x050506, 1);
+  stageEl.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 120);
+  camera.position.set(0, 0, 9);
+
+  // ---------- formations ----------
+  const pRing = new Float32Array(N * 3), pChaos = new Float32Array(N * 3), pTunnel = new Float32Array(N * 3), pField = new Float32Array(N * 3);
+  const aRand = new Float32Array(N * 4);
+  const gauss = () => { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const R = 2.05;
+  for (let i = 0; i < N; i++) {
+    const i3 = i * 3, i4 = i * 4;
+    // ring + core, like the icon: an Ember ring around a solid dot
+    if (i % 5 === 0) {
+      const rr = 0.62 * Math.cbrt(Math.random());
+      const th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1);
+      pRing[i3] = rr * Math.sin(ph) * Math.cos(th); pRing[i3 + 1] = rr * Math.sin(ph) * Math.sin(th); pRing[i3 + 2] = rr * Math.cos(ph);
+    } else {
+      const a = Math.random() * Math.PI * 2, b = Math.random() * Math.PI * 2;
+      const tube = Math.abs(gauss()) * 0.07 + (Math.random() < 0.08 ? Math.random() * 0.5 : 0);
+      pRing[i3] = (R + tube * Math.cos(b)) * Math.cos(a); pRing[i3 + 1] = (R + tube * Math.cos(b)) * Math.sin(a); pRing[i3 + 2] = tube * Math.sin(b);
+    }
+    // chaos: a wide restless cloud
+    pChaos[i3] = (Math.random() * 2 - 1) * 11 * Math.pow(Math.random(), 0.6);
+    pChaos[i3 + 1] = (Math.random() * 2 - 1) * 6.5;
+    pChaos[i3 + 2] = -9 + Math.random() * 13;
+    // tunnel: a long hollow tube you travel down
+    const ta = Math.random() * Math.PI * 2, tr = 1.25 + Math.pow(Math.random(), 1.5) * 3.6;
+    pTunnel[i3] = Math.cos(ta) * tr; pTunnel[i3 + 1] = Math.sin(ta) * tr; pTunnel[i3 + 2] = -60 + Math.random() * 66;
+    // field: a still horizon of points
+    pField[i3] = (Math.random() * 2 - 1) * 12; pField[i3 + 1] = -2.0 + gauss() * 0.03; pField[i3 + 2] = -16 + Math.random() * 21;
+    aRand[i4] = Math.random(); aRand[i4 + 1] = Math.random(); aRand[i4 + 2] = Math.random(); aRand[i4 + 3] = Math.random();
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pRing, 3));
+  geo.setAttribute('pChaos', new THREE.BufferAttribute(pChaos, 3));
+  geo.setAttribute('pTunnel', new THREE.BufferAttribute(pTunnel, 3));
+  geo.setAttribute('pField', new THREE.BufferAttribute(pField, 3));
+  geo.setAttribute('aRand', new THREE.BufferAttribute(aRand, 4));
+
+  const uniforms = {
+    uTime: { value: 0 }, uW: { value: new THREE.Vector4(0, 1, 0, 0) },
+    uSpeed: { value: 0 }, uChaos: { value: 1 }, uPixel: { value: renderer.getPixelRatio() },
+    uSize: { value: isPhone ? 2.6 : 2.2 }, uGlow: { value: 1 },
+    cEmber: { value: new THREE.Color('#FF5A1F') }, cEmber2: { value: new THREE.Color('#FFB28A') },
+    cInk: { value: new THREE.Color('#F2F1EC') }, cDim: { value: new THREE.Color('#4A4A52') }, cThink: { value: new THREE.Color('#7C7CFF') }
+  };
+  const mat = new THREE.ShaderMaterial({
+    uniforms, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: /* glsl */`
+      uniform float uTime, uSpeed, uChaos, uPixel, uSize, uGlow;
+      uniform vec4 uW;
+      uniform vec3 cEmber, cEmber2, cInk, cDim, cThink;
+      attribute vec3 pChaos, pTunnel, pField;
+      attribute vec4 aRand;
+      varying vec3 vColor; varying float vAlpha;
+      mat2 rot(float a) { float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
+      void main() {
+        float t = uTime, sd = aRand.x * 6.2831;
+        bool core = length(position) < 0.7;
+        vec3 r = position;
+        r.xy = rot(t * (core ? 0.25 : 0.10 + 0.08 * aRand.z)) * r.xy;
+        r += (core ? 0.025 : 0.035) * vec3(sin(t * 1.3 + sd), cos(t * 1.1 + sd * 1.7), sin(t * 0.9 + sd * 2.3));
+        r *= 1.0 + 0.015 * sin(t * 1.6);
+        vec3 c = pChaos;
+        float jit = 0.6 + aRand.z * 1.4;
+        c.x += sin(t * 0.9 * jit + sd + c.y * 0.50) * 1.0 * uChaos;
+        c.y += cos(t * 0.8 * jit + sd * 1.3 + c.x * 0.35) * 0.8 * uChaos;
+        c.z += sin(t * 0.6 * jit + sd * 0.7) * 0.8 * uChaos;
+        c.xz = rot(t * 0.06) * c.xz;
+        c.xy = rot(sin(t * 0.3 + sd) * 0.15 * uChaos) * c.xy;
+        vec3 u = pTunnel;
+        u.z = mod(u.z + t * uSpeed * (0.55 + aRand.z) + 60.0, 66.0) - 60.0;
+        u.xy = rot(t * 0.04 + u.z * 0.012) * u.xy;
+        vec3 f = pField;
+        f.y += sin(f.x * 0.42 + t * 0.55) * 0.16 + cos(f.z * 0.36 + t * 0.42) * 0.20;
+        vec3 p = r * uW.x + c * uW.y + u * uW.z + f * uW.w;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        gl_Position = projectionMatrix * mv;
+        float depth = max(-mv.z, 0.5);
+        float sz = uSize * (0.35 + aRand.y * aRand.y * 1.4) * (core ? 1.25 : 1.0) * (1.0 + uW.z * 0.9 + uW.y * 0.45 + uW.w * 0.25);
+        gl_PointSize = min(sz * uPixel * (9.0 / depth), 46.0 * uPixel);
+        vec3 chaosCol = aRand.w < 0.14 ? cThink : (aRand.w < 0.22 ? cEmber : mix(cDim * 1.3, cInk, aRand.w * aRand.w));
+        vec3 focusCol = core ? mix(cEmber2, vec3(1.0, 0.93, 0.86), aRand.y * 0.6) : mix(cEmber, cEmber2, aRand.y * 0.7);
+        vec3 tunCol = mix(cEmber, cInk, aRand.w * 0.55);
+        vec3 fieldCol = mix(cDim * 1.4, cInk, 0.25 + aRand.w * 0.6);
+        vColor = focusCol * uW.x + chaosCol * uW.y + tunCol * uW.z + fieldCol * uW.w;
+        float fog = smoothstep(64.0, 5.0, depth);
+        float nearFade = smoothstep(0.6, 2.4, depth);
+        float a = (0.55 + 0.45 * aRand.x) * fog * nearFade;
+        a *= mix(1.0, 0.9, uW.y) * mix(1.0, 1.35, uW.z);
+        vAlpha = a * uGlow;
+      }`,
+    fragmentShader: /* glsl */`
+      varying vec3 vColor; varying float vAlpha;
+      void main() {
+        vec2 q = gl_PointCoord - 0.5;
+        float d = length(q);
+        float a = smoothstep(0.5, 0.0, d);
+        a *= a;
+        if (a < 0.01) discard;
+        gl_FragColor = vec4(vColor, a * vAlpha);
+      }`
+  });
+  const points = new THREE.Points(geo, mat);
+  points.frustumCulled = false;
+  const group = new THREE.Group();
+  group.add(points);
+
+  // the glow behind the core dot
+  const glowMat = new THREE.ShaderMaterial({
+    uniforms: { uO: { value: 1 }, cEmber: uniforms.cEmber },
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `uniform float uO; uniform vec3 cEmber; varying vec2 vUv;
+      void main(){ float d = length(vUv - 0.5) * 2.0; float g = exp(-d * 5.0) * 0.9 + exp(-d * 2.2) * 0.22; gl_FragColor = vec4(cEmber * g, g * uO); }`
+  });
+  const glow = new THREE.Mesh(new THREE.PlaneGeometry(9, 9), glowMat);
+  glow.position.z = -0.4;
+  group.add(glow);
+  scene.add(group);
+
+  // ---------- scroll keyframes ----------
+  const wide = () => window.innerWidth / window.innerHeight > 1.05 && window.innerWidth > 820;
+  const SCENES = {
+    ring:   () => ({ w: [1, 0, 0, 0], z: 9.2, x: wide() ? 2.7 : 0, y: wide() ? 0 : 2.15, glow: 1, chaos: 0.8, speed: 0, tilt: 0.12 }),
+    field:  () => ({ w: [0, 0, 0, 1], z: 9, x: 0, y: 0.4, glow: 0, chaos: 0.8, speed: 0, tilt: 0.05 }),
+    chaos:  () => ({ w: [0, 1, 0, 0], z: 10, x: 0, y: 0, glow: 0, chaos: 1.5, speed: 0, tilt: 0 }),
+    focus:  () => ({ w: [1, 0, 0, 0], z: 7.6, x: wide() ? 2.5 : 0, y: wide() ? 0 : 2.1, glow: 1.3, chaos: 0.8, speed: 0, tilt: -0.1 }),
+    tunnel: () => ({ w: [0, 0, 1, 0], z: 6, x: 0, y: 0, glow: 0.15, chaos: 0.8, speed: 5, tilt: 0 }),
+    cta:    () => ({ w: [1, 0, 0, 0], z: 10.5, x: wide() ? 2.9 : 0, y: wide() ? 1.0 : 2.4, glow: 1.1, chaos: 0.8, speed: 0, tilt: 0.2 })
+  };
+  let anchors = [];
+  function measure() {
+    const vh = window.innerHeight, sy = window.scrollY;
+    anchors = [];
+    document.querySelectorAll('[data-scene]').forEach(el => {
+      const r = el.getBoundingClientRect();
+      const top = r.top + sy, bottom = top + r.height;
+      const name = el.dataset.scene;
+      const a = top + vh * 0.5, b = Math.max(a, bottom - vh * 0.5);
+      anchors.push({ at: a, name }); if (b > a + 1) anchors.push({ at: b, name });
+    });
+    anchors.sort((p, q) => p.at - q.at);
+  }
+  const ss = t => t * t * (3 - 2 * t);
+  function lerpState(A, B, t) {
+    const o = {}; for (const k in A) o[k] = Array.isArray(A[k]) ? A[k].map((v, i) => v + (B[k][i] - v) * t) : A[k] + (B[k] - A[k]) * t; return o;
+  }
+  function target() {
+    const c = window.scrollY + window.innerHeight * 0.5;
+    if (!anchors.length) return SCENES.ring();
+    if (c <= anchors[0].at) return SCENES[anchors[0].name]();
+    for (let i = 0; i < anchors.length - 1; i++) {
+      const A = anchors[i], B = anchors[i + 1];
+      if (c >= A.at && c <= B.at) {
+        const t = ss((c - A.at) / Math.max(1, B.at - A.at));
+        return lerpState(SCENES[A.name](), SCENES[B.name](), t);
+      }
+    }
+    return SCENES[anchors[anchors.length - 1].name]();
+  }
+
+  // ---------- run ----------
+  let cur = SCENES.chaos();
+  cur.glow = 0;
+  const introStart = performance.now();
+  const pointer = { x: 0, y: 0, sx: 0, sy: 0 };
+  window.addEventListener('pointermove', e => { pointer.x = e.clientX / window.innerWidth * 2 - 1; pointer.y = e.clientY / window.innerHeight * 2 - 1; }, { passive: true });
+
+  function resize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    measure();
+  }
+  window.addEventListener('resize', resize);
+  measure();
+  window.addEventListener('load', measure);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+  setTimeout(measure, 1200);
+
+  // only draw while some night chapter is on screen
+  let visible = true;
+  const nights = document.querySelectorAll('.night');
+  const seen = new Set();
+  const vio = new IntersectionObserver(es => {
+    es.forEach(e => { if (e.isIntersecting) seen.add(e.target); else seen.delete(e.target); });
+    visible = seen.size > 0;
+  });
+  nights.forEach(n => vio.observe(n));
+
+  let last = performance.now(), simT = 0;
+  function tick(now) {
+    requestAnimationFrame(tick);
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (!visible || document.hidden) return;
+    simT += dt * (reduce ? 0.15 : 1);
+    let tgt = target();
+    // load sequence: the noise pulls itself into the focus point
+    const intro = reduce ? 1 : Math.min(1, (now - introStart) / 2600);
+    if (intro < 1) tgt = lerpState(SCENES.chaos(), tgt, ss(intro));
+    const k = 1 - Math.pow(0.0025, dt); // damping
+    cur = lerpState(cur, tgt, intro < 1 ? 1 : k);
+    // the deep stretch speeds up as the clock runs
+    const cp = (window.__tf && window.__tf.clockP) || 0;
+    const boost = cur.w[2] > 0.05 ? (cp < 0.86 ? 1 + cp * 2.2 : 0.35) : 1;
+    uniforms.uTime.value = simT;
+    uniforms.uW.value.set(cur.w[0], cur.w[1], cur.w[2], cur.w[3]);
+    uniforms.uSpeed.value = cur.speed * boost * (reduce ? 0 : 1);
+    uniforms.uChaos.value = cur.chaos;
+    uniforms.uGlow.value = 1;
+    glowMat.uniforms.uO.value = cur.glow * cur.w[0];
+    group.position.set(cur.x, cur.y, 0);
+    pointer.sx += (pointer.x - pointer.sx) * 0.04; pointer.sy += (pointer.y - pointer.sy) * 0.04;
+    const par = reduce ? 0 : 1;
+    group.rotation.x = (cur.tilt + pointer.sy * 0.12) * par;
+    group.rotation.y = (pointer.sx * 0.18) * par;
+    camera.position.set(pointer.sx * 0.25 * par, -pointer.sy * 0.15 * par, cur.z * (camera.aspect < 1 ? Math.min(1.9, 0.75 / camera.aspect) : 1));
+    camera.lookAt(0, 0, 0);
+    renderer.render(scene, camera);
+  }
+  stageEl.classList.add('live');
+  requestAnimationFrame(tick);
+}
+boot();
+</script>
+</body>
+</html>
