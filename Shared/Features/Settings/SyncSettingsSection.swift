@@ -14,6 +14,13 @@ struct SyncSettingsSection: View {
     var body: some View {
         SettingsSection("Sync", footnote: footnote) {
             status
+            if sync.isAvailable, let tag = sync.spaceTag {
+                // Linked devices show the same id; a different one means they aren't linked.
+                Text("Sync ID \(tag) · the same on every linked device")
+                    .font(.footnote.monospacedDigit())
+                    .foregroundStyle(TF.Palette.ink3)
+                    .textSelection(.enabled)
+            }
             if sync.isAvailable {
                 if let code {
                     shownCode(code)
@@ -21,8 +28,18 @@ struct SyncSettingsSection: View {
                     codeEntry
                 } else {
                     HStack(spacing: 8) {
-                        Button("Link a device") { Task { await makeCode() } }
+                        if sync.needsRelink {
+                            Button("Start fresh here") {
+                                Task {
+                                    await sync.startFreshSpace()
+                                    message = "This device has its own sync space now. Link your other devices to it."
+                                }
+                            }
                             .buttonStyle(QuietButtonStyle())
+                        } else {
+                            Button("Link a device") { Task { await makeCode() } }
+                                .buttonStyle(QuietButtonStyle())
+                        }
                         Button("Enter a code") {
                             message = nil
                             entering = true
