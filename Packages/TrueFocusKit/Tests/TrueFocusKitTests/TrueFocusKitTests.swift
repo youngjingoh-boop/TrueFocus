@@ -128,6 +128,22 @@ final class NudgePlannerTests: XCTestCase {
                                                      dayEnded: true, now: now)).isEmpty)
     }
 
+    func testLongFocusIsLeftAloneUnlessCheckInIsOn() {
+        XCTAssertTrue(NudgePlanner.plan(NudgeContext(mode: .focus, modeStartedAt: now, taskTitle: "Deck", now: now)).isEmpty)
+        let nudges = NudgePlanner.plan(NudgeContext(mode: .focus, modeStartedAt: now, taskTitle: "Deck",
+                                                    focusCheckIn: true, now: now))
+        XCTAssertEqual(nudges.map(\.id), ["focus.0"])
+        XCTAssertEqual(nudges.first?.fireAt, now.addingTimeInterval(75 * 60))
+    }
+
+    func testDefaultsAreDirectWithNoFocusCheckIn() throws {
+        XCTAssertEqual(TFSettings().tone, .direct)
+        XCTAssertFalse(TFSettings().focusCheckIn)
+        let old = try JSONDecoder().decode(TFSettings.self, from: Data(#"{"tone":"savage"}"#.utf8))
+        XCTAssertEqual(old.tone, .savage)
+        XCTAssertFalse(old.focusCheckIn)
+    }
+
     func testThinkNudgesUseSetting() {
         let nudges = NudgePlanner.plan(NudgeContext(mode: .think, modeStartedAt: now, taskTitle: "Pricing page",
                                                     thinkNudgeMinutes: 3, now: now))

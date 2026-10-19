@@ -153,7 +153,7 @@
 
     if (!adult.active) {
       confirming = false;
-      status.textContent = appDisabled ? 'Off — turned off in the TrueFocus app' : 'Off';
+      status.textContent = appDisabled ? 'Off — turned off in the TruFocus app' : 'Off';
       action.hidden = appDisabled || adult.localRequestMs === null;
       action.textContent = 'Turn back on';
       action.dataset.action = 'restore';

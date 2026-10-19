@@ -46,7 +46,7 @@ struct SyncSettingsSection: View {
             Button("Delete and stop syncing", role: .destructive) { Task { await deleteServerCopy() } }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Removes everything TrueFocus keeps on the server for this sync space. Your devices keep their own copies. Linked devices that stay on upload their future changes again.")
+            Text("Removes everything TruFocus keeps on the server for this sync space. Your devices keep their own copies. Linked devices that stay on upload their future changes again.")
         }
     }
 

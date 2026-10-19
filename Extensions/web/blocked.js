@@ -42,7 +42,7 @@
     setText('eyebrow', copy.eyebrow);
     setText('title', copy.title);
     setText('lede', copy.body);
-    document.title = copy.title + ' — TrueFocus';
+    document.title = copy.title + ' — TruFocus';
 
     var detail = why && Core.REASON_DETAIL[why] ? Core.REASON_DETAIL[why] : '';
     setText('detail', detail);

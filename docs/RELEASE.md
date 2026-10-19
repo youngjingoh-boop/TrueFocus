@@ -195,7 +195,7 @@ If a run fails after the iPhone upload succeeded, use *Re-run failed jobs*, not 
 ## 10. Publish the Mac download
 
 1. Open the draft release (GitHub ▸ Releases) or the run's artifact `TrueFocus-<version>-<build>-mac`.
-2. On a Mac, download the zip, unzip, move `TrueFocus.app` to Applications and open it. Gatekeeper should open it without any warning. You can also check in Terminal: `spctl -a -vv /Applications/TrueFocus.app` should say `accepted, source=Notarized Developer ID`.
+2. On a Mac, download the zip, unzip, move `TruFocus.app` to Applications and open it. Gatekeeper should open it without any warning. You can also check in Terminal: `spctl -a -vv /Applications/TruFocus.app` should say `accepted, source=Notarized Developer ID`.
 3. Run the Mac part of [SETUP.md](SETUP.md): Safari extension, Chrome extension, linking with the iPhone.
 4. Edit the draft release notes and **Publish**. Link to the zip from your website.
 

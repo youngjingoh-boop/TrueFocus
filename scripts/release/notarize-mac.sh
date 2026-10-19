@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Notarizes and staples a Developer ID–signed TrueFocus.app, then zips it for download.
+# Notarizes and staples a Developer ID–signed TruFocus.app, then zips it for download.
 #
-#   scripts/release/notarize-mac.sh <path/to/TrueFocus.app> <path/to/output.zip>
+#   scripts/release/notarize-mac.sh <path/to/TruFocus.app> <path/to/output.zip>
 #
 # Needs ASC_KEY_PATH, ASC_KEY_ID and ASC_ISSUER_ID (see setup-signing.sh). The API key needs
 # the Developer role or higher.
 set -euo pipefail
 
-app="${1:?usage: notarize-mac.sh <TrueFocus.app> <output.zip>}"
-out="${2:?usage: notarize-mac.sh <TrueFocus.app> <output.zip>}"
+app="${1:?usage: notarize-mac.sh <TruFocus.app> <output.zip>}"
+out="${2:?usage: notarize-mac.sh <TruFocus.app> <output.zip>}"
 : "${ASC_KEY_PATH:?}" "${ASC_KEY_ID:?}" "${ASC_ISSUER_ID:?}"
 
 [[ -d "$app" ]] || { echo "::error::$app not found"; exit 1; }

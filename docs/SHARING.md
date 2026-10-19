@@ -1,4 +1,4 @@
-# Putting TrueFocus on someone else's devices
+# Putting TruFocus on someone else's devices
 
 No App Store needed. Each person gets their own private space: their plan and notes never mix with yours unless one of you enters the other's link code, so **never link a friend's device with yours** — have them link their own iPhone and Mac to each other.
 
@@ -20,7 +20,7 @@ Good once more than a couple of people use it. One extra step first: TestFlight 
 Either Run **TrueFocusMac** on their Mac from Xcode, or export a copy you can send:
 
 1. Product ▸ Archive (scheme TrueFocusMac) ▸ Distribute App ▸ **Direct Distribution** (Developer ID). Xcode signs and notarizes it.
-2. Send them the exported `TrueFocus.app`; they drag it to Applications.
+2. Send them the exported `TruFocus.app`; they drag it to Applications.
 
 Then they do [SETUP.md](SETUP.md) step 3, and link their own iPhone and Mac with step 4.
 

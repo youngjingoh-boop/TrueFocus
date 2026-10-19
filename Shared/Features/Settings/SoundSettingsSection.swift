@@ -6,7 +6,7 @@ struct SoundSettingsSection: View {
     @Environment(FocusController.self) private var controller
 
     var body: some View {
-        SettingsSection("Sound", footnote: "Effects from the Sonniss pro library (Rescopic Sound, CB Sounddesign, Orbital Emitter, Doex Studio, Stefano Cremona). Music: TrueFocus originals made with ElevenLabs. Apple Music needs a subscription; without one you hear Drive.") {
+        SettingsSection("Sound", footnote: "Effects from the Sonniss pro library (Rescopic Sound, CB Sounddesign, Orbital Emitter, Doex Studio, Stefano Cremona). Music: TruFocus originals made with ElevenLabs. Apple Music needs a subscription; without one you hear Drive.") {
             ToggleRow(title: "Sound effects", subtitle: "Done, rest, stuck, back to it, switching, shutting down",
                       isOn: controller.binding(\.soundEffects))
 

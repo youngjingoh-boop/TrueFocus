@@ -86,6 +86,7 @@ final class NudgeScheduler: NSObject, FocusEffect, UNUserNotificationCenterDeleg
                 tone: settings.tone,
                 customReminders: settings.customReminders,
                 thinkNudgeMinutes: settings.thinkNudgeMinutes,
+                focusCheckIn: settings.focusCheckIn,
                 now: Date()
             )
             nudges = NudgePlanner.plan(context)

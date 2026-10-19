@@ -4,7 +4,7 @@ import TrueFocusKit
 
 /// What the full-screen wake-up overlay says and offers.
 struct WakeUpContent {
-    var eyebrow: String = "TrueFocus"
+    var eyebrow: String = "TruFocus"
     var title: String
     var message: String
     /// "Next up" / "You're on"
@@ -34,7 +34,7 @@ struct WakeUpContent {
                                      snooze: snooze)
             }
             return WakeUpContent(title: title, message: message, taskLabel: nil, task: nil,
-                                 primaryTitle: "Open TrueFocus", primary: { WindowOpener.shared.openMain() },
+                                 primaryTitle: "Open TruFocus", primary: { WindowOpener.shared.openMain() },
                                  snooze: snooze)
         }
     }

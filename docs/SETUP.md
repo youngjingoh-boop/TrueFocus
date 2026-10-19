@@ -19,37 +19,37 @@ To build under another team or prefix, `cp Config/Local.example.xcconfig Config/
 
 ## 2. iPhone
 
-1. **Screen Time access.** Open TrueFocus ▸ Guard ▸ *Enable*. Approve with Face ID.
+1. **Screen Time access.** Open TruFocus ▸ Guard ▸ *Enable*. Approve with Face ID.
 2. **Scroll apps.** Guard ▸ *Scroll apps* — pick Instagram, YouTube, TikTok, X, Reddit, anything you lose time in. These are shielded during focus and budgeted outside it.
    Running ads for clients? Pick the Facebook and Instagram **apps**, but leave out Meta Business Suite and Ads Manager, and don't add facebook.com or instagram.com as websites (Screen Time would block business.facebook.com with them). On the web the extension closes the feeds and leaves Ads Manager, Business Suite, Business Manager, Events Manager and the Ad Library open.
 3. **Reply apps.** Guard ▸ *Reply apps* — pick the ones you must answer messages in (e.g. Instagram). Their shield shows **Reply · 2 min**.
-4. **Notifications.** Allow them when asked. Then Settings ▸ Notifications ▸ TrueFocus ▸ turn on *Time Sensitive Notifications* so the wake-up nudges get through a Focus.
-5. **Safari extension.** Settings ▸ Apps ▸ Safari ▸ Extensions ▸ TrueFocus ▸ *Allow Extension*, and set *All Websites* to *Allow*.
+4. **Notifications.** Allow them when asked. Then Settings ▸ Notifications ▸ TruFocus ▸ turn on *Time Sensitive Notifications* so the wake-up nudges get through a Focus.
+5. **Safari extension.** Settings ▸ Apps ▸ Safari ▸ Extensions ▸ TruFocus ▸ *Allow Extension*, and set *All Websites* to *Allow*.
 6. **Focus filter** (silences notifications and shields everything, on both devices):
    - Settings ▸ Focus ▸ *Work* (or make a "Deep Work" Focus).
-   - *Allowed Notifications*: People — only those who may reach you; Apps — **TrueFocus** only.
-   - *Focus Filters* ▸ Add Filter ▸ **TrueFocus** ▸ turn on **Deep Work shields**.
+   - *Allowed Notifications*: People — only those who may reach you; Apps — **TruFocus** only.
+   - *Focus Filters* ▸ Add Filter ▸ **TruFocus** ▸ turn on **Deep Work shields**.
    - Back on the Focus page: make sure **Share Across Devices** is on (Settings ▸ Focus).
-7. **Lock Screen.** Long-press the Lock Screen ▸ Customize ▸ add the **TrueFocus** widget. Live Activities appear on their own once a task is running.
+7. **Lock Screen.** Long-press the Lock Screen ▸ Customize ▸ add the **TruFocus** widget. Live Activities appear on their own once a task is running.
 8. **Optional, extra wall:** Settings ▸ Screen Time ▸ Content & Privacy Restrictions ▸ App Store, Media, Web & Games ▸ Web Content ▸ *Limit Adult Websites*.
 
 ## 3. Mac
 
-1. Launch TrueFocus. It lives in the menu bar; the window opens from there.
-2. **Safari:** Safari ▸ Settings ▸ Extensions ▸ enable **TrueFocus**, allow on all websites.
+1. Launch TruFocus. It lives in the menu bar; the window opens from there.
+2. **Safari:** Safari ▸ Settings ▸ Extensions ▸ enable **TruFocus**, allow on all websites.
 3. **Chrome / Arc / Brave / Edge:** open `chrome://extensions`, turn on *Developer mode*, *Load unpacked* ▸ select `Extensions/web` in this repo. It talks to the Mac app over `127.0.0.1:52525`, so keep the app running.
-4. **Blocked apps:** TrueFocus ▸ Settings ▸ Guard ▸ *Add App…* for any Mac app that steals your focus.
+4. **Blocked apps:** TruFocus ▸ Settings ▸ Guard ▸ *Add App…* for any Mac app that steals your focus.
 5. **Focus sync (optional):** in the Shortcuts app create two shortcuts:
-   - **TrueFocus On** — action *Set Focus* ▸ Work ▸ On.
-   - **TrueFocus Off** — action *Set Focus* ▸ Work ▸ Off.
-   Then TrueFocus ▸ Settings ▸ Focus ▸ turn on *Flip Focus with sessions*. Because the Focus is shared across devices, starting a task on the Mac now silences and shields your iPhone too.
+   - **TruFocus On** — action *Set Focus* ▸ Work ▸ On.
+   - **TruFocus Off** — action *Set Focus* ▸ Work ▸ Off.
+   Then TruFocus ▸ Settings ▸ Focus ▸ turn on *Flip Focus with sessions*. Because the Focus is shared across devices, starting a task on the Mac now silences and shields your iPhone too.
 6. **Optional, extra wall:** System Settings ▸ Screen Time ▸ Content & Privacy ▸ Store, Web, Siri & Game Center ▸ Access to Web Content ▸ *Limit Adult Websites*.
 
 ## 4. Link iPhone and Mac
 
-Sync runs through the TrueFocus server (Supabase), not iCloud. There's no account, and it's off until you turn it on: nothing leaves a device before then.
+Sync runs through the TruFocus server (Supabase), not iCloud. There's no account, and it's off until you turn it on: nothing leaves a device before then.
 
-1. On the Mac: TrueFocus ▸ Settings ▸ Flow ▸ **Sync** ▸ *Turn on sync*, then *Link a device*. A six-digit code appears.
+1. On the Mac: TruFocus ▸ Settings ▸ Flow ▸ **Sync** ▸ *Turn on sync*, then *Link a device*. A six-digit code appears.
 2. On the iPhone: Today ▸ settings (the slider icon) ▸ **Sync** ▸ *Enter a code*, type it, *Link*.
 3. Both screens show the same four-digit number. If they match, tap *They match* on the Mac. If they don't, cancel: something is between your devices.
 
@@ -57,7 +57,7 @@ The code works for 10 minutes and links one device. The iPhone's tasks and notes
 
 Sync is end-to-end encrypted: everything is sealed on the device, and the key never goes to the server. Requests carry a token derived one way from it, and linking passes the key sealed from one device to the other. Losing every device means losing the key, and with it the synced copy. *Turn off here* stops a device syncing; *Delete server copy…* removes everything the server holds for your devices.
 
-**Instant iPhone updates (optional).** Without this, the iPhone catches up whenever it's opened or unlocked into TrueFocus. To have it follow the Mac in the background (Lock Screen, Live Activity, shields), give the server an APNs key — the VocaMonkey one works, since it's the same team:
+**Instant iPhone updates (optional).** Without this, the iPhone catches up whenever it's opened or unlocked into TruFocus. To have it follow the Mac in the background (Lock Screen, Live Activity, shields), give the server an APNs key — the VocaMonkey one works, since it's the same team:
 
 1. developer.apple.com ▸ Keys ▸ the existing APNs key (or *+* ▸ Apple Push Notifications service). Note its Key ID; download the `.p8` (only possible once — reuse VocaMonkey's saved copy).
 2. Supabase dashboard ▸ project *listingline* ▸ Edge Functions ▸ Secrets, add:
@@ -77,5 +77,5 @@ Sync is end-to-end encrypted: everything is sealed on the device, and the key ne
 - **Nothing syncs.** Check Settings ▸ Sync on both devices: each should say *Synced …* and they must have been linked with a code (step 4). A red dot shows the reason (offline, server error).
 - **iPhone only updates when opened.** That's the default; add the APNs secrets in step 4 for background updates.
 - **Shields don't appear.** Guard ▸ check Screen Time access is *Approved*, and that you've picked scroll apps.
-- **Live Activity didn't start for a session begun on the Mac.** iOS only lets an app start one while it's open; unlock and open TrueFocus once and it appears.
+- **Live Activity didn't start for a session begun on the Mac.** iOS only lets an app start one while it's open; unlock and open TruFocus once and it appears.
 - **Chrome extension says "app not running".** The Mac app serves state on `127.0.0.1:52525`; launch it.

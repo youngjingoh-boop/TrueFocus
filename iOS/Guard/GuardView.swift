@@ -145,7 +145,7 @@ struct GuardView: View {
         case .up: return "Feeds are out of reach."
         case .budget: return "Scroll budget spent."
         case .down: return shield.config.hasSelection ? "On a budget." : "Nothing to guard yet."
-        case .off: return "Give TrueFocus the keys."
+        case .off: return "Give TruFocus the keys."
         }
     }
 
@@ -167,7 +167,7 @@ struct GuardView: View {
             }
             return "Pick the apps that eat your day. They'll be shielded while you work."
         case .off:
-            return "Screen Time access lets TrueFocus shield apps and filter the web on this iPhone. Nothing leaves your device."
+            return "Screen Time access lets TruFocus shield apps and filter the web on this iPhone. Nothing leaves your device."
         }
     }
 
@@ -225,7 +225,7 @@ struct GuardView: View {
 
     private var budgetSection: some View {
         GuardSection(title: "Doom-scroll budget",
-                     footnote: "iPhone can't see individual scrolls inside other apps, so the budget is time in them. In Safari, the TrueFocus extension counts every swipe.") {
+                     footnote: "iPhone can't see individual scrolls inside other apps, so the budget is time in them. In Safari, the TruFocus extension counts every swipe.") {
             GuardToggleRow(title: "Shield during focus",
                            caption: "Scroll and reply apps are blocked while a task is running.",
                            isOn: focus.binding(\.shieldDuringFocus))
@@ -276,7 +276,7 @@ struct GuardView: View {
             Text(active ? "Adult sites are blocked on this iPhone." : "Adult sites aren't filtered.")
                 .font(.tfTitle)
                 .foregroundStyle(TF.Palette.ink)
-            Text("Covers Safari and every app that shows web pages: Apple's automatic filter plus TrueFocus's own list. Turning it off waits \(coolOffHours) hours, so the decision is never made in a weak moment.")
+            Text("Covers Safari and every app that shows web pages: Apple's automatic filter plus TruFocus's own list. Turning it off waits \(coolOffHours) hours, so the decision is never made in a weak moment.")
                 .font(.footnote)
                 .foregroundStyle(TF.Palette.ink2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -310,7 +310,7 @@ struct GuardView: View {
                   summary: "Strips Reels and Shorts, counts your swipes, boots you out of doom-scrolls.",
                   steps: [
                     "Open Settings ▸ Apps ▸ Safari ▸ Extensions.",
-                    "Tap TrueFocus and switch it on.",
+                    "Tap TruFocus and switch it on.",
                     "Set All Websites to Allow.",
                   ])
             Hairline()
@@ -319,8 +319,8 @@ struct GuardView: View {
                   summary: "One switch silences notifications on iPhone and Mac and raises the shields.",
                   steps: [
                     "Open Settings ▸ Focus ▸ Work (or make a “Deep Work” Focus).",
-                    "Under Focus Filters, tap Add Filter ▸ TrueFocus and turn on Deep Work shields.",
-                    "Allow notifications only from TrueFocus and the people who matter.",
+                    "Under Focus Filters, tap Add Filter ▸ TruFocus and turn on Deep Work shields.",
+                    "Allow notifications only from TruFocus and the people who matter.",
                     "Back in Focus, turn on Share Across Devices.",
                   ])
             Hairline()
@@ -346,7 +346,7 @@ struct GuardView: View {
             Hairline()
             guide(5,
                   title: "Add Apple's own adult filter",
-                  summary: "A second wall that works even without TrueFocus.",
+                  summary: "A second wall that works even without TruFocus.",
                   steps: [
                     "Open Settings ▸ Screen Time ▸ Content & Privacy Restrictions and switch it on.",
                     "Tap App Store, Media, Web & Games ▸ Web Content.",

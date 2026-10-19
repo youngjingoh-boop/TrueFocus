@@ -68,7 +68,7 @@ struct EndDayIntent: AppIntent {
 
 struct OpenTrueFocusIntent: AppIntent {
     static let title: LocalizedStringResource = "Open Focus Screen"
-    static let description: IntentDescription? = IntentDescription("Opens TrueFocus on the immersive focus screen.")
+    static let description: IntentDescription? = IntentDescription("Opens TruFocus on the immersive focus screen.")
     static let openAppWhenRun: Bool = true
 
     init() {}
@@ -137,7 +137,7 @@ struct TFShortcuts: AppShortcutsProvider {
 /// "Deep Work shields". With "Share Across Devices" on, turning that Focus on from your Mac
 /// raises the shields on your iPhone too — and silences notifications on both.
 struct TrueFocusFilter: SetFocusFilterIntent {
-    static let title: LocalizedStringResource = "TrueFocus"
+    static let title: LocalizedStringResource = "TruFocus"
     static let description: IntentDescription? = IntentDescription("Shields distracting apps and pins your current task while this Focus is on.")
 
     @Parameter(title: "Deep Work shields", default: false)

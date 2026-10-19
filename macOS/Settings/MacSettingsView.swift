@@ -35,7 +35,7 @@ private struct FlowTab: View {
                 ShortcutRow(keys: "⌥⌘D", action: "Done with the current task")
                 ShortcutRow(keys: "⌥⌘S", action: "Stuck → think time")
                 ShortcutRow(keys: "⌥⌘B", action: "Back to it / start the next task")
-                ShortcutRow(keys: "⌥⌘T", action: "Show TrueFocus")
+                ShortcutRow(keys: "⌥⌘T", action: "Show TruFocus")
                 ShortcutRow(keys: "⌥⌘K", action: "Next juggled task")
                 ShortcutRow(keys: "⌥⌘P", action: "Pending: waiting on it → next task")
             }
@@ -89,9 +89,11 @@ private struct GuardTab: View {
                 }
             }
 
+            DriftGuardSection()
+
             Section("Doom-scroll watch") {
                 Toggle("Boot me out of feed apps when I doom-scroll", isOn: controller.binding(\.macWatchNativeScrolling))
-                Text("While a feed app like Instagram or TikTok is in front, TrueFocus counts scroll gestures — how many and how far. It never reads the screen, what you type, or anything in other apps. Websites are covered by the browser extension.")
+                Text("While a feed app like Instagram or TikTok is in front, TruFocus counts scroll gestures — how many and how far. It never reads the screen, what you type, or anything in other apps. Websites are covered by the browser extension.")
                     .font(.callout)
                     .foregroundStyle(TF.Palette.ink2)
             }
@@ -113,6 +115,48 @@ private struct GuardTab: View {
         controller.updateSettings { settings in
             for id in ids where !settings.macBlockedApps.contains(id) {
                 settings.macBlockedApps.append(id)
+            }
+        }
+    }
+}
+
+/// Notices when what's in front isn't the task, and nudges you back.
+private struct DriftGuardSection: View {
+    @Environment(FocusController.self) private var controller
+    @State private var canReadTitles = ActivityWatcher.shared.canReadWindowTitles
+
+    var body: some View {
+        Section("Drift guard") {
+            Toggle("Nudge me when I drift off the task", isOn: controller.binding(\.macDriftGuard))
+            Text("When a task starts, say where it happens — its apps and sites. If something else holds the front for a minute or two (longer in the first five minutes), a small card asks if you want to head back. The browser extension adds the site and tab title.")
+                .font(.callout)
+                .foregroundStyle(TF.Palette.ink2)
+            if controller.settings.macDriftGuard {
+                Toggle("Let on-device AI judge what the rules can't place", isOn: controller.binding(\.macDriftUsesModel))
+                    .disabled(!DriftJudge.shared.isAvailable)
+                Text(DriftJudge.shared.isAvailable
+                     ? "Apple Intelligence reads the app name, site and title — nothing else — on this Mac, and decides whether it fits the task. It also suggests topic words when a task starts."
+                     : "Needs Apple Intelligence. Without it, the rules decide on their own.")
+                    .font(.callout)
+                    .foregroundStyle(TF.Palette.ink2)
+                LabeledContent("Window titles") {
+                    if canReadTitles {
+                        Label("Allowed", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(TF.Palette.restText)
+                    } else {
+                        Button("Allow…") { ActivityWatcher.shared.requestWindowTitleAccess() }
+                    }
+                }
+                Text("Titles tell a marketing doc from a side project in the same app. macOS asks for Accessibility access; TruFocus only reads the front window's title.")
+                    .font(.callout)
+                    .foregroundStyle(TF.Palette.ink2)
+            }
+        }
+        .task {
+            // macOS doesn't announce the grant; look again every couple of seconds while open.
+            while !Task.isCancelled {
+                canReadTitles = ActivityWatcher.shared.canReadWindowTitles
+                try? await Task.sleep(for: .seconds(2))
             }
         }
     }
@@ -225,7 +269,7 @@ private struct FocusTab: View {
         Form {
             Section {
                 Toggle("Switch a macOS Focus on while I work", isOn: controller.binding(\.macRunFocusShortcuts))
-                Text("TrueFocus runs one shortcut when work starts and another when you go idle or shut down. With Share Across Devices on, your iPhone follows — notifications go quiet on both.")
+                Text("TruFocus runs one shortcut when work starts and another when you go idle or shut down. With Share Across Devices on, your iPhone follows — notifications go quiet on both.")
                     .font(.callout)
                     .foregroundStyle(TF.Palette.ink2)
             }
@@ -243,7 +287,7 @@ private struct FocusTab: View {
                     step(1, "Open Shortcuts and create “\(settings.macFocusOnShortcut)” with one action: Set Focus ▸ Work ▸ On.")
                     step(2, "Create “\(settings.macFocusOffShortcut)” with: Set Focus ▸ Work ▸ Off.")
                     step(3, "System Settings ▸ Focus: turn on Share Across Devices.")
-                    step(4, "In the Work Focus, allow notifications from TrueFocus only, and add the TrueFocus Focus filter with Deep Work shields on — that raises the shields on your iPhone too.")
+                    step(4, "In the Work Focus, allow notifications from TruFocus only, and add the TruFocus Focus filter with Deep Work shields on — that raises the shields on your iPhone too.")
                 }
                 Button("Open Shortcuts") {
                     if let url = URL(string: "shortcuts://") { NSWorkspace.shared.open(url) }
@@ -296,7 +340,7 @@ private struct BrowserTab: View {
     var body: some View {
         Form {
             Section("Safari") {
-                Text("Turn on the TrueFocus extension and allow it on all websites. It hides Reels and Shorts, keeps Instagram to your messages, boots you out of doom-scrolls, and filters adult sites.")
+                Text("Turn on the TruFocus extension and allow it on all websites. It hides Reels and Shorts, keeps Instagram to your messages, boots you out of doom-scrolls, and filters adult sites.")
                     .font(.callout)
                     .foregroundStyle(TF.Palette.ink2)
                 Button("Open Safari Extension Settings") {
@@ -316,7 +360,7 @@ private struct BrowserTab: View {
                 if let copyMessage {
                     Text(copyMessage).font(.callout).foregroundStyle(TF.Palette.ink2)
                 }
-                LabeledContent("Link to TrueFocus") {
+                LabeledContent("Link to TruFocus") {
                     switch bridgeStatus {
                     case .checking:
                         Text("Checking…").foregroundStyle(TF.Palette.ink2)
@@ -328,7 +372,7 @@ private struct BrowserTab: View {
                             .foregroundStyle(TF.Palette.signal)
                     }
                 }
-                Text("Chrome-family browsers read your current task from TrueFocus over a local-only connection on this Mac (127.0.0.1:52525).")
+                Text("Chrome-family browsers read your current task from TruFocus over a local-only connection on this Mac (127.0.0.1:52525).")
                     .font(.callout)
                     .foregroundStyle(TF.Palette.ink2)
             }
@@ -354,7 +398,7 @@ private struct BrowserTab: View {
     private func copyExtension() {
         let fileManager = FileManager.default
         guard let source = Self.bundledExtensionFolder() else {
-            copyMessage = "Couldn't find the extension inside TrueFocus. Load the Extensions/web folder from the source code instead."
+            copyMessage = "Couldn't find the extension inside TruFocus. Load the Extensions/web folder from the source code instead."
             return
         }
         do {

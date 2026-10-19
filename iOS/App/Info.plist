@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>TrueFocus</string>
+	<string>TruFocus</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -51,7 +51,7 @@
 		<false/>
 	</dict>
 	<key>NSAppleMusicUsageDescription</key>
-	<string>TrueFocus plays an Apple Music focus playlist while you work, if you choose it in Settings.</string>
+	<string>TruFocus plays an Apple Music focus playlist while you work, if you choose it in Settings.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

@@ -10,6 +10,7 @@ final class MacAppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationC
         controller.register(DistractionGuard.shared)
         controller.register(ScrollWatch.shared)
         controller.register(MacNudger.shared)
+        controller.register(DriftGuard.shared)
         controller.register(FocusModeBridge.shared)
         controller.register(AudioDirector.shared)
 

@@ -83,7 +83,7 @@ struct MenuBarPanel: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(TF.Palette.ink2)
-                .help("Open TrueFocus")
+                .help("Open TruFocus")
 
                 SettingsLink {
                     Image(systemName: "gearshape")
@@ -99,10 +99,71 @@ struct MenuBarPanel: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(TF.Palette.ink2)
-                .help("Quit TrueFocus")
+                .help("Quit TruFocus")
             }
             .font(.system(size: 13, weight: .medium))
         }
+    }
+}
+
+// MARK: - Drift
+
+/// Where the current task happens (its start contract) and how today is going.
+private struct DriftRow: View {
+    private var drift: DriftGuard { DriftGuard.shared }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 6) {
+                Image(systemName: "scope")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(drift.verdict == .offTask ? TF.Palette.signalText : TF.Palette.ink3)
+                Text(workspace)
+                    .font(.system(size: 12))
+                    .foregroundStyle(TF.Palette.ink2)
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                Button(drift.contract?.hasWorkspace == true ? "Edit" : "Set") {
+                    drift.editCurrentContract()
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(TF.Palette.signalText)
+                .help("Where this task happens — anything else gets a nudge")
+            }
+            DriftTodayLine()
+        }
+    }
+
+    private var workspace: String {
+        guard let contract = drift.contract, contract.hasWorkspace else { return "Watching titles only" }
+        let apps = contract.apps.map { id in
+            NSWorkspace.shared.urlForApplication(withBundleIdentifier: id)
+                .map { FileManager.default.displayName(atPath: $0.path).replacingOccurrences(of: ".app", with: "") } ?? id
+        }
+        return (apps + contract.sites).joined(separator: " · ")
+    }
+}
+
+/// "On task 1h 20m · drifted 14m, mostly clinic.co.kr" — today on this Mac.
+private struct DriftTodayLine: View {
+    var body: some View {
+        let today = DriftGuard.shared.today
+        if today.onTask + today.offTask >= 60 {
+            Text(line(today))
+                .font(.system(size: 12).monospacedDigit())
+                .foregroundStyle(TF.Palette.ink3)
+                .lineLimit(1)
+        }
+    }
+
+    private func line(_ today: (onTask: TimeInterval, offTask: TimeInterval, top: (label: String, seconds: TimeInterval)?)) -> String {
+        var text = "Today: on task \(TFFormat.short(today.onTask))"
+        if today.offTask >= 60 {
+            text += " · drifted \(TFFormat.short(today.offTask))"
+            if let top = today.top { text += ", mostly \(top.label)" }
+        }
+        return text
     }
 }
 
@@ -151,6 +212,9 @@ private struct NowSection: View {
                 .font(.system(size: 13))
                 .foregroundStyle(TF.Palette.ink2)
                 .lineLimit(2)
+        }
+        if snapshot.mode == .focus, controller.settings.macDriftGuard {
+            DriftRow()
         }
         HStack(spacing: 8) {
             Button {
@@ -224,6 +288,9 @@ private struct NowSection: View {
             Text("Done for today.")
                 .font(.system(size: 19, weight: .semibold))
                 .foregroundStyle(TF.Palette.ink)
+            if controller.settings.macDriftGuard {
+                DriftTodayLine()
+            }
             Button("Reopen the day") { controller.reopenDay() }
                 .buttonStyle(QuietButtonStyle())
         } else if snapshot.isPaused, let title = snapshot.nextTaskTitle {
