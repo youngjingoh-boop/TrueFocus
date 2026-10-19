@@ -217,6 +217,9 @@
       return;
     }
     wheelTravel += dy;
+    // We see this gesture directly; the scroll it causes mustn't count a second time.
+    suppressFallbackUntil = now() + 1500;
+    fallbackTravel = 0;
     // A long continuous glide is chunked so it can't masquerade as a single stroke.
     if (wheelTravel >= viewport() * 2.5) {
       stroke(2.5);
