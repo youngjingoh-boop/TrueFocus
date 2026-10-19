@@ -1,12 +1,14 @@
 # App Review: notes, test plan, compliance, risks, age rating, export compliance
 
-Checked against the code at `1da5526`. File and line references point to what each statement rests on.
+Checked against the code at `1da5526`. The sync, consent and tone parts were checked again after
+`11f3952` (Direct default), `7721c30` (custom reminders) and `1caee66` (end-to-end sync). File and
+line references point to what each statement rests on.
 
 ---
 
 ## 1. Paste into App Store Connect ▸ App Review Information ▸ Notes
 
-The Notes field allows 4,000 characters. This block uses 3,560.
+The Notes field allows 4,000 characters. This block uses 3,913.
 
 ```
 TrueFocus is a self-control focus app for adults. No account or login exists — every feature works on first launch. Please test on a physical iPhone: Screen Time APIs do not run in the Simulator.
@@ -24,24 +26,22 @@ HOW TO TEST (about 10 minutes)
 7. Adult filter: it is on by default once Screen Time access is granted. In Safari, open a well-known adult domain: Screen Time's "restricted" page appears instead. In Guard > Adult filter, "Turn off…" starts a 24-hour cool-off ("Turns off <date>") that can be cancelled with "Keep it on". Revoking Screen Time access in iOS Settings removes it immediately.
 8. Safari extension: Settings > Apps > Safari > Extensions > TrueFocus > on, All Websites > Allow. Then in Safari: youtube.com/shorts and instagram.com/reels open a TrueFocus page instead of short-form video. On reddit.com, swipe the feed quickly ~25 times within a minute: a warning toast, then a full-screen boot-out.
 9. Lock the phone while a task runs: a Live Activity with Done / Stuck / Pause. Settings (slider icon on Today) > Sound > Focus music "Drive", then lock: music continues (UIBackgroundModes audio, mixes with other apps).
-10. Sync (optional): Settings > Sync > "Link a device" shows a 6-digit code. Linking needs a second device with TrueFocus for Mac; nothing else depends on it.
+10. Sync (optional, off by default): nothing is uploaded until you tap "Turn on sync" or "Enter a code" in Settings > Sync. To link a Mac: "Turn on sync" > "Link a device" shows a 6-digit code; on the other device, "Enter a code". Both show the same 4-digit number; tap "They match" on the first. "Turn off here" and "Delete server copy…" are there too.
 
 THE SAFARI EXTENSION
 Bundled with the app. It removes short-form video (Reels, Shorts, TikTok except messages), opens Instagram to messages, hides the LinkedIn and Facebook feeds, counts scroll strokes on 14 feed sites to stop doom-scrolling, applies SafeSearch and blocks adult sites. It decides everything locally and sends no browsing data anywhere. It needs access to all websites because the adult-site block and SafeSearch redirects must apply to any domain.
 
 DATA
-No ads, analytics, tracking or third-party SDKs. Tasks, notes and the focus timeline sync between the user's own devices through our Supabase server; payloads are encrypted on the device (AES-GCM) before upload.
+No ads, analytics, tracking or third-party SDKs. Sync is off until the user turns it on; then tasks, notes and the timeline sync between their own devices through our Supabase server, end-to-end encrypted (AES-GCM; the key is never sent to the server). Settings > Sync can turn it off or delete the server copy.
 
 TONE
-Nudges come in three tones chosen in Settings > Voice: Calm, Direct, Savage. Savage uses strong language by design and is declared in the age rating.
+Tones in Settings > Voice: Calm, Direct (default), Savage. Savage is opt-in, labelled "Strong language", uses profanity, and is declared in the age rating. "Your own words" lets users write their own nudges.
 ```
 
-> **Before you paste:** step 1 and the "TONE" paragraph assume the default tone has changed from
-> Savage to Direct (risk R1 below). If Savage stays the default, the reviewer meets "Wake the fuck
-> up." on the first budget shield and in Settings ▸ Voice. In that case, add one line to the
-> notes: "Savage is the default tone and contains profanity; switch to Calm in Settings ▸ Voice if
-> preferred." Also **attach a demo video link** showing steps 4 to 8 on a real device. Apple
-> accepts a URL in the notes, and it avoids the "we couldn't trigger the shield" rejection.
+> **Before you paste:** the default tone is Direct (`TFSettings.tone = .direct`, R1 resolved), so a
+> reviewer meets no profanity unless they pick Savage. **Attach a demo video link** showing steps
+> 4 to 8 on a real device. Apple accepts a URL in the notes, and it avoids the "we couldn't trigger
+> the shield" rejection.
 
 **Mac record notes:** use the block above, but replace steps 2 to 9 with:
 
@@ -104,7 +104,7 @@ the live page before you quote them to App Review.
 | Guideline | How TrueFocus complies | Evidence |
 | --- | --- | --- |
 | **2.1** App completeness | Full functionality without login. A demo video is recommended because Screen Time needs a device | No account code anywhere |
-| **2.3.1 / 2.3.7 / 2.3.8** Accurate metadata, keywords, 4+ metadata | No "end-to-end" claim, no trademarks in keywords, no profanity in metadata or screenshots | `listing.md` §4 |
+| **2.3.1 / 2.3.7 / 2.3.8** Accurate metadata, keywords, 4+ metadata | "End-to-end encrypted sync" is now accurate: the space key never reaches the server (apart from one move per device on an older build, R4), requests carry a one-way access token, and linking hands the key over sealed. No trademarks in keywords, no profanity in metadata or screenshots, and screenshots use the default Direct tone | `listing.md` §4, `privacy.md` §1.3, `SyncSecrets.swift` |
 | **2.5.1** Public APIs only | FamilyControls, ManagedSettings(UI), DeviceActivity, ActivityKit, WidgetKit, AppIntents, FoundationModels, MusicKit; on Mac, NSWorkspace, NSEvent global monitor, Carbon `RegisterEventHotKey`, Network.framework | `project.yml`, sources |
 | **2.5.4** Background services for their intended purpose | `audio` only while audible focus music or the rest-ambience river plays (`AudioDirector.configureSession(sustained:)` uses `.playback` only then, otherwise `.ambient`). `remote-notification` for silent sync wake-ups | `AudioDirector.swift`, `tf-notify` |
 | **2.5.9** Doesn't alter standard switches or system UI | Shields come from Apple's ManagedSettings. On Mac, apps are hidden, never quit or modified | `DistractionGuard.swift` |
@@ -112,9 +112,9 @@ the live page before you quote them to App Review.
 | **4.2** Minimum functionality | A full task flow, notes, review, widgets, Live Activity and sound, even without Screen Time | — |
 | **4.4.2** Safari extensions | Run on current Safari, don't interfere with Safari UI, aren't malicious. Access to all sites is explained as needed for blocklist and SafeSearch redirects | `manifest.json` |
 | **4.5.4** Push notifications | Not required to use the app. No marketing. Time-sensitive level only for the nudges the user set up (rest overrun, stuck, idle) | `NudgeScheduler.swift` |
-| **5.1.1(i)** Privacy policy | Hosted policy linked in metadata and in the app | `privacy.md` §3. **Add an in-app link** (none exists yet) |
-| **5.1.1(ii)** Consent | Screen Time, notifications and Apple Music each use the system prompts. **Sync currently starts without asking** (see R6) | — |
-| **5.1.1(v)** Account deletion | Not applicable: no accounts. Server data deletion by Sync ID on request | `privacy.md` §3 |
+| **5.1.1(i)** Privacy policy | Hosted policy linked in metadata and in the app. The policy in `privacy.md` §3 describes end-to-end sync, the off switch and self-serve deletion | `privacy.md` §3. **Add an in-app link** (none exists yet) |
+| **5.1.1(ii)** Consent | Screen Time, notifications and Apple Music each use the system prompts. Sync is off on a new install and uploads nothing until the user taps "Turn on sync" or links with "Enter a code". "Turn off here" stops it on a device (R6 resolved) | `SyncService.isEnabled`, `SyncSettingsSection.swift` |
+| **5.1.1(v)** Account deletion | Not applicable: no accounts. Server data deletion is self-serve: Settings ▸ Sync ▸ "Delete server copy…" calls `tf_delete_space`, which deletes every record and push token for the space | `SyncService.deleteServerCopy`, `20261019000000_truefocus_e2e.sql`, `privacy.md` §3 |
 | **5.1.2** Data use and sharing | No sharing, no ads, no tracking. Screen Time data never leaves the device | `privacy.md` §1 |
 | **5.2.1 / 5.2.2** IP and third-party content | Feed sites are named only factually. No third-party logos in screenshots. Sound licences documented | `docs/SOUND.md` |
 | **Family Controls entitlement terms** | Individual authorization, used only to provide the shields and filter, data on the device | §2 |
@@ -124,16 +124,17 @@ the live page before you quote them to App Review.
 
 ## 5. Likely rejection risks and what to do
 
-**R1 to R7 are blockers or near-blockers. Fix them before you submit.**
+**R1 to R7 were the blockers or near-blockers.** R1, R4 and R6 are resolved in the code. Fix the
+open ones before you submit.
 
 | # | Risk | What's in the code | Mitigation |
 | --- | --- | --- | --- |
-| **R1** | **Profanity by default.** The default tone is **Savage** (`TFSettings.tone = .savage`, and `core.js` `effective()` also falls back to `'savage'`). In Savage, the strongest nudge in every ladder, the doom-scroll boot-out, and the **budget-spent shield title** are "Wake the fuck up." (`Copy.swift` L41, 58, 87, 103, 116, 145; `core.js` L525). Settings ▸ Voice previews `restOver(level: 3)`, so a reviewer sees that line **the first time they open Settings**. Nudges are time-sensitive notifications, so the word shows on the Lock Screen. | Default Savage | **Change the default to `.direct`** in `Settings.swift` and in `core.js` (`effective()` and the fallback). Keep Savage as an opt-in, with a one-line warning ("Strong language") on the Savage chip. Declare profanity in the age rating (§6). Keep "fuck" out of all screenshots and metadata (guideline 2.3.8). If you want 4+ instead: rewrite the four Savage lines without it, e.g. "WAKE UP." or "Up. Now." |
+| ~~R1~~ | **Resolved: profanity is opt-in.** The default tone is now **Direct** (`TFSettings.tone = .direct`; `NudgeContext` defaults to `.direct`; `core.js` `effective()` falls back to `'direct'`, L404–406). Saved settings keep the tone they hold. Savage is opt-in, and its chip reads "Strong language" (VoiceOver: "Savage · strong language", `NudgeTone.fullLabel`). In Savage, the strongest nudge in each ladder, the doom-scroll boot-out and the **budget-spent shield title** still say "Wake the fuck up." (`Copy.swift` L95, 116, 153, 173, 190, 264; `core.js` L589). With the default, Settings ▸ Voice previews Direct's `restOver(level: 3)`, "Momentum's leaking." | `Settings.swift`, `Nudges.swift`, `FlowSettingsView.swift` | Declare the opt-in profanity in the age rating (§6). Keep "fuck" out of all screenshots and metadata (guideline 2.3.8). If you want 4+ instead, rewrite the six Savage lines without it, e.g. "WAKE UP." or "Up. Now." |
 | **R2** | **Family Controls distribution entitlement not granted.** Archiving or exporting for TestFlight and the App Store fails without it. | 4 targets carry `com.apple.developer.family-controls` | Request it now for all 4 bundle IDs (`privacy.md` §4). Approval takes days to weeks. |
-| **R3** | **No privacy manifest.** `UserDefaults` is a required-reason API. It's used via `SharedStore` in the app and every extension, and in `LoginItem` on Mac. Uploads without `PrivacyInfo.xcprivacy` get ITMS-91053 and can be rejected. | No `PrivacyInfo.xcprivacy` anywhere | Add one to each target that links TrueFocusKit: `NSPrivacyAccessedAPICategoryUserDefaults` with reason `1C8F.1` (App Group) and `CA92.1` (app-only). Declare the collected types from `privacy.md` Label A, and set `NSPrivacyTracking` to false. |
-| **R4** | **Misleading encryption claim.** The README says "end-to-end encrypted". The server receives the raw space key, which the payload key is derived from (`x-tf-space`, `tf-pair`). | `TFCloud.makeRequest`, `tf-pair` | Don't use "end-to-end" anywhere public. Ship the fix in `privacy.md` §1.3, or keep the wording "encrypted on your device". |
+| **R3** | **Privacy manifests out of step with the label.** `UserDefaults` is a required-reason API (`SharedStore` in the app and every extension, `LoginItem` on Mac). Manifests now exist in `PrivacyManifests/` (see `docs/RELEASE.md`, release-readiness audit), but the iPhone and Mac ones still declare `NSPrivacyCollectedDataTypeOtherUserContent`, which matches the old Label A. | `PrivacyManifests/*/PrivacyInfo.xcprivacy` | Make them match `privacy.md` Label B: drop Other User Content from both, keep Device ID on iPhone, keep `NSPrivacyTracking` false. Or keep declaring Other User Content in the label as well. |
+| ~~R4~~ | **Resolved: the encryption claim is accurate.** Requests carry an access token, `HKDF(spaceKey, "access.v1")`, and the server stores its SHA-256 as the space id. Payloads are sealed under `HKDF(spaceKey, "payload.v1")`, which the server can't derive. Linking swaps X25519 public keys and sends the key sealed, after both screens show the same match number. The raw key travels only once, in each older device's `tf_rekey` move. | `SyncSecrets.swift`, `TFCloud.swift`, `tf-pair`, `20261019000000_truefocus_e2e.sql` | "End-to-end encrypted" may be used. Keep the caveats in `privacy.md` §1.3 in mind: plaintext metadata, the one-time legacy move, and a four-digit match number that a server actively attacking a link could beat. Don't claim "even we can't intercept linking". |
 | **R5** | **The Mac app can't go to the Mac App Store as built.** (a) `TrueFocusMac` has **no `com.apple.security.app-sandbox`**, and App Store Connect rejects unsandboxed Mac uploads (2.4.5(i)). (b) It **registers itself as a login item on first launch without asking** (`LoginItem.enableOnFirstLaunch`), which breaks 2.4.5(iii). (c) Sandboxed, the loopback bridge needs `com.apple.security.network.server`, and sync needs `network.client`. (d) **Unclear:** `/usr/bin/shortcuts` via `Process` (FocusModeBridge), `NSRunningApplication.hide()` on other apps, and the global scroll-wheel monitor may not work in the sandbox. Test each one. (e) The Mac settings copy the Chrome extension into Application Support and tell users to "Load unpacked" in developer mode. Reviewers may read that as installing extra code (2.4.5(iv)). | `project.yml`, `macOS/` | Either ship the Mac app outside the store (Developer ID plus notarization, as `docs/SHARING.md` already describes), or add the sandbox and network entitlements, ask before enabling the login item, test (d), and point Chrome users to the Chrome Web Store listing. |
-| **R6** | **Data collection without consent (5.1.1(ii)).** Sync starts on first launch and uploads every task, note and the brain dump, with no prompt and no off switch (`SyncService.start`). | `SyncService.swift` | Don't upload anything until the user taps **Link a device** or **Enter a code** (single-device users never need the server), or show a one-time "Sync with your other devices?" prompt. Add a sync off switch. Link the privacy policy in Settings. |
+| ~~R6~~ | **Resolved: sync asks first (5.1.1(ii)).** On a new install sync is off and nothing is uploaded until the user taps **Turn on sync** or links with **Enter a code** (`SyncService.isEnabled`, `tf.sync.enabled`). Devices that synced before this release stay on. Settings ▸ Sync has **Turn off here** (keeps the key, stops uploading) and **Delete server copy…** (`tf_delete_space`: deletes all records and push tokens for the space, turns sync off here and forgets the key). | `SyncService.swift`, `SyncSettingsSection.swift` | Nothing more for review. Two edges to know: a reinstall that finds a key left in the Keychain turns sync back on without asking, even if it was off before; and the in-app privacy policy link is still missing (R13). |
 | **R7** | **The adult filter and an adult domain list in the binary.** Reviewers may ask about it, or flag the cool-off as "the app prevents the user from changing settings". | `Blocklist.adultDomains`, `GuardView` | The review notes explain it's a block list that shows no content, that the cool-off can be cancelled, and that the system revoke always works. Don't show adult domain names in screenshots. |
 | R8 | **Background audio questioned.** A reviewer with music off sees no audio, and may ask why the `audio` mode is there. | `UIBackgroundModes: audio` | Covered in notes step 9: focus music and the rest river are audible and play only during focus or rest. |
 | R9 | **`aps-environment` = `development`** in `iOS/App/TrueFocus.entitlements` and `project.yml`. | — | Automatic signing normally sets `production` at export. Check the exported `.ipa` with `codesign -d --entitlements :- TrueFocus.app`. `tf-notify` picks the APNs host from the `environment` column, which the app sets from `DEBUG`, so that part is consistent. |
@@ -160,7 +161,7 @@ items. Use the ones your form shows. **App Store Connect computes the rating. Do
 | Realistic Violence | None | |
 | Prolonged Graphic or Sadistic Realistic Violence | None | |
 | Guns or Other Weapons | None | |
-| **Profanity or Crude Humor** | **Frequent or Intense** *(if the Savage lines keep "fuck")*. **None** *(if R1's 4+ rewrite is applied)* | The Savage tone uses "fuck" in 6 lines, and a Savage user can see it several times a day. Making it opt-in doesn't change the answer, because the rating covers everything the app can show. |
+| **Profanity or Crude Humor** | **Infrequent or Mild** *(recommended while the Savage lines keep "fuck")*. **None** *(only if R1's 4+ rewrite is applied)* | See "Why Infrequent" below. |
 | Mature or Suggestive Themes | None | The adult filter *blocks* content. The app shows none. |
 | Horror / Fear Themes | None | |
 | Medical or Treatment Information | None | |
@@ -185,17 +186,32 @@ items. Use the ones your form shows. **App Store Connect computes the rating. Do
 | Health or Wellness Topics | No | Productivity and focus. No health claims. |
 | Made for Kids | No | |
 
-**Expected result:** with "Frequent or Intense" profanity, the old scale gives **17+**, and the 2025
-scale most likely gives **16+**. With the profanity removed, **4+**. The audience is adults, so
-16+ is acceptable if you want to keep Savage as it is. It also removes the app from some
-search results for teenage accounts and from Family Sharing ask-to-buy flows.
+**Why Infrequent, not None or Frequent.** The rating covers everything the app can show, so an
+opt-in setting doesn't make the answer **None**: anyone can pick Savage in Settings ▸ Voice. But
+since `11f3952` the profanity is off by default. A user meets it only after choosing Savage, which
+is labelled "Strong language", and even then only on the last rung of each nudge ladder, the
+doom-scroll boot-out and the budget-spent shield (six lines in `Copy.swift`, one in `core.js`).
+Calm and Direct (the default) have none. That's occasional strong language that the user asked
+for, which fits **Infrequent or Mild** better than *Frequent or Intense*. Custom reminder text is
+the user's own, shown only to them, so it doesn't change the answer. If you'd rather not defend the
+call, answer **Frequent or Intense**. It's the safe answer, and the rating then goes up a tier.
+
+**Expected result** (App Store Connect computes it; this is a prediction, not a rule): with
+"Infrequent or Mild" profanity, **12+** on the old scale and most likely **13+** on the 2025 scale.
+With "Frequent or Intense", **17+** on the old scale and most likely **16+** on the new one. With
+the profanity removed, **4+**. **Recommendation: answer Infrequent or Mild and expect 13+.** The
+audience is adults, and 13+ keeps the app visible to more accounts than 16+. Choose the 4+ rewrite
+only if reaching younger users matters to you. **Unclear:** exactly how App Store Connect maps an
+opt-in setting and one descriptor onto the 2025 tiers. Check the computed rating on the form before
+you submit.
 
 ---
 
 ## 7. Export compliance
 
 **What the code uses:** HTTPS through `URLSession` (TLS from the OS), and **CryptoKit**: AES-GCM
-256-bit, HKDF-SHA256 and SHA-256 for sync payloads and the space fingerprint (`SyncSecrets.swift`).
+256-bit, HKDF-SHA256 and SHA-256 for sync payloads, the access token and the Sync ID, and X25519
+key agreement (`Curve25519.KeyAgreement`) for linking devices (`SyncSecrets.swift`).
 There's no proprietary or non-standard algorithm and no crypto library of its own. Everything goes
 through Apple's OS frameworks.
 

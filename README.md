@@ -28,7 +28,7 @@ Hold up to three tasks **in play** for parallel work and switch with one tap. Ea
 | **Control Center & Action Button** | "Done" and "Next Task" controls; Siri: "Done in TrueFocus". |
 | **The shield** | When a blocked app opens: "Not now. You're 23 min into ‘Investor update’." |
 
-Everything syncs through the TrueFocus server, end-to-end encrypted, no account and no iCloud storage. Link your devices once with a six-digit code, then start on the Mac and see it on the iPhone Lock Screen.
+Sync runs through the TrueFocus server, end-to-end encrypted: the key stays on your devices, and the server stores only ciphertext. There's no account and no iCloud storage. Sync is off until you turn it on in Settings ▸ Sync. To link a device, enter the six-digit code from the other one, check that both screens show the same four-digit match number, and confirm. Then start on the Mac and see it on the iPhone Lock Screen.
 
 ## Cutting out distractions
 

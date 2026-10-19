@@ -1,7 +1,10 @@
 # Privacy: what leaves the device, the App Privacy label, the policy, and Screen Time answers
 
 Everything in §1 comes from reading the code at `1da5526`: `Packages/TrueFocusKit/Sources/TrueFocusKit/Sync/*`,
-`Shared/App/Sync/*`, `supabase/`, `iOS/`, `macOS/`, `iOSExtensions/` and `Extensions/web/`. Where
+`Shared/App/Sync/*`, `supabase/`, `iOS/`, `macOS/`, `iOSExtensions/` and `Extensions/web/`. The sync
+parts (§1.3, §2, §3) were checked again after the end-to-end change (`1caee66`), against
+`SyncSecrets.swift`, `SyncService.swift`, `SyncSettingsSection.swift`, `TFCloud.swift`,
+`supabase/functions/tf-pair/index.ts` and `supabase/migrations/20261019000000_truefocus_e2e.sql`. Where
 the code doesn't settle a question, this file says **Unclear** instead of guessing.
 
 ---
@@ -23,7 +26,7 @@ the code doesn't settle a question, this file says **Unclear** instead of guessi
 
 | From | To | What | Code |
 | --- | --- | --- | --- |
-| iPhone app, Mac app | `fcfbsgvkanuywsmxvuee.supabase.co` (Supabase: PostgREST + Edge Functions) | Sync records, push-token registration, pairing, wake-up requests | `TFCloud.swift`, `SyncService.swift` |
+| iPhone app, Mac app | `fcfbsgvkanuywsmxvuee.supabase.co` (Supabase: PostgREST + Edge Functions) | Only once the user turns sync on or links the device: sync records, push-token registration, linking (public keys and a sealed box), wake-up requests, the one-time `tf_rekey` move, and `tf_delete_space` when the user deletes the server copy | `TFCloud.swift`, `SyncService.swift` |
 | Supabase Edge Function `tf-notify` | Apple Push Notification service (`api.push.apple.com`) | A silent push `{"aps":{"content-available":1},"tf":"sync"}` to the space's other iPhones. **No content.** | `supabase/functions/tf-notify/index.ts` |
 | iPhone app (only if the user picks "Apple Music" as focus music) | Apple Music (MusicKit) | Music authorization, a subscription check, a catalog search for the playlist "Pure Focus", playback | `AudioDirector.startAppleMusic` |
 | Safari extension | The app, through `sendNativeMessage` and the App Group (stays on the device) | Read state; post boot-out `{site, reason}` and juggling commands | `background.js`, `SafariWebExtensionHandler.swift` |
@@ -35,16 +38,29 @@ navigations to pages inside the extension, and they send nothing anywhere.
 
 ### 1.3 What the sync server receives
 
-Sync runs **automatically on every launch** whenever the build has `TF_SUPABASE_HOST` set, and the
-App Store build does. There's no switch to turn it off. On first launch the device creates a random
-256-bit *space key*, stores it in the Keychain (`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`,
-not iCloud Keychain), and starts uploading.
+Sync is **off on a new install**. Nothing goes to the sync server until the user taps **Turn on sync**
+or links the device with **Enter a code** in Settings ▸ Sync (`SyncService.isEnabled`, stored per
+device as `tf.sync.enabled`). A device that synced with an earlier build stays on: its ledger names a
+space, or its Keychain already holds a key (`SyncService.resolveEnabled`). The same check turns sync
+back on after a reinstall that finds a key left in the Keychain.
+
+Turning sync on creates a random 256-bit *space key* and stores it in the Keychain
+(`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`, not iCloud Keychain). **The space key never goes
+to the server**, except once for spaces made by older builds (see "The one-time move" below). Two
+keys are derived from it with HKDF-SHA256, salt `"truefocus.sync"` (`SyncSecrets.swift`):
+
+- the **access token** (info `"access.v1"`, base64url, `SyncAccess`), which goes in the `x-tf-space`
+  header of every request, and
+- the **payload key** (info `"payload.v1"`, `SyncCipher`), which seals each payload with AES-GCM
+  and never leaves the device.
+
+The server can't get from the access token to the payload key: both come one way from the space key.
 
 **Table `tf_records`, one row per task, focus segment, day plan or note:**
 
 | Column | In plain text on the server? | Content |
 | --- | --- | --- |
-| `space` | yes | SHA-256 of the space key (a pseudonymous ID shared by linked devices) |
+| `space` | yes | SHA-256 of the access token (`tf_space()`), a pseudonymous ID shared by linked devices |
 | `id` | yes | Random UUID; for a day plan, the day encoded into the UUID (`RecordID.plan`) |
 | `kind` | yes | `task` / `segment` / `plan` / `note` |
 | `deleted` | yes | Tombstone flag |
@@ -63,40 +79,60 @@ The encrypted payloads (`SyncModels.swift`):
 
 When a record is deleted, its row becomes a tombstone with an empty payload.
 
-**Table `tf_devices` (iPhone only):** the APNs device token, platform `ios`, environment, `updated_at` and
-the space hash, **all in plain text**. The Mac never registers a token.
+**Table `tf_devices` (iPhone only, and only while sync is on):** the APNs device token, platform
+`ios`, environment, `updated_at` and the space ID, **all in plain text**. The Mac never registers a
+token. *Turn off here* doesn't remove the token. *Delete server copy…* does.
 
-**Table `tf_pairings`, while linking:** the **raw space key** plus the six-digit code and its
-expiry. The row is deleted when the code is redeemed. An expired row is deleted only the next time
-anyone calls `tf-pair`, so it can outlive its 10 minutes.
+**Table `tf_pairings`, while linking (`tf-pair` `host` / `join` / `wait` / `seal` / `fetch`):** the
+six-digit code and its expiry, the host's and the joiner's X25519 **public keys**, and the **sealed
+box**: the space key under AES-GCM with a key the two devices derive from their X25519 exchange.
+The server holds none of the private keys, so it can't open the box. `space_key` stays empty for
+these rows. A row is deleted when the joiner fetches the box. An expired row is deleted only the next
+time anyone calls `tf-pair`, so it can outlive its 10 minutes.
 
-**On every request:** the raw space key in the `x-tf-space` header, the public anon key, the
-device's IP address, and the default `URLSession` user agent (app name and build, CFNetwork and
-Darwin versions).
+**Table `tf_pair_failures`:** one timestamp per failed join, nothing else. They drive the global
+lock after 40 misses in 10 minutes.
 
-> **Is sync end-to-end encrypted? Not strictly.** The payloads are encrypted on the device with
-> AES-GCM under `HKDF-SHA256(spaceKey, salt "truefocus.sync", info "payload.v1")`, and the database
-> holds only ciphertext and a hash. So someone with read access to the database alone can't read
-> anything. **But the space key itself, the input to that HKDF, reaches the server on every
-> request**, both in the `x-tf-space` header that `tf_space()` hashes and in the body of
-> `tf-pair create`. Anyone who can see request headers or pairing rows (the Supabase project owner,
-> Supabase staff, a malicious edge function, or a log that records headers) could derive the key and
-> decrypt everything in that space. **Unclear:** whether Supabase's managed API/edge logs keep the
-> `x-tf-space` header. Check Logs Explorer in the dashboard. Either way, the design gives the server
-> operator the ability to decrypt.
+**On every request:** the access token in the `x-tf-space` header (the database keeps only its
+hash), the public anon key, the device's IP address, and the default `URLSession` user agent (app
+name and build, CFNetwork and Darwin versions). Whoever holds an access token can read, overwrite
+and delete that space's ciphertext, but can't decrypt it. **Unclear:** whether Supabase's managed
+API and edge-function logs keep the `x-tf-space` header. Check Logs Explorer in the dashboard.
+
+**The one-time move.** Older builds filed a space under `sha256(space key)` and sent the raw key on
+every request. On its first sync after the update, each such device calls the RPC `tf_rekey` once
+(`SyncService.cycle`, `TFCloud.rekey`). That request carries the raw key in `x-tf-space`, the last
+time it travels, and the new access token in the body. The server moves the space's records and push
+tokens to `sha256(access token)`, merging by last writer wins, and deletes the old rows. Spaces made
+by this build, or adopted by linking, never make the call.
+
+> **Is sync end-to-end encrypted? Yes.** Payloads are sealed on the device under a key the server
+> never receives and can't derive. Requests carry a separate one-way access token. Linking passes
+> the key sealed between the two devices. So the server operator, Supabase, a database dump and
+> request logs can't read tasks, notes, the brain dump or the timeline. The honest caveats:
 >
-> **The fix, to earn an "end-to-end" claim:**
-> 1. Derive two keys from the space key: `authToken = HKDF(spaceKey, info "auth.v1")` for
->    `x-tf-space`, and `payloadKey = HKDF(spaceKey, info "payload.v1")` for AES-GCM. Send only
->    `authToken`. The server hashes it exactly as it does today. Existing spaces migrate by
->    re-uploading under the new space hash.
-> 2. Stop sending the raw key through `tf-pair`. Six digits are too few to protect it against the
->    server, which could brute-force 10⁶ codes offline. Show a QR code (or a longer code) that carries
->    a random 128-bit secret, upload only `AES-GCM(secret, spaceKey)`, and let the joining device
->    decrypt it locally. A PAKE such as SPAKE2 would also work.
->
-> Until then, say "encrypted on your device; the server stores only encrypted data", which is true,
-> and drop "end-to-end" from the README and any marketing.
+> 1. **Metadata is visible.** The server sees how many records a space has, their kinds and IDs (a
+>    day plan's ID encodes its day), the `modified_at` / `updated_at` timestamps, the deleted flags,
+>    the size of each ciphertext, iPhone push tokens and IP addresses. The timestamps show *when*
+>    someone works, though not on what.
+> 2. **Builds older than this release keep the legacy paths until they update.** They send the raw
+>    space key on every request, and they link with `tf-pair` `create` / `redeem`, which stores the
+>    raw key in `tf_pairings.space_key` for up to ten minutes. New builds never call those actions,
+>    which are due for removal. No App Store build has the legacy paths, because 1.0 is the first
+>    release. They exist only in development, TestFlight and `docs/SHARING.md` builds made before
+>    `1caee66`.
+> 3. **The one-time `tf_rekey` request sends the legacy key once.** The key isn't rotated by the
+>    move. For a space that an older build created, the server already saw that key on every earlier
+>    request, so its protection depends on nothing having kept it (a log, for instance). To start
+>    clean, use *Delete server copy…* on every device in the space, then *Turn on sync* on one
+>    (which makes a new key), and link the others to it again.
+> 4. **The match number is short.** Linking is safe against a passive server. A server that swapped
+>    the public keys would show two different numbers, unless it searched for a pair of its own keys
+>    whose numbers agree. With four digits and no commitment step in the exchange, that takes about
+>    10,000 tries, which is cheap. So a server actively attacking one linking session could obtain the
+>    key without the user noticing. The usual fix is a commitment step: one device publishes a hash
+>    of its public key before it sees the other's, which leaves an attacker one guess per link. A
+>    longer number helps on top of that. Both are code changes.
 
 ### 1.4 What never leaves the device
 
@@ -104,8 +140,9 @@ Darwin versions).
   Reply-pass state, budget and cooldown state all sit in `GuardConfig`, saved in the App Group
   (`GuardStore`). It isn't part of any sync payload. The app reads no usage reports: it has no
   DeviceActivityReport extension, and the monitor only receives threshold and interval callbacks.
-- **Settings** (`TFSettings`: tone, budgets, always-allowed sites, Mac blocked apps, the filter
-  cool-off) stay in the App Group, and they aren't synced.
+- **Settings** (`TFSettings`: tone, custom reminder text, budgets, always-allowed sites, Mac blocked
+  apps, the filter cool-off) stay in the App Group, and they aren't synced. Sync carries only the four
+  record kinds above.
 - **Boot-out details** (site name, reason) stay in the App Group. Only the daily *count* is synced,
   inside the encrypted day plan.
 - **Browsing.** The extension looks at URLs, scroll and touch events and four scroll keys (Space,
@@ -114,7 +151,8 @@ Darwin versions).
   page text, form fields or cookies, and it never sends URLs anywhere.
 - **Mac scroll watch.** It reads `scrollingDeltaY` while a listed feed app is frontmost: distance only,
   with no screen contents and no keystrokes.
-- **Notes, tasks and the brain dump**, except in their encrypted form on the sync server, as above.
+- **Notes, tasks and the brain dump**, except in their end-to-end encrypted form on the sync server
+  once sync is on, as above. With sync off, nothing goes to the server at all.
 
 ---
 
@@ -122,13 +160,14 @@ Darwin versions).
 
 Apple's definition: data is *collected* if it's "transmitted off the device in a way that allows you
 and/or your third-party partners to access it for a period longer than what is necessary to service
-the transmitted request in real time". Because of the key issue in §1.3, the developer *can*
-access the synced content, so it has to be declared. Two versions follow: **A** for the current code,
-which is the one to submit, and **B** for after the §1.3 fix.
+the transmitted request in real time". Since `1caee66` the developer can't read the synced content
+(§1.3), so the encrypted payloads are no longer declared. **Label B is the one to submit.** Label A
+is kept below only as history.
 
-### Label A: current code (submit this)
+### Label B: end-to-end sync (submit this)
 
-**Do you or your third-party partners collect data from this app?** → **Yes**
+**Do you or your third-party partners collect data from this app?** → **Yes** (iPhone), because of
+the push token.
 
 | Data type | Collected? | Linked to the user? | Used for tracking? | Purposes | Why |
 | --- | --- | --- | --- | --- | --- |
@@ -138,61 +177,61 @@ which is the one to submit, and **B** for after the §1.3 fix.
 | **Location** (precise / coarse) | No | — | — | — | No Core Location. Supabase sees IP addresses but doesn't use them to derive location |
 | **Sensitive Info** | No | — | — | — | — |
 | **Contacts** | No | — | — | — | — |
-| **User Content → Other User Content** | **Yes** | **No** | No | **App Functionality** | Task titles, breadcrumbs, the brain dump, the day's win, reflections and note bodies, encrypted, so devices can sync |
-| User Content → Emails or Text Messages / Photos or Videos / Audio / Gameplay / Customer Support | No | — | — | — | — |
+| **User Content** (all subtypes) | No | — | — | — | Task titles, breadcrumbs, the brain dump, the day's win, reflections and note bodies reach the server only end-to-end encrypted, under a key the developer never has (§1.3) |
 | **Browsing History** | No | — | — | — | The extension decides on the device and never transmits URLs |
 | **Search History** | No | — | — | — | — |
 | **Identifiers → User ID** | No (see note 2) | — | — | — | — |
-| **Identifiers → Device ID** | **Yes (iPhone record only)** | **No** | No | **App Functionality** | The APNs device token in `tf_devices`, used for silent sync wake-ups |
+| **Identifiers → Device ID** | **Yes (iPhone record only)** | **No** | No | **App Functionality** | The APNs device token in `tf_devices`, used for silent sync wake-ups, stored once sync is on |
 | **Purchases** | No | — | — | — | — |
-| **Usage Data → Product Interaction** | **Yes** | **No** | No | **App Functionality** | The focus timeline: when sessions start and end, their mode and outcome, focus seconds and the boot-out count, encrypted, so devices can sync |
+| **Usage Data → Product Interaction** | No (see note 3) | — | — | — | The focus timeline is in the encrypted payloads |
 | Usage Data → Advertising Data / Other Usage Data | No | — | — | — | — |
 | **Diagnostics** (crash, performance, other) | No | — | — | — | No crash SDK. Apple's own crash reports don't count |
 | **Surroundings / Body** | No | — | — | — | — |
 | **Other Data** | No | — | — | — | — |
 
-The **Mac record** gets the same answers, but **without Device ID**, because the Mac never registers a
-push token.
+The **Mac record**, if there ever is one (the Mac app ships as a Developer ID download, see
+`docs/RELEASE.md`), answers **Data Not Collected**: the Mac never registers a push token.
 
 **Notes on the judgement calls:**
 
 1. **"Not linked to the user."** There's no account, name, email or phone number. The only key is a
-   random space hash that the developer can't tie to a person. Apple counts data as linked when it's
-   tied to "the user's identity (via their account, device, or other details)". A random space with no
-   identity data qualifies as de-identified. The conservative alternative is to mark the three types as
-   *Linked to You*, and if you'd rather never have to defend the call, do that. The label then reads
-   worse but stays safe.
-2. **User ID.** The space hash is an assigned ID for a *group of devices*. It's used only to keep one
-   person's records apart from another's, never on its own, and it's covered by the types above. Most
-   anonymous-sync apps don't declare it separately. Declare it (App Functionality, not linked) if you
-   took the conservative route in note 1.
-3. **The APNs token as Device ID.** Apple doesn't say whether push tokens count. Declaring it is
+   random space ID (a hash of the access token) that the developer can't tie to a person. Apple
+   counts data as linked when it's tied to "the user's identity (via their account, device, or other
+   details)". A random space with no identity data qualifies as de-identified. The conservative
+   alternative is to mark Device ID as *Linked to You*. The label then reads worse but stays safe.
+2. **User ID.** The space ID is an assigned ID for a *group of devices*. It's used only to keep one
+   person's records apart from another's. Most anonymous-sync apps don't declare it separately.
+   Declare it (App Functionality, not linked) if you took the conservative route in note 1.
+3. **Plaintext metadata.** Record `kind`, `modified_at` and `updated_at` are in plain text, so the
+   server can tell *when* someone works, though not on what. That isn't the "app launches, taps,
+   clicks" Apple lists under Product Interaction, so this label leaves it out. If you'd rather not
+   defend that, declare **Usage Data → Product Interaction** (App Functionality, not linked, not
+   tracking). It costs little.
+4. **The APNs token as Device ID.** Apple doesn't say whether push tokens count. Declaring it is
    the cautious choice and costs little.
-4. **IP addresses** seen by Supabase aren't a data type in Apple's list unless you use them, for
+5. **IP addresses** seen by Supabase aren't a data type in Apple's list unless you use them, for
    example to derive location. The code doesn't.
-5. **Apple Music, APNs and Apple Intelligence** are Apple's services. Data Apple handles under its
+6. **Apple Music, APNs and Apple Intelligence** are Apple's services. Data Apple handles under its
    own policy isn't declared by the developer.
+7. **Keep the privacy manifests in step.** `PrivacyManifests/iOSApp/PrivacyInfo.xcprivacy` and
+   `PrivacyManifests/MacApp/PrivacyInfo.xcprivacy` still declare
+   `NSPrivacyCollectedDataTypeOtherUserContent`, which matches Label A. Before you submit Label B,
+   remove it from both (keep `NSPrivacyCollectedDataTypeDeviceID` on iPhone), or keep declaring Other
+   User Content in the label too. The label and the manifests shouldn't disagree.
 
-### Label B: after the §1.3 fix (key never sent to the server, pairing doesn't reveal it)
+### Label A: before end-to-end sync (history, don't submit)
 
-Once the server can't decrypt anything, the payloads are no longer accessible to the developer:
-
-| Data type | Collected? | Linked? | Tracking? | Purpose |
-| --- | --- | --- | --- | --- |
-| Identifiers → Device ID (iPhone) | Yes | No | No | App Functionality |
-| Everything else | No | — | — | — |
-
-Even then, keep declaring Product Interaction if you add any plaintext metadata. The record
-`kind` and `modified_at` timestamps already reveal *when* someone works. Declaring that is
-defensible either way.
+Until `1caee66`, every request carried the raw space key, and linking stored it in `tf_pairings`, so
+the developer *could* have decrypted the payloads. Label A therefore declared **User Content → Other
+User Content** and **Usage Data → Product Interaction** (both App Functionality, not linked, not
+tracking) as well as **Identifiers → Device ID** (iPhone). It no longer describes the App Store build.
 
 ---
 
 ## 3. Privacy policy (ready to host)
 
 > Replace every `[BRACKETED]` placeholder. Host it at the Privacy Policy URL in `listing.md`.
-> It describes the **current** code (Label A). Update the "How sync works" section if you ship the
-> §1.3 fix.
+> It describes the end-to-end sync shipped since `1caee66` (Label B).
 
 ```markdown
 # TrueFocus Privacy Policy
@@ -207,8 +246,10 @@ iPhone and Mac and the TrueFocus browser extension for Safari and Chrome.
 - There's no account. We never ask for your name, email or phone number.
 - There are no ads, no analytics, no tracking and no third-party SDKs.
 - Your Screen Time choices, your app usage and your browsing stay on your device.
-- To keep your iPhone and Mac in step, TrueFocus uploads your tasks, notes and focus timeline to
-  our sync server. It encrypts them on your device first. The server stores only the encrypted copy.
+- Sync between your iPhone and Mac is off until you turn it on. When it's on, your tasks, notes and
+  focus timeline are end-to-end encrypted: they're sealed on your device with a key that stays on
+  your devices, and we can't read them.
+- You can turn sync off, or delete everything on our server, in Settings ▸ Sync.
 
 ## What stays on your device
 
@@ -223,35 +264,40 @@ iPhone and Mac and the TrueFocus browser extension for Safari and Chrome.
   you visit anywhere. On a Mac, it talks only to the TrueFocus app on the same Mac.
 - **Scrolling on the Mac.** While a feed app is in front, the Mac app counts how far you scroll.
   It never reads what's on screen or what you type.
-- **Settings**, including your tone, budgets and allowed sites.
+- **Settings**, including your tone, your own reminder words, budgets and allowed sites.
 - **Turning a brain dump into tasks** uses Apple Intelligence on your device when it's available.
   Nothing is sent to us or to anyone else for this.
+- **Everything, while sync is off.** With sync off, TrueFocus sends nothing to our server until
+  you turn it on or link a device.
 
-## What we receive, and why
+## What we receive when sync is on, and why
 
 TrueFocus syncs your devices through a server we run on Supabase ([SUPABASE REGION, e.g. "the
-EU (Frankfurt)" — check in the Supabase dashboard]). The server receives:
+EU (Frankfurt)" — check in the Supabase dashboard]). When you turn sync on, your device makes a
+random key and keeps it in its Keychain. That key never leaves your devices. The server receives:
 
 - **Your tasks, notes and day plans** (task titles, notes, the morning brain dump, the day's win,
-  your reflection) and **your focus timeline** (when each session started and ended, and how it
-  ended). All of this is **encrypted on your device** with AES-256-GCM before it's uploaded. The
-  server stores only the encrypted copy.
+  your reflection) and **your focus timeline**, **end-to-end encrypted** with AES-256-GCM on your
+  device before upload. The server stores only the encrypted copy. We don't have the key and
+  can't decrypt it.
 - **Record details the server needs to sync:** a random ID for each record, its type (task, note,
-  session or day), when it was last changed, and whether it was deleted.
-- **A sync ID:** a fingerprint (SHA-256 hash) of a random key your device creates. It ties your
-  linked devices together. It isn't connected to your name or any account.
+  session or day), when it was last changed, and whether it was deleted. These aren't encrypted, so
+  we could see how many records you have and when they changed, though not what they say.
+- **A sync ID:** a fingerprint (SHA-256 hash) of an access code your device derives from its key.
+  It ties your linked devices together. It isn't connected to your name or any account, and the
+  key can't be worked out from it.
 - **On iPhone, a push token**, so the server can silently wake your phone to sync when your Mac
   changes something. The wake-up carries no content.
+- **When you link a device:** a six-digit code, a public key from each device, and your key sealed
+  so that only the device you're linking can open it. Both screens show the same four-digit number
+  before anything is sent. This is deleted once the new device has the key. If linking doesn't
+  finish, the code stops working after ten minutes and the record is cleared out after that.
 - **The usual connection details,** such as your IP address, which our hosting provider sees on
   every internet request.
 
-**How the encryption key is handled.** The random key lives in your device's Keychain. Your device
-also sends it to the server with each sync request, over an encrypted connection, so the server
-can check which sync space you belong to. The server keeps only its fingerprint, not the key
-itself. When you link a new device, the key is held on the server for up to about ten minutes
-until the six-digit code is used. This means our server *could* technically decrypt your data,
-though we never do. For that reason we describe sync as "encrypted on your device", not
-"end-to-end encrypted".
+**If your device used an earlier version of TrueFocus,** it sends its old key to the server once,
+over an encrypted connection, to move your synced data to the new end-to-end scheme. After that,
+the key never leaves your devices.
 
 We use this data only to sync your devices. We don't sell it, share it, use it for advertising,
 or combine it with other data.
@@ -273,21 +319,32 @@ No one else.
 
 ## How long we keep it
 
-Encrypted records stay on the server while your devices use them. When you delete a task or note,
-its encrypted content is removed from the server and a small "deleted" marker remains so your other
-devices delete it too. [RETENTION POLICY: e.g. "Records in a sync space with no activity for 12
-months are deleted." Add this once a cleanup job exists. See the note for the owner below.]
+Encrypted records stay on the server while your devices use them, or until you delete them in
+Settings ▸ Sync. When you delete a task or note, its encrypted content is removed from the server
+and a small "deleted" marker remains so your other devices delete it too. [RETENTION POLICY: e.g.
+"Records in a sync space with no activity for 12 months are deleted." Add this once a cleanup job
+exists. See the note for the owner below.]
 
 ## Your choices
 
+- **Leave sync off.** It's off until you turn it on in Settings ▸ Sync. TrueFocus works fully on
+  one device without it.
+- **Turn sync off on a device:** Settings ▸ Sync ▸ **Turn off here**. That device stops sending
+  anything. It keeps its key, so turning sync back on carries on where it was. What's already on the
+  server stays there until you delete it.
+- **Delete your data from the server:** Settings ▸ Sync ▸ **Delete server copy…** deletes every
+  synced record and push token for your sync space right away, turns sync off on that device and
+  forgets its key. Your devices keep their own copies. Other linked devices that still have sync on
+  will upload their future changes again, so turn sync off or delete the server copy on each of them
+  too.
 - **Don't grant Screen Time access,** or revoke it any time in Settings ▸ Screen Time. The task flow
   still works without it.
 - **Remove the extension** any time from Safari or Chrome settings.
-- **Delete your data from the server:** email [CONTACT EMAIL] with the **Sync ID** shown in
-  TrueFocus ▸ Settings ▸ Sync (eight characters, the same on every linked device). We'll delete every
-  record in that space within [30] days. Deleting the app removes everything on that device.
+- **Deleting the app** removes everything on that device.
 - **Access, correction and portability:** your data is on your devices in readable form. On the
-  server it's encrypted, so all we could give you is ciphertext.
+  server it's end-to-end encrypted, so we can't read it or hand you anything but ciphertext. We also
+  can't find your sync space from the Sync ID shown in Settings, so please use **Delete server copy…**
+  rather than asking us to delete it.
 
 ## Children
 
@@ -296,8 +353,9 @@ collect data from them.
 
 ## Security
 
-Connections use HTTPS. Content is encrypted on your device with AES-256-GCM. The database only
-answers requests that carry a valid key for the matching space.
+Connections use HTTPS. Content is end-to-end encrypted on your device with AES-256-GCM, under a
+key that never leaves your devices. The database only answers requests that carry the access code
+for the matching sync space.
 
 ## Changes
 
@@ -310,20 +368,25 @@ If this policy changes, we'll update the date above and say what changed in the 
 
 **Notes for the owner before hosting:**
 
-- **Retention.** Nothing in `supabase/` ever deletes rows. `revoke delete` stops clients
-  deleting rows, and there's no scheduled cleanup. Either add one (a `pg_cron` job that deletes spaces
-  idle for 12 months) and state it, or write "until you ask us to delete it".
-- **The deletion promise needs a procedure.** The Sync ID shown in Settings is the first 8 hex
-  characters of `SHA-256(spaceKey)`, and `tf_records.space` starts with exactly those. So:
-  `delete from tf_records where space like '<id>%'; delete from tf_devices where space like '<id>%';`
-  Eight hex characters could in theory match two spaces, so check the row counts before deleting.
-- **There's no switch to turn sync off.** A privacy-minded user can't opt out. Consider an "Off"
-  switch in Settings ▸ Sync, plus an "Erase my data from the server" button that tombstones all records,
-  or better, a `tf-erase` edge function that deletes the space.
+- **Retention.** Nothing in `supabase/` deletes rows on a schedule. `tf_delete_space` deletes a
+  space when a device asks, but a space whose devices are all lost stays forever, because no one
+  can call it any more. Either add a cleanup job (a `pg_cron` job that deletes spaces idle for 12
+  months) and state it, or write "until you delete it in Settings ▸ Sync".
+- **Deletion requests by email can't be served by Sync ID any more.** The Sync ID in Settings is the
+  first 8 hex characters of `SHA-256(space key)`. The server's `space` is now `SHA-256(access token)`,
+  so the two no longer match, and the old `space like '<id>%'` procedure finds nothing. That's why the
+  policy points to **Delete server copy…**. Someone who has lost every device can't be helped, beyond
+  the retention job above.
+- **"Turn off here" leaves the push token on the server**, so other iPhones in the space keep sending
+  silent pushes to this one. It ignores them while sync is off. The policy above doesn't claim the
+  token is removed.
+- **The four-digit match number** (§1.3, caveat 4): the policy says both screens show the same
+  number. It doesn't promise that a hostile server can't defeat it, and it shouldn't until the
+  linking exchange gets a commitment step.
 - The Supabase project is **shared with another app (ListingLine)**, according to the migration header and
   `docs/SETUP.md`. That's fine legally, since it's the same controller, but anyone with access to that
-  project can see the TrueFocus tables. The access group for the project is also the access
-  group for TrueFocus users' data.
+  project can see the TrueFocus tables (ciphertext and metadata). The access group for the project is
+  also the access group for TrueFocus users' sync metadata.
 
 ---
 

@@ -1,7 +1,9 @@
 # App Store listing: TrueFocus 1.0
 
 The App Store Connect metadata for the iPhone app and the Mac app. Every claim here was checked
-against the code on `main` at `1da5526` (see "Claims checked" at the end). The copy for each field
+against the code on `main` at `1da5526` (see "Claims checked" at the end). The sync and tone
+claims were checked again after `1caee66` (end-to-end sync), `11f3952` (Direct default) and
+`7721c30` (custom reminders). The copy for each field
 sits in a code block so you can paste it as it is. Character counts include spaces and
 were measured, not estimated.
 
@@ -64,7 +66,7 @@ With Universal Purchase, use the iPhone name and subtitle for both.
 One task on screen. The feeds out of reach. Nudges that get blunter the longer you drift. Start the day with a blank page, end it with a scoreboard.
 ```
 
-### Description (limit 4000): 3,738 chars
+### Description (limit 4000): 3,883 chars
 
 ```
 Momentum, not minutes.
@@ -96,7 +98,7 @@ ON YOUR LOCK SCREEN
 A Live Activity and the Dynamic Island show the task and a live clock, with Done, Stuck and Pause buttons that work without unlocking. There are widgets for the Home Screen and Lock Screen and controls for Control Center and the Action Button, and Siri understands "Done in TrueFocus".
 
 YOUR TONE
-Choose how hard the nudges hit: Calm, Direct or Savage. Savage doesn't soften anything.
+Choose how hard the nudges hit: Calm, Direct (the default) or Savage, which uses strong language, so it's opt-in. Or put any nudge in your own words, with {task} for the task's name.
 
 SOUND
 Optional studio cues for done, rest and back-to-it, a calm river under rests, and three original focus tracks that keep playing when the screen locks. Apple Music subscribers can play a focus playlist instead.
@@ -105,7 +107,7 @@ NOTES
 Fast notes with headings, bullets and checklists, right beside your day.
 
 IPHONE AND MAC
-Link your devices once with a six-digit code. There's no account and no sign-up. Start a task on the Mac and it appears on your iPhone's Lock Screen. Your tasks, notes and timeline are encrypted on your device before they're uploaded, and the sync server stores only the encrypted copy. No ads, no analytics, no tracking.
+End-to-end encrypted sync, off until you turn it on. Link your devices once with a six-digit code and check that both screens show the same four-digit number. No account, no sign-up. Start a task on the Mac and it appears on your iPhone's Lock Screen. Your tasks, notes and timeline are sealed with a key that never leaves your devices. No ads, no analytics, no tracking.
 
 HONEST LIMITS
 iOS doesn't let any app see inside another app, so on iPhone, native apps are guarded by time, not by counting scrolls. Reels can't be removed from inside the Instagram app. Shield the app, and reply from instagram.com in Safari instead. Everything TrueFocus switches on can be undone in iOS Settings. It's your device.
@@ -129,7 +131,7 @@ no clinical claim and the term would invite one. If you swap one keyword out, "d
 ### What's New in 1.0
 
 ```
-The first release. Empty your head, pick the win, attack one task at a time. Screen Time shields, a daily scroll budget, an adult-content filter with a 24-hour cool-off, and a Safari extension that takes the feed out of Instagram, YouTube, Facebook and LinkedIn. Lock Screen Live Activity, widgets, and sync with the Mac app.
+The first release. Empty your head, pick the win, attack one task at a time. Screen Time shields, a daily scroll budget, an adult-content filter with a 24-hour cool-off, and a Safari extension that takes the feed out of Instagram, YouTube, Facebook and LinkedIn. Lock Screen Live Activity, widgets, and end-to-end encrypted sync with the Mac app.
 ```
 
 (App Store Connect doesn't show "What's New" for a first version. Keep this for the 1.0 release
@@ -151,7 +153,7 @@ Health & Fitness is another possible secondary category, but it pulls the app to
 | --- | --- |
 | Support URL (required) | `https://[WEBSITE]/support` |
 | Marketing URL (optional) | `https://[WEBSITE]` |
-| Privacy Policy URL (required) | `https://[WEBSITE]/privacy` (host the policy in `privacy.md` §2 there) |
+| Privacy Policy URL (required) | `https://[WEBSITE]/privacy` (host the policy in `privacy.md` §3 there) |
 | Copyright | `© 2026 [LEGAL NAME OF SELLER]` |
 | Price | `[DECIDE]`. The code has no in-app purchase or subscription. |
 | Sign-in required for review | **No.** There are no accounts. |
@@ -171,7 +173,7 @@ macOS Focus.
 One task in your menu bar. Feed apps hidden while you work. A full-screen wake-up when you start doom-scrolling. Done is one hotkey away: ⌥⌘D.
 ```
 
-### Description (limit 4000): 2,672 chars
+### Description (limit 4000): 2,817 chars
 
 ```
 Momentum, not minutes.
@@ -199,7 +201,7 @@ JUGGLE WITHOUT LOSING THE THREAD
 Keep several tasks in play and switch with one tap or ⌥⌘K. Each one keeps a "where I left off" note.
 
 YOUR TONE
-Calm, Direct or Savage. Choose how hard the nudges hit.
+Calm, Direct (the default) or Savage, which uses strong language and is opt-in. Choose how hard the nudges hit, or write your own words for any nudge.
 
 SOUND
 Optional studio cues, a calm river under rests, and three original focus tracks.
@@ -208,7 +210,7 @@ NOTES
 Fast notes with headings, bullets and checklists.
 
 WITH YOUR IPHONE
-Link your devices once with a six-digit code. There's no account and no sign-up. Start a task on the Mac and it appears on your iPhone's Lock Screen. Your tasks, notes and timeline are encrypted on your device before they're uploaded, and the sync server stores only the encrypted copy. No ads, no analytics, no tracking.
+End-to-end encrypted sync, off until you turn it on. Link your devices once with a six-digit code and check that both screens show the same four-digit number. No account, no sign-up. Start a task on the Mac and it appears on your iPhone's Lock Screen. Your tasks, notes and timeline are sealed with a key that never leaves your devices. No ads, no analytics, no tracking.
 
 HONEST LIMITS
 TrueFocus raises the walls; you own the Mac. Everything it does can be undone in Settings or by quitting it. For an extra layer, macOS's own Screen Time can limit adult websites. TrueFocus shows you where.
@@ -236,7 +238,7 @@ productivity,doomscroll,distraction,detox,planner,todo,timer,hotkey,brain dump,b
 ### What's New in 1.0 (Mac)
 
 ```
-The first release. A menu bar focus flow with global hotkeys, feed apps hidden while you work, a scroll guard with a full-screen wake-up, a Safari extension that takes the feed out of the web, and sync with the iPhone app.
+The first release. A menu bar focus flow with global hotkeys, feed apps hidden while you work, a scroll guard with a full-screen wake-up, a Safari extension that takes the feed out of the web, and end-to-end encrypted sync with the iPhone app.
 ```
 
 ### Categories (Mac)
@@ -263,17 +265,22 @@ URLs: the same as the iPhone app.
 | Siri "Done in TrueFocus" | `AppShortcuts.swift` phrases |
 | Music keeps playing when locked | `UIBackgroundModes: audio`, `.playback` session while music or rest ambience plays |
 | No ads, analytics or tracking | No third-party SDK: `Package.swift` has no dependencies, there are no analytics imports, and the only network calls are to Supabase, plus Apple's services (APNs from the server, MusicKit if chosen) |
-| "Encrypted on your device before upload; server stores only the encrypted copy" | `SyncCipher` (AES-GCM, HKDF-SHA256 from the space key); `tf_records.data` holds ciphertext |
+| "End-to-end encrypted sync"; "sealed with a key that never leaves your devices" | `SyncCipher` seals payloads with AES-GCM under `HKDF(spaceKey, "payload.v1")`; requests carry only `SyncAccess.token`, `HKDF(spaceKey, "access.v1")`, and the server stores its SHA-256; `tf_records.data` holds ciphertext. The raw key travels once, in an older device's `tf_rekey` move (no App Store build ever had the legacy paths) |
+| "Off until you turn it on" | `SyncService.isEnabled` is false on a new install until *Turn on sync* or *Enter a code* (`SyncSettingsSection`). Devices that synced before stay on |
+| "Six-digit code", "both screens show the same four-digit number" | `tf-pair` codes are six digits; `PairingSecret.session` derives a four-digit match number on both sides, and the host sends the sealed key only after *They match* |
+| "Direct (the default)", Savage "uses strong language" and is opt-in | `TFSettings.tone = .direct`; `NudgeTone.savage.note` = "Strong language" |
+| "Put any nudge in your own words, with {task}" | `CustomReminders` (ten moments, `{task}` placeholder), Settings ▸ *Your own words* (`CustomRemindersSection`) |
 | Mac hides apps but quits nothing | `DistractionGuard` calls only `NSRunningApplication.hide()` |
 | Mac scroll guard counts distance, not content | `ScrollWatch` reads `scrollingDeltaY` from a global scroll-wheel monitor, only while a listed feed app is frontmost |
 
 **Left out on purpose:**
 
-- **"End-to-end encrypted"** (the README uses it). The sync payloads are encrypted, but the key
-  they're encrypted with is derived from the space key, and that space key is sent to the server in
-  the `x-tf-space` header on every request. It's also held in plain text in `tf_pairings` for up
-  to 10 minutes while linking. The server operator could therefore decrypt the data. Don't claim
-  end-to-end encryption until that changes. `privacy.md` §1.3 describes the fix.
+- **"Even we can't see when you work"** or "zero knowledge". Record kinds, IDs and timestamps are
+  in plain text on the server (`privacy.md` §1.3, caveat 1). "End-to-end encrypted" is accurate for
+  the content; don't stretch it to the metadata.
+- **"Linking can't be intercepted"** or "verified linking". The four-digit match number stops a
+  naive key swap, but with no commitment step a server attacking a link on purpose could find
+  matching numbers (`privacy.md` §1.3, caveat 4).
 - **"Blocks Reels in the Instagram app."** It doesn't, and the README says so.
 - **Specific scroll counts on iPhone native apps.** iPhone native apps are guarded by time only.
 - **"Works without the app"** for the Chrome extension on the iPhone listing. Not relevant there.

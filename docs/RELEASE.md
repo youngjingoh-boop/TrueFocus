@@ -138,23 +138,22 @@ Never commit the `.p8`, the `.p12` files or their passwords. `Config/Base.xcconf
 
 You can do this while waiting for Family Controls.
 
-**App Privacy** (App ▸ App Privacy ▸ *Get Started*). Answer to match the privacy manifests in `PrivacyManifests/`:
+**App Privacy** (App ▸ App Privacy ▸ *Get Started*). Use **Label B** in [`docs/appstore/privacy.md`](appstore/privacy.md) §2:
 
-- *Do you collect data?* **Yes.** Sync is on from first launch and uploads to the TrueFocus server.
-- **User Content ▸ Other User Content**: collected; used for **App Functionality**; **not linked** to the user's identity; **not** used for tracking. (Tasks, plans and notes, encrypted on the device with AES-GCM before upload. There is no account.)
-- **Identifiers ▸ Device ID**: collected; App Functionality; not linked; not tracking. (The push token used for silent sync wake-ups.)
-- Nothing else: no contact info, location, usage data, diagnostics or purchases. Screen Time data never leaves the device.
+- *Do you collect data?* **Yes**, for the push token only. Sync is **off on a new install** and uploads nothing until the user taps *Turn on sync* or links a device with *Enter a code* (Settings ▸ Sync). When it's on, tasks, plans and notes are end-to-end encrypted: sealed with AES-GCM under a key the server never receives, so the developer can't read them and they aren't declared.
+- **Identifiers ▸ Device ID**: collected; App Functionality; not linked; not tracking. (The iPhone push token used for silent sync wake-ups, registered only while sync is on.)
+- Nothing else: no user content, contact info, location, usage data, diagnostics or purchases. Screen Time data never leaves the device. (If you'd rather declare the plaintext record timestamps, add *Usage Data ▸ Product Interaction*, not linked, App Functionality. See privacy.md §2, note 3.)
 
-If you change what the app sends, update `PrivacyManifests/*/PrivacyInfo.xcprivacy` and these answers together.
+**Before the first submission, bring the manifests in line:** `PrivacyManifests/iOSApp` and `PrivacyManifests/MacApp` still declare `NSPrivacyCollectedDataTypeOtherUserContent`, which matched the old label (from before end-to-end sync). Remove it, keep `NSPrivacyCollectedDataTypeDeviceID` on iPhone, or else declare Other User Content in App Store Connect too. If you change what the app sends, update `PrivacyManifests/*/PrivacyInfo.xcprivacy` and these answers together.
 
-**Age rating** (App Information ▸ Age Rating). Answer honestly. Note that the default nudge tone is *Savage*, which includes strong profanity ("Wake the fuck up"), so *Profanity or Crude Humor* is not "None". The app's own content has no web browsing and no user-to-user communication.
+**Age rating** (App Information ▸ Age Rating). Answer honestly. The default nudge tone is *Direct*, which has no profanity. *Savage* is opt-in, labelled "Strong language", and still says "Wake the fuck up" on its strongest lines, so *Profanity or Crude Humor* is not "None". [`docs/appstore/review-notes.md`](appstore/review-notes.md) §6 recommends *Infrequent or Mild* and explains why. The app's own content has no web browsing and no user-to-user communication.
 
 **Pricing and Availability**:
 - Set the price.
 - Under *iPhone and iPad Apps on Apple Silicon Macs*, **untick** availability: there is a dedicated Mac app, and Screen Time shielding doesn't work in the iPhone app on a Mac.
 - Untick *Apple Vision Pro* for the same reason.
 
-**Export compliance** is answered by the build: `ITSAppUsesNonExemptEncryption` is `false` because TrueFocus only uses encryption built into the OS (HTTPS through URLSession, AES-GCM through CryptoKit). TestFlight won't ask the encryption question.
+**Export compliance** is answered by the build: `ITSAppUsesNonExemptEncryption` is `false` because TrueFocus only uses encryption built into the OS (HTTPS through URLSession; AES-GCM, HKDF, SHA-256 and X25519 through CryptoKit). TestFlight won't ask the encryption question.
 
 ## 8. Run the Release workflow
 
@@ -187,7 +186,10 @@ If a run fails after the iPhone upload succeeded, use *Re-run failed jobs*, not 
    - [ ] Home Screen and Lock Screen widgets; Control Center controls; "Done in TrueFocus" with Siri.
    - [ ] Safari extension: enable it in Settings ▸ Apps ▸ Safari ▸ Extensions; Reels/Shorts are removed.
    - [ ] Apple Music focus playlist (needs an Apple Music subscription; others hear the built-in music).
-   - [ ] Sync: link the TestFlight iPhone with the notarized Mac build; a change on the Mac shows on the iPhone within seconds while it's in the background (production APNs).
+   - [ ] Sync is off on a fresh install: Settings ▸ Sync reads "Off on this device", and nothing syncs until *Turn on sync*.
+   - [ ] Sync: *Turn on sync* on the Mac, *Link a device*; on the TestFlight iPhone, *Enter a code*. Both screens show the same four-digit number; *They match* on the Mac links them. A change on the Mac shows on the iPhone within seconds while it's in the background (production APNs).
+   - [ ] *Turn off here* stops uploads on that device; *Delete server copy…* empties the space and turns sync off there.
+   - [ ] A device that synced on an older build moves its space once (`tf_rekey`) and keeps its data. Update every device before linking: new and old builds can't link to each other.
 5. TestFlight builds expire after 90 days.
 
 ## 10. Publish the Mac download
@@ -214,11 +216,11 @@ App Store Connect ▸ TrueFocus ▸ the iOS version (e.g. *1.0 Prepare for Submi
    >
    > Screen Time: Guard ▸ Enable asks for Screen Time access for this device's user (FamilyControls, `.individual`). Then pick a couple of apps under Scroll apps and start a focus session; opening one of those apps shows TrueFocus's shield naming the current task. The shield and all limits go away when the session ends, or if access is revoked in Settings ▸ Screen Time. Screen Time data stays on the device.
    >
-   > Sync: tasks and notes sync between the user's own iPhone and Mac through our server, encrypted on the device; the server only stores ciphertext. Linking a second device uses a six-digit code in Settings ▸ Sync and is optional.
+   > Sync: off until the user turns it on in Settings ▸ Sync. Then tasks and notes sync between the user's own iPhone and Mac through our server, end-to-end encrypted: the key never leaves the devices, and the server only stores ciphertext. Linking a second device is optional: a six-digit code, then both screens show the same four-digit number to confirm. Settings ▸ Sync also has *Turn off here* and *Delete server copy…*.
    >
    > The Safari extension (Settings ▸ Apps ▸ Safari ▸ Extensions ▸ TrueFocus) removes Reels/Shorts and counts scrolling on feed sites.
    >
-   > The default nudge tone, "Savage", uses strong language; Settings ▸ Voice switches to Calm or Direct.
+   > The default nudge tone is "Direct". "Savage" is opt-in in Settings ▸ Voice and uses strong language.
    >
    > Background modes: "audio" plays the focus music the user starts during a session; "remote-notification" is a silent push that tells the app new sync data is waiting.
 
@@ -311,7 +313,8 @@ Open (owner decisions or code changes outside release config):
 
 - **Family Controls (Distribution)** must be granted before any TestFlight build (step 2).
 - **MusicKit** App Service must be on for `com.youngjingoh.truefocus`, or the Apple Music playlist falls back to the built-in music (step 3b).
-- **Default tone is Savage** (strong profanity in notifications and shields by default). It's fine with an honest age rating, but consider defaulting to *Direct* for the store build.
+- ~~Default tone is Savage~~. Resolved in `11f3952`: the default is *Direct*, and Savage is opt-in with a "Strong language" label. Profanity still has to be declared in the age rating (step 7).
+- **Privacy manifests still declare Other User Content**, which no longer matches the App Privacy answers in step 7 now that sync is end-to-end. Fix the two manifests before the first submission.
 - **Login item on first launch without asking** (`macOS/App/LoginItem.swift`). Acceptable for Developer ID, but it's friendlier (and required for the Mac App Store) to ask first. Its footnote also mentions Xcode ("Run TrueFocus from Applications rather than Xcode"), which end users shouldn't see.
 - Mac `NSHumanReadableCopyright` is "Built for momentum." rather than a copyright line.
 - No auto-update for the Mac app (Sparkle).
