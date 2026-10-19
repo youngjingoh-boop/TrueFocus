@@ -474,6 +474,18 @@
 
   // ─────────────────────────────── URL classification ───────────────────────────────
 
+  /** Hosts that serve the site's app (and its inbox): the bare domain, www., m., web.… */
+  var APP_PREFIXES = ['', 'www.', 'm.', 'mobile.', 'web.', 'mbasic.', 'touch.'];
+
+  /** Where "respond" sends you: the inbox on this host if it has one, else the site's own. */
+  function respondURL(u, site) {
+    var host = u.hostname.toLowerCase();
+    var app = site.hosts.some(function (h) {
+      return APP_PREFIXES.some(function (p) { return host === p + h; });
+    });
+    return (app ? u.origin : 'https://www.' + site.hosts[0]) + site.respondPath;
+  }
+
   /**
    * What to do with a URL.
    *   adult     → wall (only while the adult filter is active)
@@ -502,17 +514,17 @@
     // Messages-only Instagram: the home feed and the story viewer land you in your DMs.
     if (eff && eff.instagramMessagesOnly && site.name === 'Instagram' &&
         (path === '/' || path === '' || path === '/stories' || path.indexOf('/stories/') === 0)) {
-      return Object.assign({ kind: 'respond', redirect: u.origin + site.respondPath }, base);
+      return Object.assign({ kind: 'respond', redirect: respondURL(u, site) }, base);
     }
     // Work-only LinkedIn: the home feed lands you in Messaging; the rest of LinkedIn is safe above.
     if (eff && eff.linkedInWorkOnly && site.name === 'LinkedIn' && isLinkedInFeed(path)) {
-      return Object.assign({ kind: 'respond', redirect: u.origin + site.respondPath }, base);
+      return Object.assign({ kind: 'respond', redirect: respondURL(u, site) }, base);
     }
     // Work-only Facebook: no feed, video or stories; pages, groups, Marketplace, events and
     // everything else stay open — unguarded, even in focus — with their posts hidden.
     if (eff && eff.facebookWorkOnly && site.name === 'Facebook') {
       if (isFacebookVideo(path)) { return Object.assign({ kind: 'shortform' }, base); }
-      if (isFacebookFeed(path)) { return Object.assign({ kind: 'respond', redirect: u.origin + site.respondPath }, base); }
+      if (isFacebookFeed(path)) { return Object.assign({ kind: 'respond', redirect: respondURL(u, site) }, base); }
       // Search results share the feed's markup; keep them so you can find a page or group.
       return Object.assign({ kind: 'safe', feedless: path.indexOf('/search') !== 0 }, base);
     }

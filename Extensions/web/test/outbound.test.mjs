@@ -81,3 +81,25 @@ test("the TikTok wall's network rules let the same pages through", () => {
     assert.notEqual(verdict(url), 'redirect', url);
   }
 });
+
+test('"respond" lands in a messages page that exists, from any subdomain', () => {
+  const e = eff();
+  const cases = {
+    'https://www.instagram.com/': 'https://www.instagram.com/direct/inbox/',
+    'https://instagram.com/': 'https://instagram.com/direct/inbox/',
+    'https://m.facebook.com/?sk=h_chr': 'https://m.facebook.com/messages/',
+    'https://web.facebook.com/': 'https://web.facebook.com/messages/',
+    'https://www.linkedin.com/feed/': 'https://www.linkedin.com/messaging/',
+    // Not app hosts: there's no inbox on them, so go to the site's own.
+    'https://about.instagram.com/': 'https://www.instagram.com/direct/inbox/',
+    'https://de-de.facebook.com/': 'https://www.facebook.com/messages/',
+    'https://about.linkedin.com/': 'https://www.linkedin.com/messaging/',
+  };
+  for (const [url, redirect] of Object.entries(cases)) {
+    const v = core.classify(url, e, {}, NOW);
+    assert.equal(v.kind, 'respond', url);
+    assert.equal(v.redirect, redirect, url);
+    // And the landing page is safe, so it never redirects again.
+    assert.equal(core.classify(redirect, e, {}, NOW).kind, 'safe', redirect);
+  }
+});
