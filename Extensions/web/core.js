@@ -466,6 +466,16 @@
     return { host: host, title: String(title || '').trim().slice(0, 200) };
   }
 
+  /**
+   * Whether the popup should say the active tab is going to the Mac app: the same conditions as
+   * tabActivity, while connected, and never on iPhone (its handler doesn't store reports).
+   */
+  function driftNoteVisible(eff, settings, connected, onIPhone) {
+    if (!connected || onIPhone) { return false; }
+    if (!eff || eff.mode !== 'focus' || !eff.task) { return false; }
+    return !(settings && settings.macDriftGuard === false);
+  }
+
   /** The task worth naming right now: the current one, or the next while resting/idle. */
   function currentTask(snapshot) {
     if (!snapshot) { return null; }
@@ -780,6 +790,7 @@
     effective: effective,
     currentTask: currentTask,
     tabActivity: tabActivity,
+    driftNoteVisible: driftNoteVisible,
     classify: classify,
     cooldownMinutes: cooldownMinutes,
     setCooldown: setCooldown,

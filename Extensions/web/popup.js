@@ -99,6 +99,9 @@
 
     renderJuggle(snapshot, connected, now);
     $('waitBtn').hidden = !(connected && mode === 'focus');
+    // Chrome Web Store Limited Use: say in the extension itself when the tab is being reported.
+    var onIPhone = /iPhone|iPad|iPod/.test(navigator.userAgent || '');
+    $('driftNote').hidden = !Core.driftNoteVisible(eff, state && state.settings, connected, onIPhone);
 
     renderAdult(eff.adult, state && state.settings, now);
 
