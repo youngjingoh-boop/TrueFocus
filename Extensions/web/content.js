@@ -105,6 +105,11 @@
     currentSite = verdict.site || null;
     // Work-only Facebook: the page stays, its posts and stories go.
     root.classList.toggle('tf-fb-feedless', !!verdict.feedless);
+    // Sites you always allow keep everything, Shorts shelves included.
+    if (verdict.allowed) {
+      root.classList.remove('tf-hide-shorts');
+      root.classList.remove('tf-ig-dm-only');
+    }
     switch (verdict.kind) {
       case 'adult': return leave(api.runtime.getURL('wall.html'));
       case 'shortform': return leave(blockedURL('shortform', verdict.site));
@@ -217,6 +222,9 @@
       return;
     }
     wheelTravel += dy;
+    // We see this gesture directly; the scroll it causes mustn't count a second time.
+    suppressFallbackUntil = now() + 1500;
+    fallbackTravel = 0;
     // A long continuous glide is chunked so it can't masquerade as a single stroke.
     if (wheelTravel >= viewport() * 2.5) {
       stroke(2.5);

@@ -154,6 +154,7 @@ final class ScreenTimeGuard: FocusEffect {
             config = GuardStore.update { config in
                 config.budgetShieldActive = false
                 config.budgetShieldUntil = nil
+                config.budgetShieldSince = nil
             }
             GuardShields.reapply(config)
         }

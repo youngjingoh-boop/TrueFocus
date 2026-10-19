@@ -6,7 +6,7 @@
  *
  * The doom-scroll detector is a 1:1 port of
  * Packages/TrueFocusKit/Sources/TrueFocusKit/DoomScroll.swift, and the site lists mirror
- * Blocklist.swift. Keep them in step — test/parity.test.mjs checks.
+ * Blocklist.swift. Keep them in step — test/rules.test.mjs and test/reminders.test.mjs check.
  */
 (function (root, factory) {
   'use strict';
@@ -175,11 +175,16 @@
   var FEED_SITES = Object.freeze([
     { name: 'Instagram', hosts: ['instagram.com'], shortFormPaths: ['/reels', '/reel', '/explore'],
       respondPath: '/direct/inbox/', safePaths: ['/direct', '/accounts', '/create'], allShortForm: false,
-      workHosts: ['business.instagram.com', 'accountscenter.instagram.com', 'help.instagram.com'] },
+      workHosts: ['business.instagram.com', 'accountscenter.instagram.com', 'help.instagram.com', 'l.instagram.com'] },
+    // youtube.com/upload opens in Studio, so Studio is work too.
     { name: 'YouTube', hosts: ['youtube.com', 'youtu.be'], shortFormPaths: ['/shorts'],
-      respondPath: null, safePaths: ['/upload', '/account'], allShortForm: false },
+      respondPath: null, safePaths: ['/upload', '/account'], allShortForm: false,
+      workHosts: ['studio.youtube.com'] },
     { name: 'TikTok', hosts: ['tiktok.com'], shortFormPaths: [],
-      respondPath: '/messages', safePaths: ['/messages', '/upload', '/tiktokstudio', '/login', '/setting'], allShortForm: true },
+      respondPath: '/messages',
+      safePaths: ['/messages', '/upload', '/tiktokstudio', '/login', '/setting', '/auth', '/v2/auth'],
+      allShortForm: true,
+      workHosts: ['ads.tiktok.com', 'business.tiktok.com', 'developers.tiktok.com', 'seller-us.tiktok.com'] },
     // Facebook's sign-in and app-login dialogs (Graph API Explorer, "Log in with Facebook")
     // are safe, so connecting a tool never hits the focus wall.
     { name: 'Facebook', hosts: ['facebook.com'], shortFormPaths: ['/reel', '/reels', '/watch', '/stories'],
@@ -190,7 +195,7 @@
         '/privacy', '/security', '/policies', '/legal'],
       allShortForm: false,
       workHosts: ['business.facebook.com', 'adsmanager.facebook.com', 'developers.facebook.com',
-        'accountscenter.facebook.com'] },
+        'accountscenter.facebook.com', 'l.facebook.com', 'lm.facebook.com'] },
     { name: 'X', hosts: ['x.com', 'twitter.com'], shortFormPaths: [],
       respondPath: '/messages', safePaths: ['/messages', '/compose', '/settings'], allShortForm: false },
     { name: 'Threads', hosts: ['threads.net', 'threads.com'], shortFormPaths: [],
@@ -205,7 +210,7 @@
         '/analytics', '/dashboard', '/post/', '/feed/update/', '/posts/', '/pulse/',
         '/newsletters', '/events', '/groups', '/learning', '/premium', '/settings',
         '/psettings', '/mypreferences', '/help', '/my-items', '/services', '/verify',
-        '/checkpoint', '/login', '/uas', '/signup', '/authwall'],
+        '/checkpoint', '/login', '/uas', '/signup', '/authwall', '/safety/go', '/redir/'],
       allShortForm: false,
       workHosts: ['business.linkedin.com', 'developer.linkedin.com', 'learn.linkedin.com'] },
     { name: 'Snapchat', hosts: ['snapchat.com'], shortFormPaths: ['/spotlight'],
@@ -247,7 +252,10 @@
     return host === suffix || host.slice(-(suffix.length + 1)) === '.' + suffix;
   }
 
-  /** Blocklist.FeedSite.matches(host:): a site's work hosts (Ads Manager…) are not the site. */
+  /**
+   * Blocklist.FeedSite.matches(host:): a site's work hosts (Ads Manager…) and link shims
+   * (l.instagram.com, which only passes a link from your DMs on) are not the site.
+   */
   function feedSiteForHost(host) {
     var h = String(host || '').toLowerCase();
     for (var i = 0; i < FEED_SITES.length; i++) {
@@ -311,6 +319,21 @@
   function isAllowedHost(host, allowedSites) {
     var h = String(host || '').toLowerCase();
     return (allowedSites || []).some(function (site) { return hostMatches(h, site); });
+  }
+
+  /**
+   * Network rules (declarativeNetRequest, dynamic) for "Always allowed": an allow rule that
+   * outranks the short-form wall (priority 1–2) but not the adult filter's rules (3).
+   */
+  var ALLOW_PRIORITY = 2;
+  function allowRules(allowedSites) {
+    var sites = [];
+    (allowedSites || []).forEach(function (site) {
+      if (typeof site === 'string' && site && sites.indexOf(site) === -1) { sites.push(site); }
+    });
+    if (!sites.length) { return []; }
+    return [{ id: 1, priority: ALLOW_PRIORITY, action: { type: 'allow' },
+      condition: { requestDomains: sites, resourceTypes: ['main_frame'] } }];
   }
 
   function isAdultHost(host) {
@@ -453,6 +476,18 @@
 
   // ─────────────────────────────── URL classification ───────────────────────────────
 
+  /** Hosts that serve the site's app (and its inbox): the bare domain, www., m., web.… */
+  var APP_PREFIXES = ['', 'www.', 'm.', 'mobile.', 'web.', 'mbasic.', 'touch.'];
+
+  /** Where "respond" sends you: the inbox on this host if it has one, else the site's own. */
+  function respondURL(u, site) {
+    var host = u.hostname.toLowerCase();
+    var app = site.hosts.some(function (h) {
+      return APP_PREFIXES.some(function (p) { return host === p + h; });
+    });
+    return (app ? u.origin : 'https://www.' + site.hosts[0]) + site.respondPath;
+  }
+
   /**
    * What to do with a URL.
    *   adult     → wall (only while the adult filter is active)
@@ -481,17 +516,17 @@
     // Messages-only Instagram: the home feed and the story viewer land you in your DMs.
     if (eff && eff.instagramMessagesOnly && site.name === 'Instagram' &&
         (path === '/' || path === '' || path === '/stories' || path.indexOf('/stories/') === 0)) {
-      return Object.assign({ kind: 'respond', redirect: u.origin + site.respondPath }, base);
+      return Object.assign({ kind: 'respond', redirect: respondURL(u, site) }, base);
     }
     // Work-only LinkedIn: the home feed lands you in Messaging; the rest of LinkedIn is safe above.
     if (eff && eff.linkedInWorkOnly && site.name === 'LinkedIn' && isLinkedInFeed(path)) {
-      return Object.assign({ kind: 'respond', redirect: u.origin + site.respondPath }, base);
+      return Object.assign({ kind: 'respond', redirect: respondURL(u, site) }, base);
     }
     // Work-only Facebook: no feed, video or stories; pages, groups, Marketplace, events and
     // everything else stay open — unguarded, even in focus — with their posts hidden.
     if (eff && eff.facebookWorkOnly && site.name === 'Facebook') {
       if (isFacebookVideo(path)) { return Object.assign({ kind: 'shortform' }, base); }
-      if (isFacebookFeed(path)) { return Object.assign({ kind: 'respond', redirect: u.origin + site.respondPath }, base); }
+      if (isFacebookFeed(path)) { return Object.assign({ kind: 'respond', redirect: respondURL(u, site) }, base); }
       // Search results share the feed's markup; keep them so you can find a page or group.
       return Object.assign({ kind: 'safe', feedless: path.indexOf('/search') !== 0 }, base);
     }
@@ -736,6 +771,7 @@
     isFacebookVideo: isFacebookVideo,
     normalizedSite: normalizedSite,
     isAllowedHost: isAllowedHost,
+    allowRules: allowRules,
     isShortFormPath: isShortFormPath,
     isAdultHost: isAdultHost,
     adultFilterActive: adultFilterActive,
