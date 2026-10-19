@@ -105,6 +105,11 @@
     currentSite = verdict.site || null;
     // Work-only Facebook: the page stays, its posts and stories go.
     root.classList.toggle('tf-fb-feedless', !!verdict.feedless);
+    // Sites you always allow keep everything, Shorts shelves included.
+    if (verdict.allowed) {
+      root.classList.remove('tf-hide-shorts');
+      root.classList.remove('tf-ig-dm-only');
+    }
     switch (verdict.kind) {
       case 'adult': return leave(api.runtime.getURL('wall.html'));
       case 'shortform': return leave(blockedURL('shortform', verdict.site));

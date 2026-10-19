@@ -321,6 +321,21 @@
     return (allowedSites || []).some(function (site) { return hostMatches(h, site); });
   }
 
+  /**
+   * Network rules (declarativeNetRequest, dynamic) for "Always allowed": an allow rule that
+   * outranks the short-form wall (priority 1–2) but not the adult filter's rules (3).
+   */
+  var ALLOW_PRIORITY = 2;
+  function allowRules(allowedSites) {
+    var sites = [];
+    (allowedSites || []).forEach(function (site) {
+      if (typeof site === 'string' && site && sites.indexOf(site) === -1) { sites.push(site); }
+    });
+    if (!sites.length) { return []; }
+    return [{ id: 1, priority: ALLOW_PRIORITY, action: { type: 'allow' },
+      condition: { requestDomains: sites, resourceTypes: ['main_frame'] } }];
+  }
+
   function isAdultHost(host) {
     var h = String(host || '').toLowerCase();
     for (var i = 0; i < ADULT_DOMAINS.length; i++) {
@@ -742,6 +757,7 @@
     isFacebookVideo: isFacebookVideo,
     normalizedSite: normalizedSite,
     isAllowedHost: isAllowedHost,
+    allowRules: allowRules,
     isShortFormPath: isShortFormPath,
     isAdultHost: isAdultHost,
     adultFilterActive: adultFilterActive,

@@ -22,6 +22,10 @@ const GOOGLE_DOMAINS = [
   'google.it', 'google.nl', 'google.co.jp', 'google.co.kr', 'google.com.br', 'google.co.in', 'google.com.mx',
 ];
 
+// The adult filter outranks everything else, "Always allowed" sites included (their
+// dynamic allow rule is priority 2, see core.allowRules).
+const ADULT_PRIORITY = 3;
+
 function redirectTo(extensionPath) {
   return { type: 'redirect', redirect: { extensionPath } };
 }
@@ -31,13 +35,13 @@ export function buildRules() {
   const adult = [
     {
       id: 1,
-      priority: 1,
+      priority: ADULT_PRIORITY,
       action: redirectTo(WALL),
       condition: { requestDomains: [...core.ADULT_DOMAINS], resourceTypes: ['main_frame'] },
     },
     {
       id: 2,
-      priority: 1,
+      priority: ADULT_PRIORITY,
       action: { type: 'block' },
       condition: { requestDomains: [...core.ADULT_DOMAINS], resourceTypes: ['sub_frame'] },
     },
@@ -50,13 +54,13 @@ export function buildRules() {
     const regexFilter = `^https?://[^/?#]*${keyword}`;
     adultKeywords.push({
       id: index + 1,
-      priority: 1,
+      priority: ADULT_PRIORITY,
       action: redirectTo(WALL),
       condition: { regexFilter, isUrlFilterCaseSensitive: false, resourceTypes: ['main_frame'] },
     });
     adultKeywords.push({
       id: index + 101,
-      priority: 1,
+      priority: ADULT_PRIORITY,
       action: { type: 'block' },
       condition: { regexFilter, isUrlFilterCaseSensitive: false, resourceTypes: ['sub_frame'] },
     });
@@ -111,19 +115,19 @@ export function buildRules() {
   const safeSearch = [
     {
       id: 1,
-      priority: 1,
+      priority: ADULT_PRIORITY,
       action: { type: 'redirect', redirect: { transform: { queryTransform: { addOrReplaceParams: [{ key: 'safe', value: 'active' }] } } } },
       condition: { requestDomains: GOOGLE_DOMAINS, urlFilter: '/search?', resourceTypes: ['main_frame'] },
     },
     {
       id: 2,
-      priority: 1,
+      priority: ADULT_PRIORITY,
       action: { type: 'redirect', redirect: { transform: { queryTransform: { addOrReplaceParams: [{ key: 'adlt', value: 'strict' }] } } } },
       condition: { requestDomains: ['bing.com'], urlFilter: '/search?', resourceTypes: ['main_frame'] },
     },
     {
       id: 3,
-      priority: 1,
+      priority: ADULT_PRIORITY,
       action: { type: 'redirect', redirect: { transform: { queryTransform: { addOrReplaceParams: [{ key: 'kp', value: '1' }] } } } },
       condition: { requestDomains: ['duckduckgo.com'], urlFilter: 'q=', resourceTypes: ['main_frame'] },
     },
