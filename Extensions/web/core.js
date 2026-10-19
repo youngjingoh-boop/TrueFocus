@@ -175,11 +175,16 @@
   var FEED_SITES = Object.freeze([
     { name: 'Instagram', hosts: ['instagram.com'], shortFormPaths: ['/reels', '/reel', '/explore'],
       respondPath: '/direct/inbox/', safePaths: ['/direct', '/accounts', '/create'], allShortForm: false,
-      workHosts: ['business.instagram.com', 'accountscenter.instagram.com', 'help.instagram.com'] },
+      workHosts: ['business.instagram.com', 'accountscenter.instagram.com', 'help.instagram.com', 'l.instagram.com'] },
+    // youtube.com/upload opens in Studio, so Studio is work too.
     { name: 'YouTube', hosts: ['youtube.com', 'youtu.be'], shortFormPaths: ['/shorts'],
-      respondPath: null, safePaths: ['/upload', '/account'], allShortForm: false },
+      respondPath: null, safePaths: ['/upload', '/account'], allShortForm: false,
+      workHosts: ['studio.youtube.com'] },
     { name: 'TikTok', hosts: ['tiktok.com'], shortFormPaths: [],
-      respondPath: '/messages', safePaths: ['/messages', '/upload', '/tiktokstudio', '/login', '/setting'], allShortForm: true },
+      respondPath: '/messages',
+      safePaths: ['/messages', '/upload', '/tiktokstudio', '/login', '/setting', '/auth', '/v2/auth'],
+      allShortForm: true,
+      workHosts: ['ads.tiktok.com', 'business.tiktok.com', 'developers.tiktok.com', 'seller-us.tiktok.com'] },
     // Facebook's sign-in and app-login dialogs (Graph API Explorer, "Log in with Facebook")
     // are safe, so connecting a tool never hits the focus wall.
     { name: 'Facebook', hosts: ['facebook.com'], shortFormPaths: ['/reel', '/reels', '/watch', '/stories'],
@@ -190,7 +195,7 @@
         '/privacy', '/security', '/policies', '/legal'],
       allShortForm: false,
       workHosts: ['business.facebook.com', 'adsmanager.facebook.com', 'developers.facebook.com',
-        'accountscenter.facebook.com'] },
+        'accountscenter.facebook.com', 'l.facebook.com', 'lm.facebook.com'] },
     { name: 'X', hosts: ['x.com', 'twitter.com'], shortFormPaths: [],
       respondPath: '/messages', safePaths: ['/messages', '/compose', '/settings'], allShortForm: false },
     { name: 'Threads', hosts: ['threads.net', 'threads.com'], shortFormPaths: [],
@@ -205,7 +210,7 @@
         '/analytics', '/dashboard', '/post/', '/feed/update/', '/posts/', '/pulse/',
         '/newsletters', '/events', '/groups', '/learning', '/premium', '/settings',
         '/psettings', '/mypreferences', '/help', '/my-items', '/services', '/verify',
-        '/checkpoint', '/login', '/uas', '/signup', '/authwall'],
+        '/checkpoint', '/login', '/uas', '/signup', '/authwall', '/safety/go', '/redir/'],
       allShortForm: false,
       workHosts: ['business.linkedin.com', 'developer.linkedin.com', 'learn.linkedin.com'] },
     { name: 'Snapchat', hosts: ['snapchat.com'], shortFormPaths: ['/spotlight'],
@@ -247,7 +252,10 @@
     return host === suffix || host.slice(-(suffix.length + 1)) === '.' + suffix;
   }
 
-  /** Blocklist.FeedSite.matches(host:): a site's work hosts (Ads Manager…) are not the site. */
+  /**
+   * Blocklist.FeedSite.matches(host:): a site's work hosts (Ads Manager…) and link shims
+   * (l.instagram.com, which only passes a link from your DMs on) are not the site.
+   */
   function feedSiteForHost(host) {
     var h = String(host || '').toLowerCase();
     for (var i = 0; i < FEED_SITES.length; i++) {

@@ -96,6 +96,15 @@ export function buildRules() {
         });
       }
     }
+    // Its work tools (TikTok Ads Manager…) live on subdomains the wall would catch.
+    for (const host of site.workHosts || []) {
+      shortform.push({
+        id: nextId++,
+        priority: 2,
+        action: { type: 'allow' },
+        condition: { urlFilter: `||${host}^`, resourceTypes: ['main_frame'] },
+      });
+    }
   }
 
   // SafeSearch everywhere. Kept separate: queryTransform support varies between engines.
