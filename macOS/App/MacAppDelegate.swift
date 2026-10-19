@@ -21,6 +21,7 @@ final class MacAppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationC
 
         controller.appBecameActive()
         SyncService.shared.start()
+        LoginItem.enableOnFirstLaunch()
     }
 
     func applicationDidBecomeActive(_ notification: Notification) {

@@ -32,19 +32,36 @@ enum SyncKeychain {
         return status == errSecMissingEntitlement ? body(false) : status
     }
 
-    static func read() -> Read {
+    private static func copy(dataProtection: Bool) -> (OSStatus, String?) {
         var result: CFTypeRef?
-        let status = run { dataProtection in
-            var request = query(dataProtection: dataProtection)
-            request[kSecReturnData as String] = true
-            request[kSecMatchLimit as String] = kSecMatchLimitOne
-            return SecItemCopyMatching(request as CFDictionary, &result)
+        var request = query(dataProtection: dataProtection)
+        request[kSecReturnData as String] = true
+        request[kSecMatchLimit as String] = kSecMatchLimitOne
+        let status = SecItemCopyMatching(request as CFDictionary, &result)
+        let key = (result as? Data).flatMap { String(data: $0, encoding: .utf8) }
+        return (status, key)
+    }
+
+    static func read() -> Read {
+        // Look in both keychains before calling the key missing. A Mac build signed one way
+        // writes to the login keychain and one signed another way reads the data-protection
+        // keychain; missing it there must not fork this device into a new space.
+        var (status, key) = copy(dataProtection: true)
+        #if os(macOS)
+        if status == errSecItemNotFound || status == errSecMissingEntitlement {
+            let modern = status
+            (status, key) = copy(dataProtection: false)
+            // Found in the login keychain while the modern one works: copy it across.
+            if status == errSecSuccess, modern == errSecItemNotFound, let key, key.count >= 32 {
+                _ = addItem(key, dataProtection: true)
+            }
         }
+        #else
+        if status == errSecMissingEntitlement { (status, key) = copy(dataProtection: false) }
+        #endif
         switch status {
         case errSecSuccess:
-            guard let data = result as? Data, let key = String(data: data, encoding: .utf8), key.count >= 32 else {
-                return .unavailable
-            }
+            guard let key, key.count >= 32 else { return .unavailable }
             return .found(key)
         case errSecItemNotFound:
             return .missing
@@ -53,18 +70,22 @@ enum SyncKeychain {
         }
     }
 
+    private static func addItem(_ key: String, dataProtection: Bool) -> OSStatus {
+        var add = query(dataProtection: dataProtection)
+        add[kSecValueData as String] = Data(key.utf8)
+        // Readable in the background once the phone has been unlocked after a restart,
+        // so a silent push can sync with the screen locked.
+        add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        return SecItemAdd(add as CFDictionary, nil)
+    }
+
     @discardableResult
     static func write(_ key: String) -> Bool {
         let status = run { dataProtection in
             let match = query(dataProtection: dataProtection)
             let update = SecItemUpdate(match as CFDictionary, [kSecValueData as String: Data(key.utf8)] as CFDictionary)
             guard update == errSecItemNotFound else { return update }
-            var add = match
-            add[kSecValueData as String] = Data(key.utf8)
-            // Readable in the background once the phone has been unlocked after a restart,
-            // so a silent push can sync with the screen locked.
-            add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-            return SecItemAdd(add as CFDictionary, nil)
+            return addItem(key, dataProtection: dataProtection)
         }
         return status == errSecSuccess
     }
@@ -110,7 +131,16 @@ enum SyncLedgerFile {
         return folder.appendingPathComponent("sync-ledger.json")
     }
 
-    private static func tag(_ spaceKey: String) -> String {
+    /// This device has synced before (its ledger names a space), so a missing key means the
+    /// link was lost, not that this is a first launch.
+    static var hasHistory: Bool {
+        guard let url, let data = try? Data(contentsOf: url) else { return false }
+        return (try? JSONDecoder().decode(Stored.self, from: data)) != nil
+    }
+
+    /// The first 16 hex digits of the space's hash, the same on every linked device (and the
+    /// start of the server's space id). Shown in Settings so two devices can be compared.
+    static func tag(_ spaceKey: String) -> String {
         SHA256.hash(data: Data(spaceKey.utf8)).prefix(8).map { String(format: "%02x", $0) }.joined()
     }
 

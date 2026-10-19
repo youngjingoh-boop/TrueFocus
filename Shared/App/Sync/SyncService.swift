@@ -24,6 +24,11 @@ final class SyncService {
 
     private(set) var status: Status
     private(set) var lastSyncAt: Date?
+    /// The key went missing on a device that had synced: it waits to be linked again instead of
+    /// quietly starting a separate space that its other devices never see.
+    private(set) var needsRelink = false
+    /// Short id of this device's space; linked devices show the same one.
+    private(set) var spaceTag: String?
 
     var isAvailable: Bool { cloud != nil }
 
@@ -111,6 +116,26 @@ final class SyncService {
         guard SyncKeychain.write(key) else { throw SyncError.notConfigured }
         await running?.value
         spaceKey = key
+        spaceTag = String(SyncLedgerFile.tag(key).prefix(8))
+        needsRelink = false
+        status = .idle
+        ledger = SyncLedger()
+        SyncLedgerFile.save(ledger, for: key)
+        registerDevice()
+        await syncNow()
+    }
+
+    /// Lost the link and there's no other device to link with: start a new space from what's
+    /// on this device.
+    func startFreshSpace() async {
+        guard cloud != nil else { return }
+        await running?.value
+        let key = SpaceKey.generate()
+        guard SyncKeychain.write(key) else { return }
+        spaceKey = key
+        spaceTag = String(SyncLedgerFile.tag(key).prefix(8))
+        needsRelink = false
+        status = .idle
         ledger = SyncLedger()
         SyncLedgerFile.save(ledger, for: key)
         registerDevice()
@@ -157,13 +182,22 @@ final class SyncService {
         case .found(let key):
             spaceKey = key
         case .missing:
+            guard !SyncLedgerFile.hasHistory else {
+                needsRelink = true
+                status = .failed("Not linked. Enter a code from your other device.")
+                return nil
+            }
             let key = SpaceKey.generate()
             guard SyncKeychain.write(key) else { return nil }
             spaceKey = key
         case .unavailable:
             return nil
         }
-        if let spaceKey { ledger = SyncLedgerFile.load(for: spaceKey) }
+        if let spaceKey {
+            ledger = SyncLedgerFile.load(for: spaceKey)
+            spaceTag = String(SyncLedgerFile.tag(spaceKey).prefix(8))
+            needsRelink = false
+        }
         registerDevice()
         return spaceKey
     }

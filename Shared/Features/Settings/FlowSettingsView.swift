@@ -20,6 +20,9 @@ struct FlowSettingsView<Extra: View>: View {
                 scrolling
                 web
                 SyncSettingsSection()
+                #if os(macOS)
+                LoginItemSection()
+                #endif
                 extra
             }
             .padding(.horizontal, TF.Space.page)
