@@ -15,6 +15,7 @@ struct FlowSettingsView<Extra: View>: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 30) {
                 voice
+                CustomRemindersSection()
                 rhythm
                 SoundSettingsSection()
                 scrolling
