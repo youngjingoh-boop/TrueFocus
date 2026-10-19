@@ -1,15 +1,18 @@
-/* TrueFocus — the page you land on instead of the feed. Always night. */
+/* TruFocus — the page you land on instead of the feed. Always night. */
 
 :root {
   --night: #050506;
   --ink: #F4F3EE;
   --ink-2: rgba(244, 243, 238, 0.62);
-  --ink-3: rgba(244, 243, 238, 0.34);
+  /* 4.9:1 on night: the detail line, caption and footer are small text. */
+  --ink-3: rgba(244, 243, 238, 0.5);
   --hair: rgba(244, 243, 238, 0.10);
   --ember: #FF5A1F;
+  /* Ember for small text on night (docs/brand: #FF7A45 on dark). */
+  --ember-text: #FF7A45;
   --think: #7C7CFF;
   --rest: #34C98E;
-  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Geist", system-ui, "Segoe UI", sans-serif;
   color-scheme: dark;
 }
 
@@ -74,14 +77,15 @@ body[data-reason="focus"]::before { background: radial-gradient(closest-side, rg
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--ember);
+  color: var(--ember-text);
 }
 
+/* The live dot is Ember. */
 .dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: currentColor;
+  background: var(--ember);
   box-shadow: 0 0 0 0 rgba(255, 90, 31, 0.5);
   animation: pulse 1.8s ease-out infinite;
 }
@@ -161,12 +165,13 @@ h1 {
   transition: transform 0.15s ease, background 0.2s ease, opacity 0.2s ease;
 }
 
-.primary { background: var(--ink); color: var(--night); }
-.primary:hover { background: #FFFFFF; }
+/* The one primary action is Ember with an Ink label, as on the shield and the Mac wake-up. */
+.primary { background: var(--ember); color: var(--night); }
+.primary:hover { background: #FF7A40; }
 .quiet { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px var(--hair); }
 .quiet:hover { box-shadow: inset 0 0 0 1px rgba(244, 243, 238, 0.24); }
 .primary:active, .quiet:active { transform: scale(0.97); }
-.primary:focus-visible, .quiet:focus-visible { outline: 2px solid var(--ember); outline-offset: 3px; }
+.primary:focus-visible, .quiet:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 
 .foot {
   position: relative;
@@ -181,7 +186,9 @@ h1 {
   letter-spacing: 0.02em;
 }
 
-.brand { font-weight: 600; color: var(--ink-2); letter-spacing: 0.08em; text-transform: uppercase; font-size: 11px; }
+.brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--ink-2); letter-spacing: 0.08em; text-transform: uppercase; font-size: 11px; }
+/* The mark's small cut (below 24 px): solid Ember ring and core, no glow. */
+.brand svg { flex: none; width: 14px; height: 14px; }
 .foot .task { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%; }
 
 [hidden] { display: none !important; }
