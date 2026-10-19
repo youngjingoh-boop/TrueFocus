@@ -118,3 +118,9 @@ final class Note {
 
     var document: NoteDocument { NoteDocument(markup: body) }
 }
+
+extension Note {
+    /// Still in the store. Once a delete is saved (here, or synced from another device)
+    /// `isDeleted` reads false again, so check the context too before touching the note.
+    var isLive: Bool { !isDeleted && modelContext != nil }
+}

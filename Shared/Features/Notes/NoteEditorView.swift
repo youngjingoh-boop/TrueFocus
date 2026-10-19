@@ -20,7 +20,7 @@ struct NoteEditorView: View {
 
     var body: some View {
         Group {
-            if isGone || note.isDeleted {
+            if isGone || !note.isLive {
                 TF.Palette.paper
             } else {
                 NoteTextView(noteID: note.id, markup: note.body, handle: handle,
@@ -128,7 +128,7 @@ struct NoteEditorView: View {
 
     private func commit(_ markup: String) {
         pendingMarkup = nil
-        guard !isGone, !note.isDeleted, note.body != markup else { return }
+        guard !isGone, note.isLive, note.body != markup else { return }
         note.body = markup
         note.updatedAt = Date()
         try? modelContext.save()
@@ -156,6 +156,7 @@ struct NoteEditorView: View {
     }
 
     private func togglePin() {
+        guard note.isLive else { return }
         note.isPinned.toggle()
         try? modelContext.save()
     }

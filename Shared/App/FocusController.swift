@@ -226,7 +226,8 @@ final class FocusController {
     func delete(_ task: FocusTask) {
         // A row can ask twice (swipe, then its text field losing focus); the second is a no-op.
         guard task.isLive else { return }
-        if let current, current.taskID == task.id {
+        // Working on it: that stops. A rest leading into it carries on into the next ready task.
+        if let current, current.mode.isWorking, current.taskID == task.id {
             close(current, at: Date(), outcome: .ended)
         }
         if pinnedNextID == task.id { pinnedNextID = nil }
@@ -247,6 +248,7 @@ final class FocusController {
 
     /// Moves a task to the top of the plan so it's next.
     func makeNext(_ task: FocusTask) {
+        guard task.isLive else { return }
         let first = openTasks.first { $0.id != nowTask?.id }?.order ?? 1
         task.order = first - 1
         task.waitingSince = nil
@@ -256,6 +258,7 @@ final class FocusController {
 
     /// The circle on a task row. Crossing off the current task completes it (and starts a rest).
     func toggleDone(_ task: FocusTask) {
+        guard task.isLive else { return }
         if task.isDone {
             task.isDone = false
             task.doneAt = nil
@@ -273,11 +276,13 @@ final class FocusController {
     }
 
     func setBreadcrumb(_ text: String, for task: FocusTask) {
+        guard task.isLive else { return }
         task.breadcrumb = text
         commit()
     }
 
     func setInPlay(_ task: FocusTask, _ inPlay: Bool) {
+        guard task.isLive else { return }
         task.inPlay = inPlay
         task.inPlayAt = inPlay ? Date() : nil
         if inPlay { trimInPlay(keeping: task) } else { task.waitingSince = nil }
@@ -289,6 +294,7 @@ final class FocusController {
     /// Adds a task to the juggle without switching to it. False when the juggle is full.
     @discardableResult
     func juggle(_ task: FocusTask) -> Bool {
+        guard task.isLive else { return false }
         if task.inPlay { return true }
         guard canJuggleMore, !task.isDone else { return false }
         setInPlay(task, true)
@@ -301,6 +307,7 @@ final class FocusController {
     }
 
     func setWaiting(_ task: FocusTask, _ waiting: Bool) {
+        guard task.isLive else { return }
         task.waitingSince = waiting ? (task.waitingSince ?? Date()) : nil
         if waiting && !task.inPlay {
             task.inPlay = true
@@ -319,7 +326,9 @@ final class FocusController {
             task.inPlay = true
             task.inPlayAt = Date()
         }
-        if let next = nextJuggled(after: task) ?? openTasks.first(where: { $0.id != task.id && $0.waitingSince == nil }) {
+        // Do Next first, as everywhere else; then the juggle; then the plan.
+        let pinned = pinnedNextID.flatMap { self.task(id: $0) }.flatMap { $0.id != task.id && !$0.isDone && $0.waitingSince == nil ? $0 : nil }
+        if let next = pinned ?? nextJuggled(after: task) ?? openTasks.first(where: { $0.id != task.id && $0.waitingSince == nil }) {
             start(next)
         } else {
             if let current { close(current, at: Date(), outcome: .switched) }
@@ -351,6 +360,8 @@ final class FocusController {
 
     /// Focus on a task. Switching from another task keeps both in play.
     func start(_ task: FocusTask) {
+        // A row, menu or dialog can still hold a task another device just deleted.
+        guard task.isLive else { return }
         let now = Date()
         if let current, current.mode == .focus, current.taskID == task.id { return }
         if let current {
@@ -633,6 +644,14 @@ final class FocusController {
         }
         refreshedDay = start
         current = openSegments.first
+        // Focus or think here on a task another device deleted: nothing left to finish, so it
+        // ends (otherwise Done, Stuck and Waiting do nothing while the clock runs on). Only this
+        // device's own segment: another device's may just be ahead of its task in the sync.
+        if let open = current, open.mode.isWorking, open.device == TFDevice.name,
+           let id = open.taskID, task(id: id) == nil {
+            close(open, at: Date(), outcome: .ended)
+            repaired = true
+        }
         // A rest with nothing left to go back to (the rest got crossed off or deleted) ends.
         if let rest = current, rest.mode == .rest, nextTask == nil {
             close(rest, at: Date(), outcome: .ended)

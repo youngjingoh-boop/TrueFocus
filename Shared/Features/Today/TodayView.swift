@@ -127,10 +127,10 @@ struct TodayView: View {
                 .environment(controller)
         }
         #if os(iOS)
-        .confirmationDialog(actionsFor?.title ?? "Task",
-                            isPresented: Binding(get: { actionsFor != nil }, set: { if !$0 { actionsFor = nil } }),
+        .confirmationDialog(liveActionsFor?.title ?? "Task",
+                            isPresented: Binding(get: { liveActionsFor != nil }, set: { if !$0 { actionsFor = nil } }),
                             titleVisibility: .visible,
-                            presenting: actionsFor) { task in
+                            presenting: liveActionsFor) { task in
             Button("Focus on This") {
                 controller.start(task)
                 controller.isFocusScreenPresented = true
@@ -156,6 +156,12 @@ struct TodayView: View {
         .sheet(isPresented: $showSettings) {
             settingsSheet
         }
+    }
+
+    /// The task whose More actions are showing, unless another device deleted it meanwhile:
+    /// a deleted model must not be read, so the dialog goes away instead.
+    private var liveActionsFor: FocusTask? {
+        actionsFor.flatMap { $0.isLive ? $0 : nil }
     }
 
     // MARK: Pieces
