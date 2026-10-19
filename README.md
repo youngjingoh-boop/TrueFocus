@@ -1,4 +1,4 @@
-# TrueFocus
+# TruFocus
 
 **Momentum, not minutes.** A focus system for iPhone and Mac that keeps one task in front of you, takes the feeds away while you work, and pulls you back when you drift.
 
@@ -25,10 +25,10 @@ Hold up to three tasks **in play** for parallel work and switch with one tap. Ea
 | **iPhone Lock Screen** | Live Activity with the task and a live clock, plus a Lock Screen widget. Buttons work without unlocking. |
 | **Dynamic Island** | Mode and timer; expand for the task and Done. |
 | **Home Screen widget** | Task, clock, progress, momentum, Done / Stuck. |
-| **Control Center & Action Button** | "Done" and "Next Task" controls; Siri: "Done in TrueFocus". |
+| **Control Center & Action Button** | "Done" and "Next Task" controls; Siri: "Done in TruFocus". |
 | **The shield** | When a blocked app opens: "Wake up. You're 23 min into ‘Investor update’." |
 
-Everything syncs through the TrueFocus server, end-to-end encrypted, no account and no iCloud storage. Link your devices once with a six-digit code, then start on the Mac and see it on the iPhone Lock Screen.
+Everything syncs through the TruFocus server, end-to-end encrypted, no account and no iCloud storage. Link your devices once with a six-digit code, then start on the Mac and see it on the iPhone Lock Screen.
 
 ## Cutting out distractions
 
@@ -38,14 +38,14 @@ Everything syncs through the TrueFocus server, end-to-end encrypted, no account 
 | **Doom-scroll guard** | Screen Time usage budget: after *N* minutes in your scroll apps you're booted out for a cooldown. | Native feed apps: scroll strokes are counted; skim, binge or linger and you're booted out with a full-screen wake-up. |
 | **Browser** | Safari extension: scroll strokes counted on feed sites; Reels, Shorts and TikTok removed; Instagram opens to your DMs only. | Same extension in Safari, Chrome, Arc, Brave, Edge. |
 | **Still need to reply** | Shield button **Reply · 2 min** on apps you mark as messaging apps (limited passes per day). | Instagram web stays usable for DMs, minus the feed. |
-| **Notifications** | Use a system Focus with the TrueFocus filter; with *Share Across Devices*, turning it on from the Mac silences and shields the iPhone too. | Optional Shortcuts hook flips the Focus when a session starts. |
+| **Notifications** | Use a system Focus with the TruFocus filter; with *Share Across Devices*, turning it on from the Mac silences and shields the iPhone too. | Optional Shortcuts hook flips the Focus when a session starts. |
 | **Adult sites** | On by default: Screen Time web-content filter + the extension's blocklist. Turning it off takes a 24-hour cool-off. | The extension's blocklist, plus a guide to macOS's built-in filter. |
 
 ### Honest limits
 
 - iOS doesn't let any app see inside another app, so on iPhone **native** apps are guarded by time budgets, not scroll counts. Scroll counting runs in browsers and in feed apps on the Mac.
 - Reels can't be removed from inside the Instagram iPhone app. The playbook: shield the app during work, and reply from instagram.com in Safari, where the extension strips Reels, Explore and the feed.
-- TrueFocus raises the walls; you own the device. Everything can be undone through system settings. For an extra layer, switch on Screen Time's own *Limit Adult Websites* on both devices — the setup guide shows where.
+- TruFocus raises the walls; you own the device. Everything can be undone through system settings. For an extra layer, switch on Screen Time's own *Limit Adult Websites* on both devices — the setup guide shows where.
 
 ## Build it
 

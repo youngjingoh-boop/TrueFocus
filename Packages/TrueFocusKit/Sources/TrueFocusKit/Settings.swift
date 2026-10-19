@@ -55,8 +55,8 @@ public struct TFSettings: Codable, Equatable, Sendable {
     // Mac
     /// Run Shortcuts named below to flip a macOS Focus (which syncs to iPhone) on and off.
     public var macRunFocusShortcuts: Bool = false
-    public var macFocusOnShortcut: String = "TrueFocus On"
-    public var macFocusOffShortcut: String = "TrueFocus Off"
+    public var macFocusOnShortcut: String = "TruFocus On"
+    public var macFocusOffShortcut: String = "TruFocus Off"
     public var menuBarShowsTimer: Bool = true
     public var macWatchNativeScrolling: Bool = true
     public var macWatchBrowsers: Bool = true

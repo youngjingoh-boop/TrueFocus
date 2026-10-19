@@ -1,6 +1,6 @@
 # Sound
 
-TrueFocus ships its own sound so the moments of a flow feel like something: a chime when a task
+TruFocus ships its own sound so the moments of a flow feel like something: a chime when a task
 is crossed off, an airy swell into a micro-rest, a lift back into focus, a gong when the day is
 shut down. All of it is optional (Settings ▸ Sound) and plays only on the device you acted on.
 
@@ -30,7 +30,7 @@ encoded to AAC 256 kbps.
 | Pulse | `tf_music_pulse.m4a` | Liquid drum & bass, 172 BPM |
 | Flow | `tf_music_flow.m4a` | Lo-fi house, 112 BPM |
 
-Original instrumentals made for TrueFocus with ElevenLabs Music (v2.5). Each was picked from four
+Original instrumentals made for TruFocus with ElevenLabs Music (v2.5). Each was picked from four
 takes for steady energy (no breakdowns), cut to a whole number of bars on the beat grid with a
 crossfade so the ~171 s loop has no seam, and mastered to −16 LUFS / AAC 192 kbps.
 

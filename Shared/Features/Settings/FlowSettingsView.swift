@@ -117,7 +117,7 @@ struct FlowSettingsView<Extra: View>: View {
     // MARK: Web
 
     private var web: some View {
-        SettingsSection("On the web", footnote: "Applied by the TrueFocus browser extension in Safari and Chrome.") {
+        SettingsSection("On the web", footnote: "Applied by the TruFocus browser extension in Safari and Chrome.") {
             ToggleRow(title: "Remove Reels, Shorts and TikTok", isOn: controller.binding(\.hideShortForm))
             ToggleRow(title: "Instagram opens to messages only", isOn: controller.binding(\.instagramMessagesOnly))
             ToggleRow(title: "LinkedIn for work only",

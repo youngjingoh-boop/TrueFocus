@@ -30,7 +30,7 @@ struct MenuBarLabel: View {
             Image(systemName: symbol(for: snapshot))
             Text(text(for: snapshot, now: clock.now))
         }
-        .accessibilityLabel("TrueFocus: \(text(for: snapshot, now: clock.now))")
+        .accessibilityLabel("TruFocus: \(text(for: snapshot, now: clock.now))")
     }
 
     private func symbol(for snapshot: LiveSnapshot) -> String {

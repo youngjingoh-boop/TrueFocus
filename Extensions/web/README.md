@@ -1,4 +1,4 @@
-# TrueFocus web extension
+# TruFocus web extension
 
 One Manifest V3 extension, used unchanged by Safari (iPhone and Mac) and by
 Chrome-family browsers on the Mac (Chrome, Arc, Brave, Edge, Vivaldi, Dia).
@@ -17,7 +17,7 @@ Chrome-family browsers on the Mac (Chrome, Arc, Brave, Edge, Vivaldi, Dia).
   `Packages/TrueFocusKit`. Burst, binge or dwell: a toast warns you, then a full-screen
   overlay boots you out to `blocked.html` and the site cools down for 10 minutes
   (20 if it happened during focus).
-- **Focus closes the feeds.** While a focus or think segment runs in the TrueFocus app,
+- **Focus closes the feeds.** While a focus or think segment runs in the TruFocus app,
   every feed site is closed except its messages and settings pages.
 - **Adult content filter.** On by default (`rules_adult.json`,
   `rules_adult_keywords.json`, plus SafeSearch in `rules_safesearch.json`). Turning it off
@@ -64,16 +64,16 @@ extension still works on its defaults.
 1. Generate the icons if they aren't there yet (the Xcode build does this).
 2. Open `chrome://extensions`, switch on **Developer mode**.
 3. **Load unpacked** → choose this `Extensions/web` folder.
-4. Keep the TrueFocus Mac app running so the extension can see your current task.
+4. Keep the TruFocus Mac app running so the extension can see your current task.
 
 ## Safari
 
 The `TrueFocusSafariiOS` and `TrueFocusSafariMac` targets bundle this folder. After
 installing the app:
 
-- **iPhone:** Settings ▸ Apps ▸ Safari ▸ Extensions ▸ TrueFocus ▸ allow, and set
+- **iPhone:** Settings ▸ Apps ▸ Safari ▸ Extensions ▸ TruFocus ▸ allow, and set
   *All Websites* to **Allow**.
-- **Mac:** Safari ▸ Settings ▸ Extensions ▸ TrueFocus ▸ enable, then **Always Allow on
+- **Mac:** Safari ▸ Settings ▸ Extensions ▸ TruFocus ▸ enable, then **Always Allow on
   Every Website**.
 
 ## Tests

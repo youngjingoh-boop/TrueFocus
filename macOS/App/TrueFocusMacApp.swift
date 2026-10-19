@@ -10,7 +10,7 @@ struct TrueFocusMacApp: App {
     private let ui = MacUIState.shared
 
     var body: some Scene {
-        Window("TrueFocus", id: "main") {
+        Window("TruFocus", id: "main") {
             MacRootView()
                 .environment(controller)
                 .environment(ui)

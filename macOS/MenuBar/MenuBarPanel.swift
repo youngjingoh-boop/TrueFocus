@@ -83,7 +83,7 @@ struct MenuBarPanel: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(TF.Palette.ink2)
-                .help("Open TrueFocus")
+                .help("Open TruFocus")
 
                 SettingsLink {
                     Image(systemName: "gearshape")
@@ -99,7 +99,7 @@ struct MenuBarPanel: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(TF.Palette.ink2)
-                .help("Quit TrueFocus")
+                .help("Quit TruFocus")
             }
             .font(.system(size: 13, weight: .medium))
         }

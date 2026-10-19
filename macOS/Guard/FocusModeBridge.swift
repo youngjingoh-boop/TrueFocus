@@ -2,7 +2,7 @@ import Foundation
 import TrueFocusKit
 
 /// Flips a macOS Focus on when work starts and off when the day goes idle, by running two
-/// Shortcuts you create once ("TrueFocus On" / "TrueFocus Off" — each a single "Set Focus"
+/// Shortcuts you create once ("TruFocus On" / "TruFocus Off" — each a single "Set Focus"
 /// action). With "Share Across Devices" on, your iPhone follows, so notifications are
 /// silenced on both and the TrueFocus Focus filter raises the iPhone shields.
 @MainActor

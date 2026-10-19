@@ -34,7 +34,7 @@ struct LoginItemSection: View {
     @State private var isOn = LoginItem.isOn
 
     var body: some View {
-        SettingsSection("Mac", footnote: "Keeps the menu bar, shields and sync running after a restart. Run TrueFocus from Applications rather than Xcode so it stays put.") {
+        SettingsSection("Mac", footnote: "Keeps the menu bar, shields and sync running after a restart. Run TruFocus from Applications rather than Xcode so it stays put.") {
             ToggleRow(title: "Open at login", isOn: Binding(
                 get: { isOn },
                 set: { value in
