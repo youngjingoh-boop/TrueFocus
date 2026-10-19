@@ -15,6 +15,7 @@ struct FlowSettingsView<Extra: View>: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 30) {
                 voice
+                CustomRemindersSection()
                 rhythm
                 SoundSettingsSection()
                 scrolling
@@ -37,24 +38,13 @@ struct FlowSettingsView<Extra: View>: View {
     // MARK: Voice
 
     private var voice: some View {
-        SettingsSection("Voice", footnote: "How hard the nudges hit when a rest runs long or you drift.") {
+        SettingsSection("Voice", footnote: "How hard the nudges hit when a rest runs long or you drift. Direct is the default; Savage uses strong language.") {
             HStack(spacing: 8) {
                 ForEach(NudgeTone.allCases, id: \.self) { tone in
-                    let selected = controller.settings.tone == tone
-                    Button {
-                        TFHaptics.tap()
-                        controller.updateSettings { $0.tone = tone }
-                    } label: {
-                        Text(tone.label)
-                            .font(.system(size: 15, weight: selected ? .semibold : .regular))
-                            .foregroundStyle(selected ? TF.Palette.paper : TF.Palette.ink)
-                            .frame(maxWidth: .infinity, minHeight: 40)
-                            .background(Capsule().fill(selected ? TF.Palette.ink : TF.Palette.surface2))
-                    }
-                    .buttonStyle(.plain)
+                    toneButton(tone)
                 }
             }
-            let sample = Copy(tone: controller.settings.tone).restOver(level: 3, next: "Investor update")
+            let sample = Copy(settings: controller.settings).restOver(level: 3, next: "Investor update")
             VStack(alignment: .leading, spacing: 3) {
                 Text(sample.title).font(.headline).foregroundStyle(TF.Palette.ink)
                 Text(sample.body).font(.subheadline).foregroundStyle(TF.Palette.ink2)
@@ -63,6 +53,30 @@ struct FlowSettingsView<Extra: View>: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(RoundedRectangle(cornerRadius: TF.Radius.control).fill(TF.Palette.surface2))
         }
+    }
+
+    private func toneButton(_ tone: NudgeTone) -> some View {
+        let selected = controller.settings.tone == tone
+        return Button {
+            TFHaptics.tap()
+            controller.updateSettings { $0.tone = tone }
+        } label: {
+            VStack(spacing: 2) {
+                Text(tone.label).font(.system(size: 15, weight: selected ? .semibold : .regular))
+                Text(tone.note)
+                    .font(.tfCaption)
+                    .opacity(0.7)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .foregroundStyle(selected ? TF.Palette.paper : TF.Palette.ink)
+            .padding(.horizontal, 6)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(RoundedRectangle(cornerRadius: TF.Radius.control).fill(selected ? TF.Palette.ink : TF.Palette.surface2))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(tone.fullLabel)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     // MARK: Rhythm

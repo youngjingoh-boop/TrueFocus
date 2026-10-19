@@ -12,7 +12,7 @@ Not pomodoro. You attack a task until it's done. When you're stuck you switch to
 2. **Keep what matters.** The dump becomes a task list — sorted by the on-device Apple Intelligence model when your device has it, by a deterministic parser when it doesn't. Untick the noise.
 3. **Pick the win.** One line: what makes today count.
 4. **Attack.** One task on screen. A thin clock counting up. The moves: **Stuck · Waiting · Done · Switch**, and **Pause** under the clock. A pause stops the clock and drops the shields; the task keeps its place, and **Resume** carries on from the same time (and the same spot in the music). Paused nudges wait ten minutes and then ask you back to that task.
-5. **Rest, then go.** A breathing ring counts the micro-rest down. Overrun it and the nudges escalate — in your choice of tone. *Savage* says exactly what you asked for: "Wake the fuck up."
+5. **Rest, then go.** A breathing ring counts the micro-rest down. Overrun it and the nudges escalate — in your choice of tone. *Direct* is the default ("Back in." → "You said a minute." → "Momentum's leaking."). *Savage* is opt-in and uses strong language: "Wake the fuck up." Or write your own: Settings ▸ *Your own words* takes a line per moment, with `{task}` for the task's name.
 6. **Shut it down.** A scoreboard — momentum, chain, focus time, boot-outs — and a line of reflection. Unfinished tasks roll to tomorrow.
 
 Hold up to three tasks **in play** for parallel work and switch with one tap. Each keeps a breadcrumb — "where I left off" — so switching back costs nothing.
@@ -26,9 +26,9 @@ Hold up to three tasks **in play** for parallel work and switch with one tap. Ea
 | **Dynamic Island** | Mode and timer; expand for the task and Done. |
 | **Home Screen widget** | Task, clock, progress, momentum, Done / Stuck. |
 | **Control Center & Action Button** | "Done" and "Next Task" controls; Siri: "Done in TruFocus". |
-| **The shield** | When a blocked app opens: "Wake up. You're 23 min into ‘Investor update’." |
+| **The shield** | When a blocked app opens: "Not now. You're 23 min into ‘Investor update’." |
 
-Everything syncs through the TruFocus server, end-to-end encrypted, no account and no iCloud storage. Link your devices once with a six-digit code, then start on the Mac and see it on the iPhone Lock Screen.
+Sync runs through the TruFocus server, end-to-end encrypted: the key stays on your devices, and the server stores only ciphertext. There's no account and no iCloud storage. Sync is off until you turn it on in Settings ▸ Sync. To link a device, enter the six-digit code from the other one, check that both screens show the same four-digit match number, and confirm. Then start on the Mac and see it on the iPhone Lock Screen.
 
 ## Cutting out distractions
 
@@ -58,7 +58,7 @@ xcodegen
 open TrueFocus.xcodeproj
 ```
 
-Run **TrueFocus** on your iPhone and **TrueFocusMac** on your Mac. Then follow [docs/SETUP.md](docs/SETUP.md) — ten minutes of one-time switches (Screen Time access, the Safari extension, the Focus filter, linking devices). To put it on a partner's or friend's phone without the App Store, see [docs/SHARING.md](docs/SHARING.md).
+Run **TrueFocus** on your iPhone and **TrueFocusMac** on your Mac. Then follow [docs/SETUP.md](docs/SETUP.md) — ten minutes of one-time switches (Screen Time access, the Safari extension, the Focus filter, linking devices). To put it on a partner's or friend's phone without the App Store, see [docs/SHARING.md](docs/SHARING.md). To ship it (TestFlight, App Store, notarized Mac download), see [docs/RELEASE.md](docs/RELEASE.md).
 
 ## Inside
 

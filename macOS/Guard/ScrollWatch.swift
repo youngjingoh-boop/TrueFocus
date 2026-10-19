@@ -186,7 +186,7 @@ final class ScrollWatch: FocusEffect {
         DistractionGuard.shared.startCooldown(for: bundleID, duration: Self.cooldown)
         FocusController.shared.recordBoot(source: "mac-native", site: name, reason: reason.rawValue)
 
-        let line = Copy(tone: settings.tone).bootOut(site: name, task: snapshot.headline)
+        let line = Copy(settings: settings).bootOut(site: name, task: snapshot.headline)
         WakeUpOverlay.shared.show(.standard(title: line.title, message: line.body, snapshot: snapshot))
     }
 }

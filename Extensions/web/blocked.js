@@ -38,7 +38,7 @@
   function render() {
     var now = Date.now();
     var eff = Core.effective(state, prefs, now, adultOff);
-    var copy = Core.blockedCopy(reason, eff.tone, siteName, eff.task);
+    var copy = Core.blockedCopy(reason, eff.tone, siteName, eff.task, eff.customReminders);
     setText('eyebrow', copy.eyebrow);
     setText('title', copy.title);
     setText('lede', copy.body);
