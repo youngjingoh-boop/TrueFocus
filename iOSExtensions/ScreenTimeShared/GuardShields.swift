@@ -250,14 +250,15 @@ enum GuardReactions {
         let store = SharedStore.shared
         let minutes = store.settings.scrollBudgetMinutes
         guard let warn = GuardTiming.budgetWarningMinute(budget: minutes) else { return }
-        let line = Copy(tone: store.settings.tone).budgetWarning(minutesLeft: minutes - warn, task: store.snapshot.headline)
+        let line = Copy(settings: store.settings).budgetWarning(minutesLeft: minutes - warn, task: store.snapshot.headline)
         GuardNotice.post(line, id: "tf.guard.budgetWarning")
     }
 
     /// A minute before a pass closes.
     static func replyPassWarning() {
         guard !GuardStore.load().passTokens.isEmpty else { return }
-        GuardNotice.post(Copy(tone: SharedStore.shared.settings.tone).passEnding, id: "tf.guard.passWarning")
+        let store = SharedStore.shared
+        GuardNotice.post(Copy(settings: store.settings).passEnding(task: store.snapshot.headline), id: "tf.guard.passWarning")
     }
 
     /// A Post or reply pass ran out: shield those apps again.

@@ -19,6 +19,11 @@ Chrome-family browsers on the Mac (Chrome, Arc, Brave, Edge, Vivaldi, Dia).
   (20 if it happened during focus).
 - **Focus closes the feeds.** While a focus or think segment runs in the TrueFocus app,
   every feed site is closed except its messages and settings pages.
+- **Your voice.** Copy follows the app's tone (Direct when there's no app, or no tone
+  set). If the app's settings carry your own words — `customReminders.bootOut` for the
+  boot-out overlay and doom-scroll page, `customReminders.shield` for the focus page —
+  they're used with the app's rule (`Copy.apply`): `{task}` becomes the task, up to 40
+  characters is the title, anything longer is the message under the tone's title.
 - **Adult content filter.** On by default (`rules_adult.json`,
   `rules_adult_keywords.json`, plus SafeSearch in `rules_safesearch.json`). Turning it off
   starts a cool-off (24 hours by default, set in the app); it turns off only after that,

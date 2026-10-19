@@ -283,7 +283,7 @@
     var site = currentSite;
     var strict = !!eff.strict;
     var minutes = Core.cooldownMinutes(strict);
-    var line = Core.bootOut(eff.tone, site, eff.task);
+    var line = Core.bootOut(eff.tone, site, eff.task, eff.customReminders);
 
     api.storage.local.get(KEY.cooldowns).then(function (data) {
       var map = Core.setCooldown((data && data[KEY.cooldowns]) || {}, site, now(), minutes);

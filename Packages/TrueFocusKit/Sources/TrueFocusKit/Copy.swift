@@ -2,6 +2,9 @@ import Foundation
 
 /// Every sentence TrueFocus says to you, in one place, in three tones.
 /// Short. Specific. Always names the task, because the task is the point.
+///
+/// Each moment can be overridden with your own words (`TFSettings.customReminders`).
+/// Build it with `Copy(settings:)` so they apply; `Copy(tone:)` gives the built-in lines only.
 public struct Copy: Sendable {
     public struct Line: Equatable, Sendable {
         public var title: String
@@ -13,9 +16,56 @@ public struct Copy: Sendable {
     }
 
     public var tone: NudgeTone
+    public var custom: CustomReminders
 
+    /// The tone's built-in lines, without custom reminders.
     public init(tone: NudgeTone) {
+        self.init(tone: tone, custom: CustomReminders())
+    }
+
+    public init(tone: NudgeTone, custom: CustomReminders) {
         self.tone = tone
+        self.custom = custom
+    }
+
+    /// Tone plus your own words: what every surface should use.
+    public init(settings: TFSettings) {
+        self.init(tone: settings.tone, custom: settings.customReminders)
+    }
+
+    // MARK: Your own words
+
+    /// Puts a moment's custom text on a built-in line. The one rule, used everywhere:
+    ///
+    /// 1. No custom text for the moment (missing, or empty after trimming): the built-in line.
+    /// 2. Otherwise `{task}` is filled in with the task's title, or "your next task".
+    /// 3. Filled text of up to `CustomReminders.titleLimit` (40) characters becomes the
+    ///    **title**; the built-in body stays, so the line still says what's going on.
+    /// 4. Longer text becomes the **body**, under the tone's own short title.
+    public func apply(_ moment: ReminderMoment, to builtIn: Line, task: String?) -> Line {
+        guard let text = custom.text(for: moment) else { return builtIn }
+        let filled = CustomReminders.fill(text, task: task)
+        if filled.count <= CustomReminders.titleLimit {
+            return Line(title: filled, body: builtIn.body)
+        }
+        return Line(title: builtIn.title, body: filled)
+    }
+
+    /// A representative line for a moment, with your words applied: the first, gentlest
+    /// nudge of the moment. Used for Settings placeholders and previews.
+    public func sample(_ moment: ReminderMoment, task: String?) -> Line {
+        switch moment {
+        case .restOver: return restOver(level: 1, next: task)
+        case .stuck: return stuck(level: 1, task: task)
+        case .longFocus: return stillOnIt(task: task)
+        case .idle: return idle(level: 1, next: task, left: 3)
+        case .paused: return paused(level: 1, task: task)
+        case .bootOut: return bootOut(site: "Instagram", task: task)
+        case .shield: return shield(during: .focus, task: task, minutesIn: 23)
+        case .budgetWarning: return budgetWarning(minutesLeft: 2, task: task)
+        case .budgetSpent: return budgetSpent(subtitle: "Instagram is locked for 15 more min.", task: task)
+        case .passEnding: return passEnding(task: task)
+        }
     }
 
     private func quoted(_ title: String?) -> String {
@@ -28,6 +78,10 @@ public struct Copy: Sendable {
     // MARK: Rest overrun
 
     public func restOver(level: Int, next: String?) -> Line {
+        apply(.restOver, to: builtInRestOver(level: level, next: next), task: next)
+    }
+
+    private func builtInRestOver(level: Int, next: String?) -> Line {
         let task = quoted(next)
         switch (tone, level) {
         case (.calm, 1): return Line(title: "Rest is over", body: "Ready when you are — \(task).")
@@ -45,6 +99,10 @@ public struct Copy: Sendable {
     // MARK: Stuck too long
 
     public func stuck(level: Int, task: String?) -> Line {
+        apply(.stuck, to: builtInStuck(level: level, task: task), task: task)
+    }
+
+    private func builtInStuck(level: Int, task: String?) -> Line {
         let name = quoted(task)
         switch (tone, level) {
         case (.calm, 1): return Line(title: "Still thinking?", body: "Write the smallest next step for \(name).")
@@ -62,6 +120,10 @@ public struct Copy: Sendable {
     // MARK: Long focus check-in
 
     public func stillOnIt(task: String?) -> Line {
+        apply(.longFocus, to: builtInStillOnIt(task: task), task: task)
+    }
+
+    private func builtInStillOnIt(task: String?) -> Line {
         let name = quoted(task)
         switch tone {
         case .calm: return Line(title: "Still with it?", body: "75 minutes on \(name). Finish it, or take a breath.")
@@ -73,6 +135,10 @@ public struct Copy: Sendable {
     // MARK: Idle with work left
 
     public func idle(level: Int, next: String?, left: Int) -> Line {
+        apply(.idle, to: builtInIdle(level: level, next: next, left: left), task: next)
+    }
+
+    private func builtInIdle(level: Int, next: String?, left: Int) -> Line {
         let task = quoted(next)
         let remaining = left == 1 ? "1 task left" : "\(left) tasks left"
         switch (tone, level) {
@@ -90,6 +156,10 @@ public struct Copy: Sendable {
 
     /// Paused on a task for a while: come back to it.
     public func paused(level: Int, task: String?) -> Line {
+        apply(.paused, to: builtInPaused(level: level, task: task), task: task)
+    }
+
+    private func builtInPaused(level: Int, task: String?) -> Line {
         let name = quoted(task)
         switch (tone, level) {
         case (.calm, 1): return Line(title: "Ready to pick it back up?", body: "\(name) is paused right where you left it.")
@@ -108,6 +178,10 @@ public struct Copy: Sendable {
 
     /// Shown when a doom-scroll guard kicks you out of a feed.
     public func bootOut(site: String?, task: String?) -> Line {
+        apply(.bootOut, to: builtInBootOut(site: site, task: task), task: task)
+    }
+
+    private func builtInBootOut(site: String?, task: String?) -> Line {
         let place = site.map { " of \($0)" } ?? ""
         let back = task.map { "Back to “\($0)”." } ?? "Back to what matters."
         switch tone {
@@ -117,7 +191,13 @@ public struct Copy: Sendable {
         }
     }
 
-    /// Shield title when an app is blocked during focus.
+    /// The whole shield for an app or site blocked while you work, your words applied.
+    public func shield(during mode: FlowMode, task: String?, minutesIn: Int?) -> Line {
+        let builtIn = Line(title: shieldTitle(during: mode), body: shieldSubtitle(task: task, minutesIn: minutesIn))
+        return apply(.shield, to: builtIn, task: task)
+    }
+
+    /// Built-in shield title when an app is blocked during focus (no custom text).
     public func shieldTitle(during mode: FlowMode) -> String {
         switch (tone, mode) {
         case (_, .think): return "Think. Don't scroll."
@@ -139,6 +219,10 @@ public struct Copy: Sendable {
 
     /// The heads-up a couple of minutes before the scroll budget shields your apps.
     public func budgetWarning(minutesLeft: Int, task: String?) -> Line {
+        apply(.budgetWarning, to: builtInBudgetWarning(minutesLeft: minutesLeft, task: task), task: task)
+    }
+
+    private func builtInBudgetWarning(minutesLeft: Int, task: String?) -> Line {
         let left = minutesLeft == 1 ? "1 minute" : "\(minutesLeft) minutes"
         let back = task.map { " Back to “\($0)”?" } ?? ""
         switch tone {
@@ -148,8 +232,17 @@ public struct Copy: Sendable {
         }
     }
 
-    /// One minute before a Post or reply pass closes.
+    /// One minute before a Post or reply pass closes, your words applied.
+    public func passEnding(task: String?) -> Line {
+        apply(.passEnding, to: builtInPassEnding, task: task)
+    }
+
+    /// One minute before a Post or reply pass closes, without a task to name.
     public var passEnding: Line {
+        passEnding(task: nil)
+    }
+
+    private var builtInPassEnding: Line {
         switch tone {
         case .calm: return Line(title: "1 minute left", body: "Finish your post or message — the app closes soon.")
         case .direct: return Line(title: "1 minute left.", body: "Send it or post it. Then it closes.")
@@ -157,7 +250,13 @@ public struct Copy: Sendable {
         }
     }
 
-    /// Shield title when the daily scroll budget is spent.
+    /// The shield when the scroll budget is spent: the tone's title over `subtitle`
+    /// (which the shield builds: what's locked and for how long), your words applied.
+    public func budgetSpent(subtitle: String, task: String?) -> Line {
+        apply(.budgetSpent, to: Line(title: budgetSpentTitle, body: subtitle), task: task)
+    }
+
+    /// Built-in shield title when the daily scroll budget is spent (no custom text).
     public var budgetSpentTitle: String {
         switch tone {
         case .calm: return "Scroll time's up"

@@ -305,7 +305,7 @@ private struct RestStage: View {
             let overrun = now.timeIntervalSince(end)
             let level = overrun > 300 ? 3 : overrun > 120 ? 2 : 1
             let tint = overrun > RestPolicy.grace ? TF.Palette.signal : TF.Palette.rest
-            let line = Copy(tone: controller.settings.tone).restOver(level: level, next: snapshot.nextTaskTitle)
+            let line = Copy(settings: controller.settings).restOver(level: level, next: snapshot.nextTaskTitle)
 
             VStack(spacing: 26) {
                 ZStack {

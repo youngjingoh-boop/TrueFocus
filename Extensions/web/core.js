@@ -401,8 +401,9 @@
     var doomScroll = settings && settings.doomScroll
       ? normalizeConfig(settings.doomScroll)
       : normalizeConfig(PRESETS[p.sensitivity] || DEFAULT_CONFIG);
+    // Mirrors TFSettings.tone's default: Direct. Savage (strong language) is opt-in in the app.
     var tone = settings && (settings.tone === 'calm' || settings.tone === 'direct' || settings.tone === 'savage')
-      ? settings.tone : 'savage';
+      ? settings.tone : 'direct';
     var strict = isStrict(snapshot, nowMs);
     return {
       appManaged: appManaged,
@@ -421,7 +422,8 @@
       strict: strict,
       task: currentTask(snapshot),
       mode: snapshot && snapshot.mode ? snapshot.mode : 'idle',
-      adult: adultFilterState(settings, localAdultRequestMs, nowMs)
+      adult: adultFilterState(settings, localAdultRequestMs, nowMs),
+      customReminders: customReminders(settings)
     };
   }
 
@@ -513,16 +515,79 @@
     return next;
   }
 
+  // ───────────────────────────────── Your own words ─────────────────────────────────
+  // Mirrors CustomReminders.swift and Copy.apply(_:to:task:). test/reminders.test.mjs checks.
+
+  /** ReminderMoment raw values: the keys of the app's settings.customReminders. */
+  var REMINDER_MOMENTS = Object.freeze([
+    'restOver', 'stuck', 'longFocus', 'idle', 'paused',
+    'bootOut', 'shield', 'budgetWarning', 'budgetSpent', 'passEnding'
+  ]);
+  /** CustomReminders.titleLimit: up to this many characters, custom text is the title. */
+  var REMINDER_TITLE_LIMIT = 40;
+  /** CustomReminders.noTask: what {task} becomes without a task. */
+  var NO_TASK = 'your next task';
+
+  /** settings.customReminders → { moment: trimmed text } for the moments that have text. */
+  function customReminders(settings) {
+    var out = {};
+    var raw = settings && settings.customReminders;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) { return out; }
+    REMINDER_MOMENTS.forEach(function (key) {
+      var text = typeof raw[key] === 'string' ? raw[key].trim() : '';
+      if (text) { out[key] = text; }
+    });
+    return out;
+  }
+
+  /** CustomReminders.fill: {task} (any case) → the trimmed task title, or "your next task". */
+  function fillTask(text, task) {
+    var title = typeof task === 'string' ? task.trim() : '';
+    // A function replacement, so "$&" and friends in a task title stay literal.
+    return text.replace(/\{task\}/gi, function () { return title || NO_TASK; });
+  }
+
+  /** Characters as Swift counts them (grapheme clusters), where the browser can tell. */
+  function charCount(text) {
+    if (typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function') {
+      var n = 0;
+      var it = new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(text)[Symbol.iterator]();
+      while (!it.next().done) { n += 1; }
+      return n;
+    }
+    return Array.from(text).length;
+  }
+
+  /**
+   * Copy.apply: no custom text → the built-in line. Otherwise fill in {task}; up to 40
+   * characters becomes the title over the built-in body, longer becomes the body under
+   * the tone's title.
+   */
+  function personalize(line, text, task) {
+    var trimmed = typeof text === 'string' ? text.trim() : '';
+    if (!trimmed) { return line; }
+    var filled = fillTask(trimmed, task);
+    if (charCount(filled) <= REMINDER_TITLE_LIMIT) { return { title: filled, body: line.body }; }
+    return { title: line.title, body: filled };
+  }
+
   // ───────────────────────────────────── Copy ─────────────────────────────────────
 
-  /** Copy.bootOut(site:task:). */
-  function bootOut(tone, site, task) {
+  /**
+   * Copy.bootOut(site:task:). `reminders` is effective().customReminders (optional):
+   * its `bootOut` text, if any, is applied.
+   */
+  function bootOut(tone, site, task, reminders) {
+    return personalize(builtInBootOut(tone, site, task), reminders && reminders.bootOut, task);
+  }
+
+  function builtInBootOut(tone, site, task) {
     var place = site ? ' of ' + site : '';
     var back = task ? 'Back to “' + task + '”.' : 'Back to what matters.';
     switch (tone) {
       case 'calm': return { title: "That's enough scrolling", body: 'Taking you out' + place + '. ' + back };
-      case 'direct': return { title: "You're scrolling.", body: 'Booted out' + place + '. ' + back };
-      default: return { title: 'Wake the fuck up.', body: 'Doom-scroll detected. Booted out' + place + '. ' + back };
+      case 'savage': return { title: 'Wake the fuck up.', body: 'Doom-scroll detected. Booted out' + place + '. ' + back };
+      default: return { title: "You're scrolling.", body: 'Booted out' + place + '. ' + back };
     }
   }
 
@@ -531,13 +596,16 @@
     var back = task ? 'Back to “' + task + '”?' : 'Back to work?';
     switch (tone) {
       case 'calm': return { title: 'You’re scrolling a lot.', body: back };
-      case 'direct': return { title: 'You’re scrolling.', body: back };
-      default: return { title: 'Still scrolling?', body: back };
+      case 'savage': return { title: 'Still scrolling?', body: back };
+      default: return { title: 'You’re scrolling.', body: back };
     }
   }
 
-  /** The blocked page, by reason. */
-  function blockedCopy(reason, tone, site, task) {
+  /**
+   * The blocked page, by reason. `reminders` (effective().customReminders, optional):
+   * `shield` applies to the focus page, `bootOut` to the doom-scroll page.
+   */
+  function blockedCopy(reason, tone, site, task, reminders) {
     var back = task ? 'Back to “' + task + '”.' : 'Back to what matters.';
     switch (reason) {
       case 'adult':
@@ -546,14 +614,18 @@
       case 'shortform':
         return { eyebrow: 'Short-form', title: 'Short-form is gone.',
           body: 'Reels, Shorts and TikTok don’t exist here anymore. ' + back };
-      case 'focus':
-        return { eyebrow: 'In focus', title: tone === 'calm' ? 'Not right now.' : tone === 'direct' ? 'Not now.' : 'Wake up.',
-          body: (site ? site + ' is closed while you focus. ' : 'Feeds are closed while you focus. ') + back };
+      case 'focus': {
+        var shield = personalize({
+          title: tone === 'calm' ? 'Not right now.' : tone === 'savage' ? 'Wake up.' : 'Not now.',
+          body: (site ? site + ' is closed while you focus. ' : 'Feeds are closed while you focus. ') + back
+        }, reminders && reminders.shield, task);
+        return { eyebrow: 'In focus', title: shield.title, body: shield.body };
+      }
       case 'cooldown':
         return { eyebrow: 'Cooling down', title: tone === 'savage' ? 'Still no.' : 'Give it a minute.',
           body: (site ? site + ' reopens when the timer runs out. ' : 'This reopens when the timer runs out. ') + back };
       default: {
-        var line = bootOut(tone, site, task);
+        var line = bootOut(tone, site, task, reminders);
         return { eyebrow: 'Doom-scroll guard', title: line.title, body: line.body };
       }
     }
@@ -633,6 +705,9 @@
     ADULT_DOMAINS: ADULT_DOMAINS,
     ADULT_KEYWORDS: ADULT_KEYWORDS,
     REASON_DETAIL: REASON_DETAIL,
+    REMINDER_MOMENTS: REMINDER_MOMENTS,
+    REMINDER_TITLE_LIMIT: REMINDER_TITLE_LIMIT,
+    NO_TASK: NO_TASK,
     DoomScrollDetector: DoomScrollDetector,
     normalizeConfig: normalizeConfig,
     presetName: presetName,
@@ -657,6 +732,9 @@
     setCooldown: setCooldown,
     cooldownRemaining: cooldownRemaining,
     pruneCooldowns: pruneCooldowns,
+    customReminders: customReminders,
+    fillTask: fillTask,
+    personalize: personalize,
     bootOut: bootOut,
     warnLine: warnLine,
     blockedCopy: blockedCopy,
