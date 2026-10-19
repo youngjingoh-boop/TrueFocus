@@ -172,7 +172,7 @@ test('app settings win over local prefs', () => {
 
   const local = core.effective(null, { hideShortForm: false, sensitivity: 'gentle', guardEnabled: false }, NOW, null);
   assert.equal(local.appManaged, false);
-  assert.equal(local.tone, 'savage');
+  assert.equal(local.tone, 'direct');
   assert.equal(local.hideShortForm, false);
   assert.equal(local.guardEnabled, false);
   assert.equal(core.presetName(local.doomScroll), 'gentle');

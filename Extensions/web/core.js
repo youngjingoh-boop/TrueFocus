@@ -401,8 +401,9 @@
     var doomScroll = settings && settings.doomScroll
       ? normalizeConfig(settings.doomScroll)
       : normalizeConfig(PRESETS[p.sensitivity] || DEFAULT_CONFIG);
+    // Mirrors TFSettings.tone's default: Direct. Savage (strong language) is opt-in in the app.
     var tone = settings && (settings.tone === 'calm' || settings.tone === 'direct' || settings.tone === 'savage')
-      ? settings.tone : 'savage';
+      ? settings.tone : 'direct';
     var strict = isStrict(snapshot, nowMs);
     return {
       appManaged: appManaged,
@@ -521,8 +522,8 @@
     var back = task ? 'Back to “' + task + '”.' : 'Back to what matters.';
     switch (tone) {
       case 'calm': return { title: "That's enough scrolling", body: 'Taking you out' + place + '. ' + back };
-      case 'direct': return { title: "You're scrolling.", body: 'Booted out' + place + '. ' + back };
-      default: return { title: 'Wake the fuck up.', body: 'Doom-scroll detected. Booted out' + place + '. ' + back };
+      case 'savage': return { title: 'Wake the fuck up.', body: 'Doom-scroll detected. Booted out' + place + '. ' + back };
+      default: return { title: "You're scrolling.", body: 'Booted out' + place + '. ' + back };
     }
   }
 
@@ -531,8 +532,8 @@
     var back = task ? 'Back to “' + task + '”?' : 'Back to work?';
     switch (tone) {
       case 'calm': return { title: 'You’re scrolling a lot.', body: back };
-      case 'direct': return { title: 'You’re scrolling.', body: back };
-      default: return { title: 'Still scrolling?', body: back };
+      case 'savage': return { title: 'Still scrolling?', body: back };
+      default: return { title: 'You’re scrolling.', body: back };
     }
   }
 
@@ -547,7 +548,7 @@
         return { eyebrow: 'Short-form', title: 'Short-form is gone.',
           body: 'Reels, Shorts and TikTok don’t exist here anymore. ' + back };
       case 'focus':
-        return { eyebrow: 'In focus', title: tone === 'calm' ? 'Not right now.' : tone === 'direct' ? 'Not now.' : 'Wake up.',
+        return { eyebrow: 'In focus', title: tone === 'calm' ? 'Not right now.' : tone === 'savage' ? 'Wake up.' : 'Not now.',
           body: (site ? site + ' is closed while you focus. ' : 'Feeds are closed while you focus. ') + back };
       case 'cooldown':
         return { eyebrow: 'Cooling down', title: tone === 'savage' ? 'Still no.' : 'Give it a minute.',

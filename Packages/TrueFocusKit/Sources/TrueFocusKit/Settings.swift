@@ -5,7 +5,8 @@ import Foundation
 /// never wipe old ones.
 public struct TFSettings: Codable, Equatable, Sendable {
     // Flow
-    public var tone: NudgeTone = .savage
+    /// Direct by default. Savage (strong language) is opt-in; saved settings keep their tone.
+    public var tone: NudgeTone = .direct
     public var restBaseSeconds: Double = 45
     public var adaptiveRest: Bool = true
     /// Start the next task automatically when the micro-rest ends.

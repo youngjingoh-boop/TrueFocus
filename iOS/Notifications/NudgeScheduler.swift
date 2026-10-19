@@ -3,7 +3,7 @@ import TrueFocusKit
 import UserNotifications
 
 /// Turns `NudgePlanner`'s schedule into local notifications on the iPhone:
-/// "Rest's over. Move." → "Wake up." → "Wake the fuck up." (in the Savage tone).
+/// "Back in." → "You said a minute." → "Momentum's leaking." (in the default Direct tone).
 ///
 /// Re-plans on every state change and cancels whatever was pending, so a nudge never
 /// fires for a state you've already left.

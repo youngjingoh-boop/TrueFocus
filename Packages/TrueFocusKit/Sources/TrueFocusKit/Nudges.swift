@@ -11,6 +11,20 @@ public enum NudgeTone: String, Codable, Sendable, CaseIterable {
         case .savage: return "Savage"
         }
     }
+
+    /// The line under the label in the tone picker. Savage is the one that swears.
+    public var note: String {
+        switch self {
+        case .calm: return "Gentle"
+        case .direct: return "Plain"
+        case .savage: return "Strong language"
+        }
+    }
+
+    /// The label with its warning, for one-line lists and VoiceOver: "Savage · strong language".
+    public var fullLabel: String {
+        self == .savage ? "\(label) · strong language" : label
+    }
 }
 
 /// A reminder that should fire at a moment in the future unless the state changes first.
@@ -49,7 +63,7 @@ public struct NudgeContext: Sendable {
 
     public init(mode: FlowMode, modeStartedAt: Date?, plannedRestEnd: Date? = nil,
                 taskTitle: String? = nil, nextTaskTitle: String? = nil, openTaskCount: Int = 0,
-                dayEnded: Bool = false, paused: Bool = false, tone: NudgeTone = .savage,
+                dayEnded: Bool = false, paused: Bool = false, tone: NudgeTone = .direct,
                 thinkNudgeMinutes: Double = 5, now: Date) {
         self.mode = mode
         self.modeStartedAt = modeStartedAt

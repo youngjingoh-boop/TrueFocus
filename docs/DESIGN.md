@@ -41,7 +41,7 @@ Springs, never linear, except clocks. Check-off: a 0.28 s spring with a little o
 
 ## Voice
 
-Short. Specific. Always names the task. Three tones — Calm, Direct, Savage — chosen in settings. All copy lives in `Packages/TrueFocusKit/Sources/TrueFocusKit/Copy.swift`.
+Short. Specific. Always names the task. Three tones — Calm, Direct (the default), Savage (opt-in, strong language) — chosen in settings. All copy lives in `Packages/TrueFocusKit/Sources/TrueFocusKit/Copy.swift`.
 
 ## Icon
 
