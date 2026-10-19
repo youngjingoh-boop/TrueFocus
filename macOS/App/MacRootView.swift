@@ -65,11 +65,12 @@ private struct MacTopBar: View {
             // Room for the traffic lights of the hidden title bar.
             Color.clear.frame(width: 64, height: 1)
 
-            Text(TFFormat.dayEyebrow(Date())).tfEyebrowStyle()
-
             Spacer(minLength: 12)
 
+            // The tabs always show their full names; the now pill gives way first.
             segmented
+                .fixedSize()
+                .layoutPriority(1)
 
             Spacer(minLength: 12)
 
@@ -98,6 +99,8 @@ private struct MacTopBar: View {
                 } label: {
                     Text(section.title)
                         .font(.system(size: 13, weight: selected ? .semibold : .medium))
+                        .lineLimit(1)
+                        .fixedSize()
                         .foregroundStyle(selected ? TF.Palette.ink : TF.Palette.ink2)
                         .padding(.horizontal, 16)
                         .frame(height: 28)
