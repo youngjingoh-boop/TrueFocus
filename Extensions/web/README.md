@@ -24,6 +24,13 @@ Chrome-family browsers on the Mac (Chrome, Arc, Brave, Edge, Vivaldi, Dia).
   boot-out overlay and doom-scroll page, `customReminders.shield` for the focus page —
   they're used with the app's rule (`Copy.apply`): `{task}` becomes the task, up to 40
   characters is the title, anything longer is the message under the tone's title.
+- **Drift guard reports (Mac).** While a focus task runs and the app's `macDriftGuard` setting
+  isn't off, `background.js` sends the active tab's host and title (`TFCore.tabActivity`: `http(s)`
+  pages only, host without path or query, title cut to 200 characters) to the app, so the Mac
+  drift guard can tell whether the tab fits the task. It fires on tab, window, URL and title
+  changes and on the 30-second alarm, at most every 10 s for the same host and title. Nothing is
+  stored in the extension, and nothing goes to a server. The same code runs in iPhone Safari,
+  where the handler writes the report to the iPhone's App Group and nothing reads it.
 - **Adult content filter.** On by default (`rules_adult.json`,
   `rules_adult_keywords.json`, plus SafeSearch in `rules_safesearch.json`). Turning it off
   starts a cool-off (24 hours by default, set in the app); it turns off only after that,
@@ -40,7 +47,7 @@ app bundle.
 | --- | --- |
 | `manifest.json` | MV3 manifest (service worker background, DNR rulesets, content script) |
 | `core.js` | Pure logic: detector, site lists, URL classification, cooldowns, copy |
-| `background.js` | Pulls app state, toggles rulesets, counts and forwards boot-outs |
+| `background.js` | Pulls app state, toggles rulesets, counts and forwards boot-outs, reports the active tab for the drift guard |
 | `content.js`, `content.css` | Route guard, scroll guard, toast and boot overlay |
 | `blocked.html`, `wall.html`, `shorts.html` + `blocked.css/js` | Where you land instead |
 | `popup.html/css/js` | Current task, toggles, sensitivity, adult filter cool-off |
@@ -58,6 +65,10 @@ Messages:
 - `{type: "state"}` → `{snapshot, settings}` — `LiveSnapshot` and `TFSettings` JSON, dates
   as seconds since 1970.
 - `{type: "boot", site, reason}` → recorded as a `BootEvent(source: "web")` for the app.
+- `{type: "command", kind: "switchTo" | "wait", taskID}` → a juggling command queued for the app.
+- `{type: "activity", host, title}` (Chrome: `POST /activity` with `{host, title}`) → the active tab
+  during focus, for the Mac drift guard. Safari's handler overwrites one `BrowserTabReport` in the
+  App Group; the bridge hands it to `ActivityWatcher` in memory.
 
 The background stores `{snapshot, settings, fetchedAt, source, connected}` in
 `storage.local.tfState`; content scripts and pages read it and listen to

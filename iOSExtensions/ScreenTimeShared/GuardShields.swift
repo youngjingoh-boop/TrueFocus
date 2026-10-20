@@ -92,7 +92,7 @@ enum GuardMonitoring {
         let calendar = Calendar.current
         return DeviceActivitySchedule(
             intervalStart: calendar.dateComponents(dateParts, from: start),
-            intervalEnd: calendar.dateComponents(dateParts, from: end),
+            intervalEnd: calendar.dateComponents(dateParts, from: GuardTiming.scheduleEnd(end)),
             repeats: false
         )
     }
@@ -226,6 +226,7 @@ enum GuardReactions {
         let config = GuardStore.update { config in
             config.budgetShieldActive = true
             config.budgetShieldUntil = until
+            config.budgetShieldSince = now
         }
         GuardShields.reapply(config)
         SharedStore.shared.appendBoot(BootEvent(at: now, source: "ios-budget", site: nil, reason: "budget"))
@@ -234,12 +235,19 @@ enum GuardReactions {
     /// The cooldown is over: lift the shield and start a fresh budget.
     static func cooldownEnded(now: Date = Date()) {
         let settings = SharedStore.shared.settings
+        var bootedAt: Date?
         let config = GuardStore.update { config in
+            bootedAt = config.budgetShieldSince
             config.budgetShieldActive = false
             config.budgetShieldUntil = nil
+            config.budgetShieldSince = nil
         }
         GuardShields.reapply(config)
-        GuardMonitoring.restartBudget(config, settings: settings, from: now)
+        // A boot-out that crossed midnight already has a fresh budget: the daily monitor
+        // started over at 00:00. A second monitor would warn and boot out twice.
+        if GuardTiming.restartsBudget(bootedAt: bootedAt, cooldownEndedAt: now) {
+            GuardMonitoring.restartBudget(config, settings: settings, from: now)
+        }
     }
 
     /// A couple of minutes before the budget shields: a heads-up, so it isn't a surprise.
@@ -268,7 +276,9 @@ enum GuardReactions {
         GuardShields.reapply(config)
     }
 
-    /// Midnight: yesterday's boot-out and passes don't carry over (unless a cooldown is running).
+    /// Midnight: yesterday's boot-out and pass don't carry over (unless a cooldown is running).
+    /// The count of passes used rolls over with the TruFocus day at 4 am, not here
+    /// (`GuardTiming.passesUsed`): zeroing it at midnight too gave out a second day's worth.
     static func newDay(now: Date = Date()) {
         let config = GuardStore.update { config in
             if let until = config.budgetShieldUntil, until > now {
@@ -276,10 +286,9 @@ enum GuardReactions {
             } else {
                 config.budgetShieldActive = false
                 config.budgetShieldUntil = nil
+                config.budgetShieldSince = nil
             }
             config.passTokens = []
-            config.passesUsed = 0
-            config.passesDay = Calendar.current.tfDayStart(for: now)
         }
         GuardShields.reapply(config)
     }

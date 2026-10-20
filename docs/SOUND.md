@@ -36,7 +36,7 @@ crossfade so the ~171 s loop has no seam, and mastered to −16 LUFS / AAC 192 k
 
 **Apple Music** (iPhone): for subscribers, plays Apple Music's “Pure Focus” playlist. Without a
 subscription (or before the MusicKit service is enabled on the App ID at developer.apple.com ▸
-Identifiers ▸ TrueFocus ▸ App Services ▸ MusicKit) it falls back to Drive.
+Identifiers ▸ TruFocus (`com.youngjingoh.truefocus`) ▸ App Services ▸ MusicKit) it falls back to Drive.
 
 Music keeps playing with the iPhone locked (background audio) and mixes with other apps. It
 ducks to a third while you think and fades out for rests, where the river takes over.

@@ -126,6 +126,7 @@ async function applyRulesets() {
     if (want[id] && isOn !== true) enable.push(id);
     if (!want[id] && isOn !== false) disable.push(id);
   });
+  await applyAllowedSites(dnr, eff);
   if (!enable.length && !disable.length) return eff;
   try {
     await dnr.updateEnabledRulesets({ enableRulesetIds: enable, disableRulesetIds: disable });
@@ -139,6 +140,20 @@ async function applyRulesets() {
     }
   }
   return eff;
+}
+
+/** "Always allowed" sites pass the short-form wall too (never the adult filter). */
+async function applyAllowedSites(dnr, eff) {
+  if (!dnr.updateDynamicRules || !dnr.getDynamicRules) return;
+  try {
+    const want = Core.allowRules(eff.allowedSites);
+    const have = await dnr.getDynamicRules();
+    const domains = (rules) => JSON.stringify(rules.map((r) => (r.condition.requestDomains || []).slice().sort()));
+    if (have.length === want.length && domains(have) === domains(want)) return;
+    await dnr.updateDynamicRules({ removeRuleIds: have.map((r) => r.id), addRules: want });
+  } catch (error) {
+    /* dynamic rules unsupported here */
+  }
 }
 
 // ───────────────────────────────────── Boots ─────────────────────────────────────
@@ -212,7 +227,7 @@ async function reportActiveTab() {
     return;
   }
   const settings = all.state && all.state.settings;
-  const report = tab ? Core.tabActivity(tab.url, tab.title, eff, settings) : null;
+  const report = tab ? Core.tabActivity(tab.url, tab.title, eff, settings, tab.incognito === true) : null;
   if (!report) return;
   const key = report.host + '\n' + report.title;
   const now = Date.now();

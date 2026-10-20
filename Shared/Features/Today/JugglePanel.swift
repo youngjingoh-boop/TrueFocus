@@ -79,7 +79,8 @@ struct JuggleRow: View {
                     if isNow {
                         Text("now")
                             .font(.tfCaption)
-                            .foregroundStyle(TF.tint(for: controller.mode))
+                            // Small text: the bright tint reads on night, the deeper text tint on paper.
+                            .foregroundStyle(onDark ? TF.tint(for: controller.mode) : TF.textTint(for: controller.mode))
                     }
                 }
                 .frame(minHeight: 44)

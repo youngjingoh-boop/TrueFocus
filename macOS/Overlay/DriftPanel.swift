@@ -20,7 +20,7 @@ final class DriftPanel {
                              onPartOfTask: { [weak self] in self?.dismiss(); onPartOfTask() },
                              onSwitch: { [weak self] in self?.dismiss(); onSwitch() },
                              onClose: { [weak self] in self?.dismiss() })
-        let hosting = NSHostingView(rootView: view)
+        let hosting = FirstClickHostingView(rootView: view)
         let size = hosting.fittingSize
         hosting.frame = NSRect(origin: .zero, size: size)
 
@@ -75,6 +75,12 @@ final class DriftPanel {
     }
 }
 
+/// The panel never becomes key (it must not take the keyboard from what you're typing in),
+/// so its buttons have to answer the very first click.
+private final class FirstClickHostingView<Content: View>: NSHostingView<Content> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
 private struct DriftCard: View {
     let title: String
     let message: String
@@ -116,7 +122,7 @@ private struct DriftCard: View {
             }
             HStack(spacing: 8) {
                 Button("Back to it", action: onBack)
-                    .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: .black))
+                    .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: TF.Palette.onSignal))
                     .keyboardShortcut(.defaultAction)
                 Button("Part of the task", action: onPartOfTask)
                     .buttonStyle(QuietButtonStyle())

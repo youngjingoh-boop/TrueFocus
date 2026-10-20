@@ -44,6 +44,7 @@ To build under another team or prefix, `cp Config/Local.example.xcconfig Config/
    - **TruFocus Off** — action *Set Focus* ▸ Work ▸ Off.
    Then TruFocus ▸ Settings ▸ Focus ▸ turn on *Flip Focus with sessions*. Because the Focus is shared across devices, starting a task on the Mac now silences and shields your iPhone too.
 6. **Optional, extra wall:** System Settings ▸ Screen Time ▸ Content & Privacy ▸ Store, Web, Siri & Game Center ▸ Access to Web Content ▸ *Limit Adult Websites*.
+7. **Drift guard:** TruFocus ▸ Settings ▸ Guard ▸ *Drift guard* ▸ *Window titles* ▸ **Allow…**, then switch TruFocus on under System Settings ▸ Privacy & Security ▸ Accessibility. It works without this (app names and, with the extension, sites), but titles are what tell a marketing doc from a side project in the same app. The browser extension (steps 2–3) supplies the site; without it a browser counts as "unsure" (about four minutes before a nudge) rather than drift. Mail and chat apps (Mail, Slack, KakaoTalk, Teams…) are "unsure" too unless you add them to a task; calls (Zoom, FaceTime) never count.
 
 ## 4. Link iPhone and Mac
 
@@ -79,3 +80,5 @@ Sync is end-to-end encrypted: everything is sealed on the device, and the key ne
 - **Shields don't appear.** Guard ▸ check Screen Time access is *Approved*, and that you've picked scroll apps.
 - **Live Activity didn't start for a session begun on the Mac.** iOS only lets an app start one while it's open; unlock and open TruFocus once and it appears.
 - **Chrome extension says "app not running".** The Mac app serves state on `127.0.0.1:52525`; launch it.
+- **Drift guard says *Allow…* although TruFocus is switched on under Accessibility.** macOS ties the grant to the app's code signature. A debug build signed to run locally (no team) gets a new signature on every rebuild, so the old grant no longer applies even though the switch still looks on. Select TruFocus in the Accessibility list, remove it with **–**, then press *Allow…* again (or run `tccutil reset Accessibility <your bundle ID>` and relaunch). Builds signed with your Apple Development team keep the grant across rebuilds.
+- **A task started and nothing asked where it happens.** The question appears once per task, only for tasks started on the Mac with no apps or sites yet. After *Skip* it isn't asked again for that task; set it from the menu bar (the line under the task ▸ *Set*).

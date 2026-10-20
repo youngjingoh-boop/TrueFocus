@@ -43,7 +43,7 @@
 		<true/>
 	</dict>
 	<key>NSHumanReadableCopyright</key>
-	<string>Built for momentum.</string>
+	<string>Built for hyperfocus. Not against it.</string>
 	<key>TFAppGroup</key>
 	<string>$(TF_APP_GROUP)</string>
 	<key>TFSupabaseHost</key>

@@ -44,7 +44,7 @@ struct MenuBarPanel: View {
         let snapshot = controller.snapshot
         return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center, spacing: 8) {
-                TFMark(size: 18, onDark: false)
+                TFMarkBadge(size: 18)
                 Text(TFFormat.dayEyebrow(Date())).tfEyebrowStyle()
                 Spacer()
                 Text("\(snapshot.doneToday)/\(max(snapshot.plannedToday, snapshot.doneToday)) done")
@@ -224,7 +224,7 @@ private struct NowSection: View {
             } label: {
                 Label("Done", systemImage: "checkmark")
             }
-            .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: .black))
+            .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: TF.Palette.onSignal))
             .layoutPriority(1)
 
             // Round icon buttons, like the iPhone card, so Done always has room for its label.
@@ -325,7 +325,7 @@ private struct NowSection: View {
                 } label: {
                     Label("Resume", systemImage: "play.fill")
                 }
-                .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: .black))
+                .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: TF.Palette.onSignal))
                 Button {
                     if let paused = controller.pausedTask { controller.toggleDone(paused) }
                 } label: {
@@ -345,7 +345,7 @@ private struct NowSection: View {
             } label: {
                 Label("Attack", systemImage: "bolt.fill")
             }
-            .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: .black))
+            .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: TF.Palette.onSignal))
         } else if let waiting = controller.longestWaiting {
             ModeLabel(mode: .idle, text: "All waiting")
             Text(waiting.title)
@@ -372,7 +372,7 @@ private struct NowSection: View {
             } label: {
                 Label("Shut down the day", systemImage: "moon.zzz.fill")
             }
-            .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.rest, foreground: .black))
+            .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.rest, foreground: TF.Palette.onSignal))
         } else {
             ModeLabel(mode: .idle, text: "Today")
             Text("Empty your head. Plan the day.")

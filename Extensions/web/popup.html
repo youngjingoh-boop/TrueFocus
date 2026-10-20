@@ -10,7 +10,7 @@
 <body>
   <main class="popup">
     <header class="top">
-      <div class="brand"><span class="mark"></span>TruFocus</div>
+      <div class="brand"><svg class="mark" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><rect class="mark-tile" width="100" height="100" rx="22.5"/><g transform="translate(11 11) scale(0.78)"><circle cx="50" cy="50" r="37" fill="none" stroke="#FF5A1F" stroke-width="9"/><circle cx="50" cy="50" r="18" fill="#FF8A55"/></g></svg>TruFocus</div>
       <div class="conn" id="conn"><span class="conn-dot"></span><span id="connText">Not connected</span></div>
     </header>
 
@@ -20,6 +20,7 @@
       <div class="timer" id="timer" hidden>0:00</div>
       <div class="meta" id="meta"></div>
       <button class="quiet wait" type="button" id="waitBtn" hidden>Waiting on it</button>
+      <p class="note drift" id="driftNote" hidden>Drift guard: this tab’s site and title go to TruFocus on this Mac, nowhere else.</p>
     </section>
 
     <section class="group" id="juggle" hidden>

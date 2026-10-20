@@ -18,10 +18,13 @@ public struct TaskContract: Codable, Equatable, Sendable {
     public var doneWhen: String?
     public var firstMove: String?
     public var updatedAt: Date
+    /// When the start question was put for this task. Set when it's shown, so skipping it (or
+    /// closing it) is remembered across relaunches and the same task isn't asked again.
+    public var askedAt: Date?
 
     public init(taskID: UUID, taskTitle: String, apps: [String] = [], sites: [String] = [],
                 keywords: [String] = [], doneWhen: String? = nil, firstMove: String? = nil,
-                updatedAt: Date = Date()) {
+                updatedAt: Date = Date(), askedAt: Date? = nil) {
         self.taskID = taskID
         self.taskTitle = taskTitle
         self.apps = apps
@@ -30,6 +33,7 @@ public struct TaskContract: Codable, Equatable, Sendable {
         self.doneWhen = doneWhen
         self.firstMove = firstMove
         self.updatedAt = updatedAt
+        self.askedAt = askedAt
     }
 
     public init(from decoder: Decoder) throws {
@@ -42,10 +46,14 @@ public struct TaskContract: Codable, Equatable, Sendable {
         doneWhen = try c.decodeIfPresent(String.self, forKey: .doneWhen)
         firstMove = try c.decodeIfPresent(String.self, forKey: .firstMove)
         updatedAt = try c.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
+        askedAt = try c.decodeIfPresent(Date.self, forKey: .askedAt)
     }
 
     /// True once you've said where the task happens. Without it, only the title's words count.
     public var hasWorkspace: Bool { !apps.isEmpty || !sites.isEmpty }
+
+    /// Ask "where does it happen?" only once per task: not after a skip, not after a relaunch.
+    public var needsStartQuestion: Bool { !hasWorkspace && askedAt == nil }
 
     /// Words that mark a window or page as part of this task.
     public var topicWords: [String] {
@@ -129,12 +137,19 @@ public enum TopicWords {
         "untitled", "document", "tab", "window", "app", "www", "com", "http", "https",
     ]
 
+    /// Korean particles and the "-하기" verb ending. A task written as "마케팅을 정리하기" should
+    /// still match a window titled "마케팅 채널", so they come off the end of a Hangul word.
+    private static let hangulEndings = ["에서", "으로", "에게", "까지", "부터", "하기", "을", "를", "은", "는", "이", "가", "의", "에", "로", "와", "과", "도"]
+
     /// Lower-cased content words: Latin words of 3+ letters, other scripts (Korean, Japanese,
-    /// Chinese…) of 2+ characters, without common filler words.
+    /// Chinese…) of 2+ characters, without common filler words. Korean words lose a trailing
+    /// particle when at least two characters remain.
     public static func extract(_ text: String) -> [String] {
         let separators = CharacterSet.alphanumerics.inverted
         return text.lowercased()
+            .precomposedStringWithCanonicalMapping
             .components(separatedBy: separators)
+            .map(stripHangulEnding)
             .filter { word in
                 guard !word.isEmpty, !stopwords.contains(word), !word.allSatisfy(\.isNumber) else { return false }
                 let latin = word.unicodeScalars.allSatisfy { $0.isASCII }
@@ -142,9 +157,18 @@ public enum TopicWords {
             }
     }
 
+    private static func stripHangulEnding(_ word: String) -> String {
+        guard let last = word.unicodeScalars.last, (0xAC00...0xD7A3).contains(last.value) else { return word }
+        for ending in hangulEndings where word.hasSuffix(ending) && word.count - ending.count >= 2 {
+            return String(word.dropLast(ending.count))
+        }
+        return word
+    }
+
     /// True when any topic word appears in the text (substring, so Korean particles and plurals still match).
     public static func overlaps(_ words: [String], with text: String) -> Bool {
-        let haystack = text.lowercased()
+        // Window titles from file names often arrive decomposed (NFD); compare composed forms.
+        let haystack = text.lowercased().precomposedStringWithCanonicalMapping
         return words.contains { haystack.contains($0) }
     }
 }
@@ -158,7 +182,30 @@ public enum DriftClassifier {
         "com.apple.Spotlight", "com.raycast.macos", "com.runningwithcrayons.Alfred",
         "com.apple.ScreenContinuity", "com.apple.controlcenter", "com.apple.notificationcenterui",
         "com.apple.dock", "com.apple.loginwindow", "com.apple.SecurityAgent",
+        // Calls: you can't leave a meeting for the task, so it neither counts nor nudges.
+        "us.zoom.xos", "com.apple.FaceTime", "com.cisco.webexmeetingsapp",
     ]
+
+    /// Mail and chat. Undeclared, they're "unsure" rather than drift: a quick reply never
+    /// nudges, a long stay does after `DriftConfig.unsureSeconds` (or the on-device model
+    /// decides from the title). Declaring one in the start contract makes it on-task.
+    public static let communicationApps: Set<String> = [
+        "com.apple.mail", "com.apple.MobileSMS", "com.tinyspeck.slackmacgap", "com.microsoft.teams2",
+        "com.microsoft.teams", "com.microsoft.Outlook", "com.readdle.smartemail-Mac", "com.superhuman.electron",
+        "com.kakao.KakaoTalkMac", "jp.naver.line.mac", "net.whatsapp.WhatsApp", "ru.keepcoder.Telegram",
+        "com.tdesktop.Telegram", "com.hnc.Discord", "com.facebook.archon", "com.spark.desktop",
+    ]
+
+    /// The same for webmail and chat in a tab.
+    public static let communicationSites: [String] = [
+        "mail.google.com", "outlook.office.com", "outlook.live.com", "app.slack.com", "teams.microsoft.com",
+        "web.whatsapp.com", "web.telegram.org", "messenger.com", "discord.com", "mail.naver.com",
+        "meet.google.com", "zoom.us",
+    ]
+
+    /// Feed names that show up in a browser's window title ("… - YouTube") when the extension
+    /// hasn't reported the tab.
+    static let feedTitleNames = ["youtube", "instagram", "facebook", "reddit", "tiktok", "twitch", "pinterest", "netflix"]
 
     /// Browsers: their tab, not the app, decides.
     public static let browsers: Set<String> = [
@@ -176,26 +223,36 @@ public enum DriftClassifier {
             }
             if TopicWords.overlaps(words, with: sample.text) { return .onTask }
             if Blocklist.feedSite(forHost: host) != nil { return .offTask }
+            if communicationSites.contains(where: { host == $0 || host.hasSuffix("." + $0) }) { return .unsure }
             return contract.hasWorkspace ? .offTask : .unsure
         }
 
         let id = sample.appBundleID ?? ""
         let name = sample.appName ?? ""
+        let isBrowser = browsers.contains(id)
         // A browser never counts as a whole: which tab is open decides.
-        if !browsers.contains(id),
+        if !isBrowser,
            contract.apps.contains(where: { $0.caseInsensitiveCompare(id) == .orderedSame || $0.caseInsensitiveCompare(name) == .orderedSame }) {
             return .onTask
         }
         if neutralApps.contains(id) { return .neutral }
         if TopicWords.overlaps(words, with: sample.text) { return .onTask }
         if Blocklist.macFeedApps[id] != nil { return .offTask }
-        // A browser with no tab report: its window title is the page title, already checked above.
+        if isBrowser {
+            // No tab report (extension missing, not connected, or the report went stale): the
+            // site is unknown, so a declared site can't be recognised. Only an obvious feed in
+            // the window title counts as drift; anything else waits for the longer "unsure" clock.
+            let title = (sample.windowTitle ?? "").lowercased()
+            return feedTitleNames.contains(where: { title.contains($0) }) ? .offTask : .unsure
+        }
+        if communicationApps.contains(id) { return .unsure }
         return contract.hasWorkspace ? .offTask : .unsure
     }
 }
 
 /// How patient the guard is. Defaults follow the research: give focus a few minutes to
-/// arrive, then catch sustained drift, not quick look-ups.
+/// arrive, then catch sustained drift, not quick look-ups. Every timing the guard uses lives
+/// here (plus `BrowserTabReport.freshSeconds`), so tuning is a one-line change.
 public struct DriftConfig: Codable, Equatable, Sendable {
     /// After a task starts, only clear drift (a feed, an app or site outside the workspace) counts.
     public var warmUpSeconds: TimeInterval
@@ -205,13 +262,25 @@ public struct DriftConfig: Codable, Equatable, Sendable {
     public var unsureSeconds: TimeInterval
     /// Minimum gap between nudges while you stay off.
     public var renudgeSeconds: TimeInterval
+    /// How often the Mac looks at what's in front.
+    public var sampleSeconds: TimeInterval
+    /// A gap between samples longer than this means the Mac slept or wasn't looking: it counts
+    /// at most this long in the tally, and the Mac app treats it as time away.
+    public var maxGapSeconds: TimeInterval
+    /// No keyboard or mouse for this long: you're away, so nothing is sampled.
+    public var idleSeconds: TimeInterval
 
     public init(warmUpSeconds: TimeInterval = 5 * 60, offTaskSeconds: TimeInterval = 90,
-                unsureSeconds: TimeInterval = 4 * 60, renudgeSeconds: TimeInterval = 4 * 60) {
+                unsureSeconds: TimeInterval = 4 * 60, renudgeSeconds: TimeInterval = 4 * 60,
+                sampleSeconds: TimeInterval = 3, maxGapSeconds: TimeInterval = 60,
+                idleSeconds: TimeInterval = 5 * 60) {
         self.warmUpSeconds = warmUpSeconds
         self.offTaskSeconds = offTaskSeconds
         self.unsureSeconds = unsureSeconds
         self.renudgeSeconds = renudgeSeconds
+        self.sampleSeconds = sampleSeconds
+        self.maxGapSeconds = maxGapSeconds
+        self.idleSeconds = idleSeconds
     }
 
     public static let standard = DriftConfig()
@@ -297,6 +366,23 @@ public struct DriftMonitor: Sendable {
         return result
     }
 
+    /// A new day began mid-task (days roll over at 4 am): today's tally starts from zero.
+    public mutating func startNewTally() {
+        guard tally != nil else { return }
+        tally = DriftTally(taskTitle: taskTitle)
+    }
+
+    /// You stepped away (no input for a while, or the Mac slept): the drift clock stops, the
+    /// time away isn't counted, and sampling picks up fresh when you're back.
+    public mutating func away(at: Date) {
+        accrue(until: at)
+        lastSample = nil
+        lastVerdict = nil
+        lastAt = nil
+        driftSince = nil
+        driftKind = nil
+    }
+
     /// Back on track: forget the current stretch of drift.
     public mutating func acknowledge(at: Date) {
         driftSince = nil
@@ -345,7 +431,7 @@ public struct DriftMonitor: Sendable {
     private mutating func accrue(until at: Date) {
         guard var tally, let lastAt, let lastVerdict, let lastSample else { return }
         // Gaps longer than a minute mean the Mac slept or we weren't looking; don't count them.
-        let elapsed = min(max(0, at.timeIntervalSince(lastAt)), 60)
+        let elapsed = min(max(0, at.timeIntervalSince(lastAt)), config.maxGapSeconds)
         switch lastVerdict {
         case .onTask: tally.onTask += elapsed
         case .neutral: tally.neutral += elapsed
@@ -375,6 +461,17 @@ public struct DriftBook: Codable, Equatable, Sendable {
             let oldest = contracts.values.sorted { $0.updatedAt < $1.updatedAt }.prefix(contracts.count - 300)
             for contract in oldest { contracts[contract.taskID] = nil }
         }
+    }
+
+    /// Drops tallies from an earlier day, so nothing about yesterday stays on disk even on a day
+    /// with no focus. Returns true when something changed.
+    @discardableResult
+    public mutating func prune(dayKey: String) -> Bool {
+        guard day != dayKey else { return false }
+        let changed = !tallies.isEmpty
+        day = dayKey
+        tallies = [:]
+        return changed
     }
 
     /// Today's tallies; yesterday's are dropped.
@@ -409,6 +506,9 @@ public struct DriftBook: Codable, Equatable, Sendable {
 /// Safari writes it to the App Group; Chrome-family browsers post it to the Mac bridge.
 public struct BrowserTabReport: Codable, Equatable, Sendable {
     public static let key = "tf.activity.tab.v1"
+    /// The extension re-sends the active tab every 30 seconds while a task runs; a report
+    /// younger than this still holds.
+    public static let freshSeconds: TimeInterval = 45
 
     public var host: String
     public var title: String
@@ -425,5 +525,19 @@ public struct BrowserTabReport: Codable, Equatable, Sendable {
         guard let host = host.flatMap(Blocklist.normalizedSite) else { return nil }
         let cleanTitle = (title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         return BrowserTabReport(host: host, title: String(cleanTitle.prefix(200)), at: at)
+    }
+
+    /// The tab to trust for the browser in front. Safari reports through the App Group, the
+    /// Chrome family through the bridge, so one browser's tab never stands in for another's.
+    /// An old report still holds while the window title shows its page title.
+    public static func current(forBrowser bundleID: String, windowTitle: String?,
+                               bridge: BrowserTabReport?, safari: BrowserTabReport?,
+                               now: Date = Date()) -> BrowserTabReport? {
+        guard DriftClassifier.browsers.contains(bundleID) else { return nil }
+        guard let tab = bundleID == "com.apple.Safari" ? safari : bridge else { return nil }
+        let age = now.timeIntervalSince(tab.at)
+        if age >= 0, age < freshSeconds { return tab }
+        guard let windowTitle, !tab.title.isEmpty else { return nil }
+        return windowTitle.contains(tab.title) ? tab : nil
     }
 }

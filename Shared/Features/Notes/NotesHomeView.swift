@@ -70,7 +70,7 @@ struct NotesHomeView: View {
 
     private func note(_ id: UUID) -> Note? {
         if let found = notes.first(where: { $0.id == id }) { return found }
-        if let freshNote, freshNote.id == id, !freshNote.isDeleted { return freshNote }
+        if let freshNote, freshNote.isLive, freshNote.id == id { return freshNote }
         return nil
     }
 
@@ -261,7 +261,7 @@ struct NotesHomeView: View {
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(600))
             var changed = false
-            for note in candidates where !note.isDeleted && !keep.contains(note.id) && (target == nil || note.id == target) {
+            for note in candidates where note.isLive && !keep.contains(note.id) && (target == nil || note.id == target) {
                 if note.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     context.delete(note)
                     changed = true

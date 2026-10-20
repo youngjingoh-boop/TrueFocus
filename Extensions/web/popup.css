@@ -1,15 +1,22 @@
 :root {
-  --paper: #FAF9F6;
+  --paper: #F4F3EE;
   --surface: #FFFFFF;
   --surface-2: #F1F0EC;
-  --ink: #111113;
+  --ink: #050506;
   --ink-2: #6B6B70;
   --ink-3: #A9A9AE;
   --hair: rgba(0, 0, 0, 0.08);
   --ember: #FF5A1F;
   --think: #7C7CFF;
   --rest: #34C98E;
-  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* Accent colours for small text, 4.5:1 or better on paper and white (the app's text tints).
+     The brand's #D9430C is 4.4:1 on white, so light Ember text keeps the deeper #C2410C. */
+  --ember-text: #C2410C;
+  --think-text: #4B4BC4;
+  --rest-text: #1E7A55;
+  /* The rounded square the mark sits on over a light surface. */
+  --mark-tile: #050506;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Geist", system-ui, "Segoe UI", sans-serif;
   color-scheme: light dark;
 }
 
@@ -18,10 +25,14 @@
     --paper: #0A0A0B;
     --surface: #151517;
     --surface-2: #1D1D20;
-    --ink: #F2F1EC;
+    --ink: #F4F3EE;
     --ink-2: #9A9AA0;
     --ink-3: #58585E;
     --hair: rgba(255, 255, 255, 0.10);
+    --ember-text: #FF7A45;
+    --think-text: #9C9CFF;
+    --rest-text: #4FD9A2;
+    --mark-tile: transparent;
   }
 }
 
@@ -60,23 +71,16 @@ html, body {
   letter-spacing: -0.01em;
 }
 
-/* The brand mark at small size: the solid cut, ring and core (docs/brand). */
+/* The brand mark at small size: the solid cut, an Ember ring and core (docs/brand).
+   On light it sits on an Ink rounded square; on dark the ring stands alone. */
 .mark {
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  border: 2px solid #FF5A1F;
-  position: relative;
-  box-sizing: border-box;
+  flex: none;
+  display: block;
+  width: 18px;
+  height: 18px;
 }
 
-.mark::after {
-  content: "";
-  position: absolute;
-  inset: 2.6px;
-  border-radius: 50%;
-  background: #FF8A55;
-}
+.mark-tile { fill: var(--mark-tile); }
 
 .conn {
   display: flex;
@@ -111,11 +115,11 @@ html, body {
 }
 
 .mode-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
-.now[data-mode="focus"] .eyebrow { color: var(--ember); }
+.now[data-mode="focus"] .eyebrow { color: var(--ember-text); }
 .now[data-mode="focus"] .mode-dot { background: var(--ember); box-shadow: 0 0 0 3px rgba(255, 90, 31, 0.18); }
-.now[data-mode="think"] .eyebrow { color: var(--think); }
+.now[data-mode="think"] .eyebrow { color: var(--think-text); }
 .now[data-mode="think"] .mode-dot { background: var(--think); }
-.now[data-mode="rest"] .eyebrow { color: var(--rest); }
+.now[data-mode="rest"] .eyebrow { color: var(--rest-text); }
 .now[data-mode="rest"] .mode-dot { background: var(--rest); }
 
 .task {
@@ -296,7 +300,7 @@ h2 + .row { border-top: 0; }
 .foot {
   margin-top: 14px;
   font-size: 11px;
-  color: var(--ink-3);
+  color: var(--ink-2);
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
@@ -373,5 +377,5 @@ h2 .count { margin-left: 6px; color: var(--ink-3); letter-spacing: 0.04em; }
   font-variant-numeric: tabular-nums;
 }
 
-.juggle-item.current .tail { color: var(--ember); }
+.juggle-item.current .tail { color: var(--ember-text); }
 .juggle-item.waiting .tail { color: var(--ink-2); }

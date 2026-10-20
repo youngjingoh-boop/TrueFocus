@@ -18,8 +18,9 @@ public enum Blocklist {
         public var safePaths: [String]
         /// The whole site is short-form (TikTok): everything except `safePaths` is blocked.
         public var allShortForm: Bool
-        /// Subdomains that are work tools, not the feed (Ads Manager, Business Suite). Never
-        /// guarded, shielded or cooled down, even while the feed itself is blocked.
+        /// Subdomains that are work tools, not the feed (Ads Manager, Business Suite), or link
+        /// shims that only pass a link on (l.instagram.com). Never guarded, shielded or cooled
+        /// down, even while the feed itself is blocked.
         public var workHosts: [String]
 
         public init(name: String, hosts: [String], shortFormPaths: [String] = [],
@@ -63,12 +64,19 @@ public enum Blocklist {
         FeedSite(name: "Instagram", hosts: ["instagram.com"],
                  shortFormPaths: ["/reels", "/reel", "/explore"],
                  respondPath: "/direct/inbox/", safePaths: ["/direct", "/accounts", "/create"],
-                 workHosts: ["business.instagram.com", "accountscenter.instagram.com", "help.instagram.com"]),
+                 workHosts: ["business.instagram.com", "accountscenter.instagram.com", "help.instagram.com",
+                             "l.instagram.com"]),
+        // youtube.com/upload opens in Studio, so Studio is work too.
         FeedSite(name: "YouTube", hosts: ["youtube.com", "youtu.be"],
-                 shortFormPaths: ["/shorts"], safePaths: ["/upload", "/account"]),
+                 shortFormPaths: ["/shorts"], safePaths: ["/upload", "/account"],
+                 workHosts: ["studio.youtube.com"]),
+        // All short-form, except messages, posting, sign-in ("Log in with TikTok") and the
+        // ads, business, developer and seller tools.
         FeedSite(name: "TikTok", hosts: ["tiktok.com"],
-                 respondPath: "/messages", safePaths: ["/messages", "/upload", "/tiktokstudio", "/login", "/setting"],
-                 allShortForm: true),
+                 respondPath: "/messages",
+                 safePaths: ["/messages", "/upload", "/tiktokstudio", "/login", "/setting", "/auth", "/v2/auth"],
+                 allShortForm: true,
+                 workHosts: ["ads.tiktok.com", "business.tiktok.com", "developers.tiktok.com", "seller-us.tiktok.com"]),
         // Meta's business tools stay open for running ads: Business Suite and Business Manager
         // (business.facebook.com), Ads Manager, Events and Commerce Manager, the Ad Library.
         // Sign-in and app-login dialogs (Graph API Explorer, "Log in with Facebook") are safe too.
@@ -80,7 +88,7 @@ public enum Blocklist {
                              "/connect", "/checkpoint", "/recover", "/two_step_verification", "/auth", "/device",
                              "/privacy", "/security", "/policies", "/legal"],
                  workHosts: ["business.facebook.com", "adsmanager.facebook.com", "developers.facebook.com",
-                             "accountscenter.facebook.com"]),
+                             "accountscenter.facebook.com", "l.facebook.com", "lm.facebook.com"]),
         FeedSite(name: "X", hosts: ["x.com", "twitter.com"],
                  respondPath: "/messages", safePaths: ["/messages", "/compose", "/settings"]),
         FeedSite(name: "Threads", hosts: ["threads.net", "threads.com"]),
@@ -96,7 +104,7 @@ public enum Blocklist {
                              "/analytics", "/dashboard", "/post/", "/feed/update/", "/posts/", "/pulse/",
                              "/newsletters", "/events", "/groups", "/learning", "/premium", "/settings",
                              "/psettings", "/mypreferences", "/help", "/my-items", "/services", "/verify",
-                             "/checkpoint", "/login", "/uas", "/signup", "/authwall"],
+                             "/checkpoint", "/login", "/uas", "/signup", "/authwall", "/safety/go", "/redir/"],
                  workHosts: ["business.linkedin.com", "developer.linkedin.com", "learn.linkedin.com"]),
         FeedSite(name: "Snapchat", hosts: ["snapchat.com"], shortFormPaths: ["/spotlight"]),
         FeedSite(name: "Pinterest", hosts: ["pinterest.com"]),

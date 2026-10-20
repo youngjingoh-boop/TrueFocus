@@ -6,7 +6,7 @@ import UIKit
 import AppKit
 #endif
 
-/// The TrueFocus design language.
+/// The TruFocus design language.
 ///
 /// Ink on warm paper. One hot accent — Ember — that only ever means "you are working".
 /// Think is a cool violet, rest a quiet mint. Everything else is typography and space.
@@ -35,7 +35,10 @@ enum TF {
         static let onSignal = Color(tfHex: 0x050506)
 
         /// Accent colors deep enough for small text on paper (4.5:1), bright on night.
-        static let signalText = Color.tfDynamic(light: 0xC2410C, dark: 0xFF7A47)
+        /// Ember text on dark is the brand's #FF7A45 (7.6:1 on dark Paper). On light the brand's
+        /// #D9430C reaches only 4.0:1 on Paper and 4.4:1 on white, short of 4.5:1 for the 11 pt
+        /// eyebrows that use this, so light keeps the deeper #C2410C (4.7:1 on Paper, 5.2:1 on white).
+        static let signalText = Color.tfDynamic(light: 0xC2410C, dark: 0xFF7A45)
         static let thinkText = Color.tfDynamic(light: 0x4B4BC4, dark: 0x9C9CFF)
         static let restText = Color.tfDynamic(light: 0x1E7A55, dark: 0x4FD9A2)
 

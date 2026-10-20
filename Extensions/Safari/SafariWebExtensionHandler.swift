@@ -10,6 +10,7 @@ import TrueFocusKit
 ///   then replies like `state`.
 /// - `{type: "command", kind: "switchTo" | "wait", taskID}` → queues a juggling command
 ///   for the app, then replies like `state`.
+/// - `{type: "activity", host, title}` → (Mac, during focus) the active tab for the drift guard.
 final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
     /// Posted (Darwin notification) whenever the extension writes to the App Group,
     /// so a running app can pick the change up without waiting to be foregrounded.
@@ -41,10 +42,18 @@ final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
                 reply["error"] = "bad command"
             }
         case "activity":
-            // The active tab, for the Mac's drift guard: host and title only, overwritten each time.
-            if let report = BrowserTabReport.make(host: message["host"] as? String, title: message["title"] as? String) {
+            // The active tab, for the Mac's drift guard: host and title only, overwritten each time,
+            // and only while a focus task runs with the guard on (the Mac app clears it when focus
+            // ends). Nothing on iPhone reads it, so it's never written there.
+            #if os(macOS)
+            let snapshot = store.snapshot
+            if snapshot.mode == .focus, !snapshot.dayEnded, store.settings.macDriftGuard,
+               let report = BrowserTabReport.make(host: message["host"] as? String, title: message["title"] as? String) {
                 store.write(report, BrowserTabReport.key)
             }
+            #else
+            break
+            #endif
         case "state":
             break
         default:

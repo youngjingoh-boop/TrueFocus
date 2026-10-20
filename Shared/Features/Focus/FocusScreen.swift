@@ -146,7 +146,7 @@ struct FocusScreen: View {
         case .think:
             HStack(spacing: 12) {
                 Button("Back to it") { controller.backToIt() }
-                    .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.think, foreground: .black))
+                    .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.think, foreground: TF.Palette.onSignal))
                     .keyboardShortcut(.return, modifiers: .command)
                 Button { showSwitcher = true } label: { Image(systemName: "arrow.left.arrow.right") }
                     .buttonStyle(OrbButtonStyle(tint: TF.Palette.nightInk, size: 52))
@@ -158,7 +158,7 @@ struct FocusScreen: View {
                     TFHaptics.tap()
                     controller.backToIt()
                 }
-                .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.rest, foreground: .black))
+                .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.rest, foreground: TF.Palette.onSignal))
                 .keyboardShortcut(.return, modifiers: .command)
                 Button { showSwitcher = true } label: { Image(systemName: "list.bullet") }
                     .buttonStyle(OrbButtonStyle(tint: TF.Palette.nightInk, size: 52))
@@ -462,6 +462,12 @@ private struct BreadcrumbField: View {
     @Environment(FocusController.self) private var controller
     var placeholder: String
     @State private var text = ""
+    /// The task the text belongs to. Waiting, Stuck, Pause or Done can move off it before the
+    /// debounce saves, and what was typed must still land on it, not vanish or move tasks.
+    @State private var owner: UUID?
+    /// What `text` was loaded or last saved as: only typing here saves, so a field showing an
+    /// older value never writes it back over a newer one.
+    @State private var saved = ""
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -480,9 +486,20 @@ private struct BreadcrumbField: View {
         .padding(.vertical, 12)
         .background(Capsule().fill(Color.white.opacity(0.06)))
         .frame(maxWidth: 420)
-        .onAppear { text = controller.nowTask?.breadcrumb ?? "" }
-        .onChange(of: controller.nowTask?.id) { _, _ in text = controller.nowTask?.breadcrumb ?? "" }
+        .onAppear { load() }
+        .onChange(of: controller.nowTask?.id) { _, _ in
+            save()
+            load()
+        }
+        .onChange(of: controller.nowTask?.breadcrumb) { _, value in
+            // Saved elsewhere (the field this one replaced, the switcher, another device).
+            if !focused, text == saved, controller.nowTask?.id == owner {
+                text = value ?? ""
+                saved = text
+            }
+        }
         .onChange(of: focused) { _, isFocused in if !isFocused { save() } }
+        .onDisappear { save() }
         .task(id: text) {
             try? await Task.sleep(for: .seconds(1.2))
             guard !Task.isCancelled else { return }
@@ -490,8 +507,15 @@ private struct BreadcrumbField: View {
         }
     }
 
+    private func load() {
+        owner = controller.nowTask?.id
+        text = controller.nowTask?.breadcrumb ?? ""
+        saved = text
+    }
+
     private func save() {
-        guard let task = controller.nowTask else { return }
+        guard text != saved, let owner, let task = controller.task(id: owner), task.isLive else { return }
+        saved = text
         let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if clean != task.breadcrumb { controller.setBreadcrumb(clean, for: task) }
     }
@@ -545,6 +569,9 @@ struct TaskSwitcher: View {
     @Environment(FocusController.self) private var controller
     @Environment(\.dismiss) private var dismiss
     @State private var crumb = ""
+    /// `crumb` as it opened: only an edit here is written back, so a next step the focus
+    /// screen saves a moment later isn't overwritten with the older one.
+    @State private var openedCrumb = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -586,7 +613,10 @@ struct TaskSwitcher: View {
         }
         .padding(TF.Space.xl)
         .tfPage()
-        .onAppear { crumb = controller.nowTask?.breadcrumb ?? "" }
+        .onAppear {
+            crumb = controller.nowTask?.breadcrumb ?? ""
+            openedCrumb = crumb
+        }
         #if os(iOS)
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
@@ -597,7 +627,7 @@ struct TaskSwitcher: View {
 
     private func row(_ task: FocusTask) -> some View {
         Button {
-            if let leaving = controller.nowTask, crumb != leaving.breadcrumb {
+            if let leaving = controller.nowTask, crumb != openedCrumb, crumb != leaving.breadcrumb {
                 controller.setBreadcrumb(crumb.trimmingCharacters(in: .whitespacesAndNewlines), for: leaving)
             }
             TFHaptics.tap()

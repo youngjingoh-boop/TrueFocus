@@ -1,7 +1,7 @@
 [
   {
     "id": 1,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "redirect",
       "redirect": {
@@ -18,7 +18,7 @@
   },
   {
     "id": 101,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "block"
     },
@@ -32,7 +32,7 @@
   },
   {
     "id": 2,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "redirect",
       "redirect": {
@@ -49,7 +49,7 @@
   },
   {
     "id": 102,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "block"
     },
@@ -63,7 +63,7 @@
   },
   {
     "id": 3,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "redirect",
       "redirect": {
@@ -80,7 +80,7 @@
   },
   {
     "id": 103,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "block"
     },
@@ -94,7 +94,7 @@
   },
   {
     "id": 4,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "redirect",
       "redirect": {
@@ -111,7 +111,7 @@
   },
   {
     "id": 104,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "block"
     },
@@ -125,7 +125,7 @@
   },
   {
     "id": 5,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "redirect",
       "redirect": {
@@ -142,7 +142,7 @@
   },
   {
     "id": 105,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "block"
     },
@@ -156,7 +156,7 @@
   },
   {
     "id": 6,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "redirect",
       "redirect": {
@@ -173,7 +173,7 @@
   },
   {
     "id": 106,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "block"
     },
@@ -187,7 +187,7 @@
   },
   {
     "id": 7,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "redirect",
       "redirect": {
@@ -204,7 +204,7 @@
   },
   {
     "id": 107,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "block"
     },
@@ -218,7 +218,7 @@
   },
   {
     "id": 8,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "redirect",
       "redirect": {
@@ -235,7 +235,7 @@
   },
   {
     "id": 108,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "block"
     },
@@ -249,7 +249,7 @@
   },
   {
     "id": 9,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "redirect",
       "redirect": {
@@ -266,7 +266,7 @@
   },
   {
     "id": 109,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "block"
     },
@@ -280,7 +280,7 @@
   },
   {
     "id": 10,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "redirect",
       "redirect": {
@@ -297,7 +297,7 @@
   },
   {
     "id": 110,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "block"
     },
@@ -311,7 +311,7 @@
   },
   {
     "id": 11,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "redirect",
       "redirect": {
@@ -328,7 +328,7 @@
   },
   {
     "id": 111,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "block"
     },
@@ -342,7 +342,7 @@
   },
   {
     "id": 12,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "redirect",
       "redirect": {
@@ -359,7 +359,7 @@
   },
   {
     "id": 112,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "block"
     },
@@ -373,7 +373,7 @@
   },
   {
     "id": 13,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "redirect",
       "redirect": {
@@ -390,7 +390,7 @@
   },
   {
     "id": 113,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "block"
     },
@@ -404,7 +404,7 @@
   },
   {
     "id": 14,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "redirect",
       "redirect": {
@@ -421,7 +421,7 @@
   },
   {
     "id": 114,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "block"
     },
@@ -435,7 +435,7 @@
   },
   {
     "id": 15,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "redirect",
       "redirect": {
@@ -452,7 +452,7 @@
   },
   {
     "id": 115,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "block"
     },
@@ -466,7 +466,7 @@
   },
   {
     "id": 16,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "redirect",
       "redirect": {
@@ -483,7 +483,7 @@
   },
   {
     "id": 116,
-    "priority": 1,
+    "priority": 3,
     "action": {
       "type": "block"
     },

@@ -185,7 +185,7 @@ private struct WakeUpView: View {
                     Button(action: onPrimary) {
                         Text(content.primaryTitle)
                     }
-                    .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: .black))
+                    .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: TF.Palette.onSignal))
                     .frame(width: 240)
                     .keyboardShortcut(.defaultAction)
 

@@ -60,7 +60,7 @@ final class BridgeHTTPServer: @unchecked Sendable {
             let listener = try NWListener(using: parameters, on: nwPort)
             listener.newConnectionHandler = { [weak self] connection in
                 guard let self else { connection.cancel(); return }
-                BridgeConnection(connection: connection, queue: self.queue).start()
+                BridgeConnection(connection: connection, queue: self.queue, port: self.port).start()
             }
             listener.stateUpdateHandler = { [weak self] state in
                 guard let self else { return }
@@ -99,11 +99,13 @@ private final class BridgeConnection: @unchecked Sendable {
 
     private let connection: NWConnection
     private let queue: DispatchQueue
+    private let port: UInt16
     private var buffer = Data()
 
-    init(connection: NWConnection, queue: DispatchQueue) {
+    init(connection: NWConnection, queue: DispatchQueue, port: UInt16) {
         self.connection = connection
         self.queue = queue
+        self.port = port
     }
 
     func start() {
@@ -132,12 +134,8 @@ private final class BridgeConnection: @unchecked Sendable {
 
     private func respond(to request: BridgeHTTPRequest) {
         let origin = request.headers["origin"]
-        // DNS-rebinding guard: only our own loopback names.
-        let host = (request.headers["host"] ?? "").lowercased()
-        let hostOK = host.hasPrefix("127.0.0.1") || host.hasPrefix("localhost") || host.isEmpty
-        // A web page has an http(s) Origin. Extensions have their own schemes, or none.
-        let originOK = origin.map(Self.isExtensionOrigin) ?? true
-        guard hostOK, originOK else {
+        // DNS-rebinding guard (exact loopback Host) and web-page guard (extension Origin only).
+        guard BridgePolicy.allows(host: request.headers["host"], origin: origin, port: port) else {
             send(status: 403, body: Data(#"{"error":"forbidden"}"#.utf8), origin: nil)
             return
         }
@@ -171,13 +169,15 @@ private final class BridgeConnection: @unchecked Sendable {
             }
             send(status: 200, body: Data(#"{"ok":true}"#.utf8), origin: origin)
         case ("POST", "/activity"):
-            // The active tab, for the drift guard: host and title only, kept in memory.
+            // The active tab, for the drift guard: host and title only, kept in memory, and
+            // dropped unless a focus task is being watched (see ActivityWatcher).
             let json = (try? JSONSerialization.jsonObject(with: request.body)) as? [String: Any] ?? [:]
-            guard let host = json["host"] as? String else {
+            guard let rawHost = json["host"] as? String, rawHost.count <= 253,
+                  let host = Blocklist.normalizedSite(rawHost) else {
                 send(status: 400, body: Data(#"{"error":"bad activity"}"#.utf8), origin: origin)
                 return
             }
-            let title = json["title"] as? String ?? ""
+            let title = String((json["title"] as? String ?? "").prefix(200))
             Task { @MainActor in
                 ActivityWatcher.shared.receiveBrowserTab(host: host, title: title)
             }
@@ -187,14 +187,6 @@ private final class BridgeConnection: @unchecked Sendable {
         default:
             send(status: 404, body: Data(#"{"error":"not found"}"#.utf8), origin: origin)
         }
-    }
-
-    static func isExtensionOrigin(_ origin: String) -> Bool {
-        let lowered = origin.lowercased()
-        return lowered.hasPrefix("chrome-extension://")
-            || lowered.hasPrefix("safari-web-extension://")
-            || lowered.hasPrefix("moz-extension://")
-            || lowered.hasPrefix("extension://")
     }
 
     /// `{"snapshot": <LiveSnapshot JSON>, "settings": <TFSettings JSON>}`, built by
@@ -218,7 +210,7 @@ private final class BridgeConnection: @unchecked Sendable {
         head += "Content-Length: \(body.count)\r\n"
         head += "Cache-Control: no-store\r\n"
         head += "Connection: close\r\n"
-        if let origin, Self.isExtensionOrigin(origin) {
+        if let origin, BridgePolicy.isExtensionOrigin(origin) {
             head += "Access-Control-Allow-Origin: \(origin)\r\n"
             head += "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n"
             head += "Access-Control-Allow-Headers: Content-Type\r\n"
@@ -237,6 +229,7 @@ private final class BridgeConnection: @unchecked Sendable {
         switch status {
         case 200: return "OK"
         case 204: return "No Content"
+        case 400: return "Bad Request"
         case 403: return "Forbidden"
         case 404: return "Not Found"
         default: return "Error"

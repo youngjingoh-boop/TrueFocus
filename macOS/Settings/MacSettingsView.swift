@@ -128,7 +128,7 @@ private struct DriftGuardSection: View {
     var body: some View {
         Section("Drift guard") {
             Toggle("Nudge me when I drift off the task", isOn: controller.binding(\.macDriftGuard))
-            Text("When a task starts, say where it happens — its apps and sites. If something else holds the front for a minute or two (longer in the first five minutes), a small card asks if you want to head back. The browser extension adds the site and tab title.")
+            Text("When a task starts, say where it happens — its apps and sites. If something else holds the front for a minute or two (longer in the first five minutes), a small card asks if you want to head back. Mail and chat get about four minutes unless you add them to the task; calls and time away from the Mac never count. The browser extension adds the site and tab title.")
                 .font(.callout)
                 .foregroundStyle(TF.Palette.ink2)
             if controller.settings.macDriftGuard {
@@ -320,7 +320,7 @@ private struct FocusTab: View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text("\(number)")
                 .font(.system(size: 11, weight: .bold).monospacedDigit())
-                .foregroundStyle(TF.Palette.signal)
+                .foregroundStyle(TF.Palette.signalText)
                 .frame(width: 14)
             Text(text).font(.callout)
         }
@@ -369,7 +369,7 @@ private struct BrowserTab: View {
                             .foregroundStyle(TF.Palette.rest)
                     case .unreachable:
                         Label("Not reachable", systemImage: "circle")
-                            .foregroundStyle(TF.Palette.signal)
+                            .foregroundStyle(TF.Palette.signalText)
                     }
                 }
                 Text("Chrome-family browsers read your current task from TruFocus over a local-only connection on this Mac (127.0.0.1:52525).")

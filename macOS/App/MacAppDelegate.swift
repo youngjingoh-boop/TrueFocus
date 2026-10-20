@@ -44,6 +44,7 @@ final class MacAppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationC
     func applicationWillTerminate(_ notification: Notification) {
         HotKeys.shared.unregister()
         ExtensionBridgeServer.shared.stop()
+        DriftGuard.shared.flush()
     }
 
     // MARK: Notifications

@@ -226,6 +226,12 @@ final class CustomReminderTests: XCTestCase {
         XCTAssertNil(reminders?["stuck"], "unset moments are left out")
     }
 
+    func testLongFocusWordsSayTheCheckInIsOptIn() {
+        // The 75-minute check-in is off by default, so words for it only show once it's on.
+        XCTAssertFalse(TFSettings().focusCheckIn)
+        XCTAssertTrue(ReminderMoment.longFocus.detail.contains("check-in is on"), ReminderMoment.longFocus.detail)
+    }
+
     func testMomentKeysMatchTheStoredFields() throws {
         var custom = CustomReminders()
         for moment in ReminderMoment.allCases { custom[moment] = "x" }

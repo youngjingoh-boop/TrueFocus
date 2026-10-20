@@ -23,7 +23,9 @@ enum SyncMapping {
                 items.append(LocalItem(id: RecordID.plan(day: plan.day), kind: .plan, payload: data))
             }
         }
-        for note in all(Note.self, context) {
+        // An empty note isn't synced: it's a note being started (or about to be thrown away), and
+        // another device would delete it as unused while it's still being written here.
+        for note in all(Note.self, context) where !note.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             if let data = try? PayloadCoding.encode(note.syncPayload) {
                 items.append(LocalItem(id: note.id, kind: .note, payload: data))
             }

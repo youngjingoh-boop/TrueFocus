@@ -30,3 +30,25 @@ test('titles are capped', () => {
   const report = core.tabActivity('https://example.com/', 'x'.repeat(500), eff(working), working.settings);
   assert.equal(report.title.length, 200);
 });
+
+test('a private (incognito) tab is never reported', () => {
+  assert.equal(core.tabActivity('https://docs.google.com/', 'Doc', eff(working), working.settings, true), null);
+  assert.notEqual(core.tabActivity('https://docs.google.com/', 'Doc', eff(working), working.settings, false), null);
+});
+
+test('nothing is reported while paused or thinking', () => {
+  // A pause is idle mode in the snapshot; think mode is the "I'm stuck" break.
+  const paused = Object.assign({}, working, { snapshot: Object.assign({}, working.snapshot, { mode: 'idle', pausedAt: NOW / 1000 - 30 }) });
+  const thinking = Object.assign({}, working, { snapshot: Object.assign({}, working.snapshot, { mode: 'think' }) });
+  assert.equal(core.tabActivity('https://docs.google.com/', 'Doc', eff(paused), working.settings), null);
+  assert.equal(core.tabActivity('https://docs.google.com/', 'Doc', eff(thinking), working.settings), null);
+});
+
+test('the popup says when the tab goes to the Mac app, and only then', () => {
+  const focus = { mode: 'focus', task: 'Investor update' };
+  assert.equal(core.driftNoteVisible(focus, {}, true, false), true);
+  assert.equal(core.driftNoteVisible(focus, { macDriftGuard: false }, true, false), false, 'guard off');
+  assert.equal(core.driftNoteVisible(focus, {}, false, false), false, 'app not connected');
+  assert.equal(core.driftNoteVisible(focus, {}, true, true), false, 'iPhone stores nothing');
+  assert.equal(core.driftNoteVisible({ mode: 'rest', task: 'x' }, {}, true, false), false, 'not in focus');
+});

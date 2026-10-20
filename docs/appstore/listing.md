@@ -1,9 +1,9 @@
-# App Store listing: TrueFocus 1.0
+# App Store listing: TruFocus 1.0
 
 The App Store Connect metadata for the iPhone app and the Mac app. Every claim here was checked
 against the code on `main` at `1da5526` (see "Claims checked" at the end). The sync and tone
 claims were checked again after `1caee66` (end-to-end sync), `11f3952` (Direct default) and
-`7721c30` (custom reminders). The copy for each field
+`7721c30` (custom reminders), and the Mac drift guard and the TruFocus name after `306ac2f`. The copy for each field
 sits in a code block so you can paste it as it is. Character counts include spaces and
 were measured, not estimated.
 
@@ -20,39 +20,52 @@ were measured, not estimated.
 
 ## 1. Name and subtitle
 
-### iPhone: name options (limit 30)
+App Store Connect allows **30 characters** for the name and **30** for the subtitle. The counts
+below include spaces and punctuation, and were measured.
 
-| # | Name | Chars | Notes |
-| --- | --- | --- | --- |
-| **A (recommended)** | `TrueFocus: Focus & App Blocker` | 30 | Says what it is in the two terms people search for. "App Blocker" is fair: Screen Time shields block the apps during focus. |
-| B | `TrueFocus: Deep Work Timer` | 26 | Calmer, but "timer" undersells the shields and invites a pomodoro comparison the app rejects. |
-| C | `TrueFocus — Momentum Planner` | 28 | On brand ("Momentum, not minutes"), but nobody searches for "momentum". |
-
-### iPhone: subtitle options (limit 30)
-
-| # | Subtitle | Chars | Notes |
-| --- | --- | --- | --- |
-| **A (recommended)** | `Block feeds. Finish the task.` | 29 | Blunt, two verbs, and it names the outcome. It also covers "block" and "task" for search. |
-| B | `One task. No feeds. No excuses.` | 31 | **Too long by 1.** Shown only so you don't reach for it. |
-| B′ | `One task. No feeds. Go.` | 23 | Punchy, but less searchable. |
-| C | `Momentum, not minutes.` | 22 | The README's tagline. Best kept for the promotional text and the first line of the description. |
-
-**Recommendation:** name **A** with subtitle **A**. The name carries the category terms, the
-subtitle carries the attitude, and neither repeats the other's words, so all 100 keyword characters
-are free for other terms.
-
-> Check that the name is free in App Store Connect before you commit to it. "TrueFocus" may already
-> be taken, and I couldn't check that from here. If it is, `TrueFocus — Momentum Planner` or
-> `True Focus: Feed Blocker` (24) are the next best choices.
-
-### Mac: name and subtitle (two-record setup)
+### iPhone: name and subtitle (decided)
 
 | | Text | Chars |
 | --- | --- | --- |
-| **Name (recommended)** | `TrueFocus for Mac: Deep Work` | 28 |
-| Alt name | `TrueFocus: Menu Bar Focus` | 25 |
-| **Subtitle (recommended)** | `Menu bar focus. Feeds hidden.` | 29 |
-| Alt subtitle | `One task. Hotkeys. No feeds.` | 28 |
+| **Name** | `TruFocus: ADHD Hyperfocus` | 25 |
+| **Subtitle** | `New-world focus for ADHD` | 24 |
+
+This is the product brief's naming decision: the brand line ("New-world focus for ADHD brains",
+`docs/brand/README.md`) shortened to fit. The brief itself isn't in the repo, so the two strings
+here are the record of it.
+
+Notes on the pair:
+
+- **"ADHD" names the audience, not a treatment.** Nothing in the copy says TruFocus diagnoses,
+  treats or improves ADHD, and both descriptions end with a line saying it doesn't. Keep it that
+  way (guideline 1.4.1 and the brief's voice rules: no medical claims, no "clinically proven", no
+  shame words).
+- **The subtitle repeats "ADHD" and "focus" from the name.** Apple indexes the name and subtitle
+  together, so the repeat adds no search weight. That's acceptable because the subtitle is there
+  for the voice. The words in both are left out of the keywords below.
+- **Reserve the name early.** A small habit app called "True Focus" is already on the store
+  (`docs/brand/README.md` §10). Names must be unique, so create the App Store Connect record before
+  the screenshots are final.
+
+Earlier options, kept only as fallbacks if the name is refused:
+
+| Name | Chars | Subtitle | Chars |
+| --- | --- | --- | --- |
+| `TruFocus: Focus & App Blocker` | 29 | `Block feeds. Finish the task.` | 29 |
+| `TruFocus — Momentum Planner` | 27 | `Momentum, not minutes.` | 22 |
+
+### Mac: name and subtitle (for a future store record)
+
+The Mac app ships as a Developer ID download (`docs/RELEASE.md`), so there's no Mac App Store record
+today. Use the Mac copy below on the download page, and keep these for a store record later. A
+second record can't reuse the iPhone name word for word.
+
+| | Text | Chars |
+| --- | --- | --- |
+| **Name (recommended)** | `TruFocus for Mac: Deep Work` | 27 |
+| Alt name | `TruFocus: Menu Bar Focus` | 24 |
+| **Subtitle (recommended)** | `Knows what you're working on.` | 29 |
+| Alt subtitle | `Menu bar focus. Feeds hidden.` | 29 |
 
 With Universal Purchase, use the iPhone name and subtitle for both.
 
@@ -66,12 +79,12 @@ With Universal Purchase, use the iPhone name and subtitle for both.
 One task on screen. The feeds out of reach. Nudges that get blunter the longer you drift. Start the day with a blank page, end it with a scoreboard.
 ```
 
-### Description (limit 4000): 3,883 chars
+### Description (limit 4000): 3,977 chars
 
 ```
 Momentum, not minutes.
 
-TrueFocus keeps one task in front of you, takes the feeds away while you work, and pulls you back when you drift. It isn't a pomodoro timer. You attack a task until it's done, cross it off, take a short rest sized to the work, and the next task starts on its own.
+TruFocus keeps one task in front of you, takes the feeds away while you work, and pulls you back when you drift. It isn't a pomodoro timer. You attack a task until it's done, cross it off, take a short rest sized to the work, and the next task starts on its own.
 
 THE DAY
 • Empty your head. A blank page every morning. Type everything.
@@ -85,17 +98,17 @@ JUGGLE WITHOUT LOSING THE THREAD
 Keep several tasks in play and switch with one tap. Each one keeps a "where I left off" note, so switching back costs nothing. Waiting on someone? Park the task and move to the next.
 
 CUT THE FEED
-With your permission, TrueFocus uses Apple's Screen Time framework on this iPhone.
+With your permission, TruFocus uses Apple's Screen Time framework on this iPhone.
 • While you work, the apps you pick are shielded. The shield names your task and how long you've been on it.
 • Outside focus, those apps run on a daily scroll budget, 5 minutes by default. Spend it and you're locked out for a cooldown.
 • Apps you mark for replies get a short Reply pass on the shield: two minutes to answer messages, a few times a day.
-• An adult-content filter covers Safari and in-app browsers and is on by default. Turning it off takes a 24-hour cool-off, so you never make that call in a weak moment.
+• An adult-content filter covers Safari and in-app browsers and is on by default. Turning it off takes a 24-hour cool-off, so it's never an impulse decision.
 
 SAFARI WITHOUT THE SCROLL
 The included Safari extension removes Reels and Shorts, closes TikTok except messages, opens Instagram straight to your DMs, and keeps LinkedIn and Facebook to work: messages, pages and ad tools stay open, the feed doesn't. On feed sites it counts your swipes. Skim, binge or linger, and it boots you out.
 
 ON YOUR LOCK SCREEN
-A Live Activity and the Dynamic Island show the task and a live clock, with Done, Stuck and Pause buttons that work without unlocking. There are widgets for the Home Screen and Lock Screen and controls for Control Center and the Action Button, and Siri understands "Done in TrueFocus".
+A Live Activity and the Dynamic Island show the task and a live clock, with Done, Stuck and Pause buttons that work without unlocking. There are widgets for the Home Screen and Lock Screen and controls for Control Center and the Action Button, and Siri understands "Done in TruFocus".
 
 YOUR TONE
 Choose how hard the nudges hit: Calm, Direct (the default) or Savage, which uses strong language, so it's opt-in. Or put any nudge in your own words, with {task} for the task's name.
@@ -110,23 +123,27 @@ IPHONE AND MAC
 End-to-end encrypted sync, off until you turn it on. Link your devices once with a six-digit code and check that both screens show the same four-digit number. No account, no sign-up. Start a task on the Mac and it appears on your iPhone's Lock Screen. Your tasks, notes and timeline are sealed with a key that never leaves your devices. No ads, no analytics, no tracking.
 
 HONEST LIMITS
-iOS doesn't let any app see inside another app, so on iPhone, native apps are guarded by time, not by counting scrolls. Reels can't be removed from inside the Instagram app. Shield the app, and reply from instagram.com in Safari instead. Everything TrueFocus switches on can be undone in iOS Settings. It's your device.
+iOS doesn't let any app see inside another app, so on iPhone, native apps are guarded by time, not by counting scrolls. Reels can't be removed from inside the Instagram app. Shield the app, and reply from instagram.com in Safari instead. Everything TruFocus switches on can be undone in iOS Settings. It's your device.
+
+TruFocus is a focus tool made with ADHD brains in mind. It doesn't diagnose or treat ADHD or anything else.
 
 Requires iOS 26 or later. The shields and the filter need Screen Time access, which you approve with Face ID or your passcode.
 ```
 
-### Keywords (limit 100): 100 chars
+### Keywords (limit 100): 96 chars
 
 ```
-deep work,productivity,doomscroll,distraction,detox,social media,planner,todo,timer,brain dump,habit
+deep work,productivity,doomscroll,distraction,blocker,social media,planner,todo,timer,brain dump
 ```
 
-The keywords leave out words already in the name or subtitle (truefocus, focus, app, blocker,
-block, feeds, finish, task), because Apple indexes those anyway. They also leave out third-party
+The keywords leave out words already in the name or subtitle (trufocus, adhd, hyperfocus, focus,
+new, world), because Apple indexes those anyway. "Blocker" moved in from the old name, and "detox"
+and "habit" made room for it. They also leave out third-party
 trademarks (Instagram, TikTok, YouTube, Reels, Shorts) and Apple's "Screen Time", which guideline
-2.3.7 forbids in keywords. They avoid health and medical terms such as "ADHD", because the app makes
-no clinical claim and the term would invite one. If you swap one keyword out, "discipline" (10) and
-"lock" (4) are the strongest spares.
+2.3.7 forbids in keywords. "ADHD" is in the name as the audience; the keywords add no other health or
+medical terms, because the app makes no clinical claim. Four characters are spare: "lock" needs
+five with its comma, so it fits only if something else goes. "detox" (5) and "discipline" (10) are
+the strongest swaps.
 
 ### What's New in 1.0
 
@@ -164,21 +181,21 @@ Health & Fitness is another possible secondary category, but it pulls the app to
 
 The Mac app has no Screen Time shields, no Live Activity and no widgets, so its copy doesn't mention them.
 What it does have: the menu bar, global hotkeys, hiding blocked apps during focus, the scroll guard for
-feed apps, the full-screen wake-up, the Safari extension, and the optional Shortcuts hook for a
-macOS Focus.
+feed apps, the full-screen wake-up, the drift guard, the Safari extension, and the optional Shortcuts
+hook for a macOS Focus.
 
-### Promotional text (limit 170): 142 chars
+### Promotional text (limit 170): 141 chars
 
 ```
-One task in your menu bar. Feed apps hidden while you work. A full-screen wake-up when you start doom-scrolling. Done is one hotkey away: ⌥⌘D.
+One task in your menu bar. Feed apps hidden while you work. Drift off the task and a small card walks you back. Done is one hotkey away: ⌥⌘D.
 ```
 
-### Description (limit 4000): 2,817 chars
+### Description (limit 4000): 3,902 chars
 
 ```
 Momentum, not minutes.
 
-TrueFocus lives in your menu bar, keeps one task in front of you, and takes the feeds away while you work. You attack a task until it's done, cross it off, take a short rest sized to the work, and the next task starts on its own. It isn't a pomodoro timer.
+TruFocus lives in your menu bar, keeps one task in front of you, and takes the feeds away while you work. You attack a task until it's done, cross it off, take a short rest sized to the work, and the next task starts on its own. It isn't a pomodoro timer.
 
 THE DAY
 • Empty your head. A blank page every morning. Type everything.
@@ -190,12 +207,21 @@ THE DAY
 
 IN THE MENU BAR
 The mode, the current task and the minutes in, always in view. Click for Done, Stuck, Switch and quick-add. The hotkeys work from any app:
-⌥⌘D Done · ⌥⌘S Stuck · ⌥⌘B Back to it · ⌥⌘K Next juggled task · ⌥⌘P Waiting on it · ⌥⌘T Show TrueFocus
+⌥⌘D Done · ⌥⌘S Stuck · ⌥⌘B Back to it · ⌥⌘K Next juggled task · ⌥⌘P Waiting on it · ⌥⌘T Show TruFocus
 
 CUT THE FEED
 • While you work, the Mac apps you pick are hidden the moment they come forward, with a quiet reminder of what you're on. Nothing is quit, nothing is changed.
-• Feed apps get a scroll guard, including iPhone and iPad apps running on Apple silicon. TrueFocus counts how far you scroll, never what's on screen. Skim, binge or linger, and a full-screen wake-up boots you out.
+• Feed apps get a scroll guard, including iPhone and iPad apps running on Apple silicon. TruFocus counts how far you scroll, never what's on screen. Skim, binge or linger, and a full-screen wake-up boots you out.
 • The included Safari extension removes Reels and Shorts, opens Instagram straight to your DMs, keeps LinkedIn and Facebook to work, counts your swipes on feed sites, and blocks adult sites. Turning that filter off takes a 24-hour cool-off.
+
+STAY ON THE TASK, NOT JUST OFF THE FEED
+Blockers know which sites are bad. TruFocus knows what you're working on.
+• When a task starts, say where it happens: the apps and sites it uses, and your first move.
+• If something else holds the front for a minute or more, a small card asks if you want to head back: Back to it, Part of the task, or Switch task. Say it's part of the task and TruFocus remembers that for this task.
+• The Safari extension adds the site and the tab's title. With your OK, TruFocus also reads window titles (macOS asks for Accessibility access), so a work doc and a side project in the same app look different.
+• When the rules can't tell, Apple Intelligence decides on your Mac, if it's available.
+• The menu bar panel shows today's time on task and time drifted.
+It reads only app names, sites, and window and tab titles, on this Mac, while a task runs. No screenshots, no page contents, nothing uploaded. It's on by default, and one switch turns it off.
 
 JUGGLE WITHOUT LOSING THE THREAD
 Keep several tasks in play and switch with one tap or ⌥⌘K. Each one keeps a "where I left off" note.
@@ -213,7 +239,9 @@ WITH YOUR IPHONE
 End-to-end encrypted sync, off until you turn it on. Link your devices once with a six-digit code and check that both screens show the same four-digit number. No account, no sign-up. Start a task on the Mac and it appears on your iPhone's Lock Screen. Your tasks, notes and timeline are sealed with a key that never leaves your devices. No ads, no analytics, no tracking.
 
 HONEST LIMITS
-TrueFocus raises the walls; you own the Mac. Everything it does can be undone in Settings or by quitting it. For an extra layer, macOS's own Screen Time can limit adult websites. TrueFocus shows you where.
+TruFocus raises the walls; you own the Mac. Everything it does can be undone in Settings or by quitting it. For an extra layer, macOS's own Screen Time can limit adult websites. TruFocus shows you where.
+
+TruFocus is a focus tool made with ADHD brains in mind. It doesn't diagnose or treat ADHD or anything else.
 
 Requires macOS 26 or later.
 ```
@@ -225,7 +253,13 @@ Requires macOS 26 or later.
   line "Optionally flips a macOS Focus when you start, so your iPhone goes quiet too" only after you've
   tested it in a sandboxed build.
 - Don't add "works with Chrome, Arc, Brave and Edge" until the Chrome extension is live on the
-  Chrome Web Store. Today the Mac app tells people to load it unpacked in developer mode.
+  Chrome Web Store. Today the Mac app tells people to load it unpacked in developer mode. The drift
+  guard copy names only the Safari extension for the same reason, although Chrome-family browsers
+  report tabs too.
+- **Window titles need Accessibility**, which a sandboxed Mac App Store build can't use
+  (`docs/RELEASE.md`, "Mac: App Store or direct download"). The copy is right for the Developer ID
+  download. For a store build, cut the sentence "With your OK, TruFocus also reads window titles…"
+  and change "window and tab titles" in the last line to "tab titles".
 
 ### Keywords (Mac, limit 100): 92 chars
 
@@ -238,7 +272,7 @@ productivity,doomscroll,distraction,detox,planner,todo,timer,hotkey,brain dump,b
 ### What's New in 1.0 (Mac)
 
 ```
-The first release. A menu bar focus flow with global hotkeys, feed apps hidden while you work, a scroll guard with a full-screen wake-up, a Safari extension that takes the feed out of the web, and end-to-end encrypted sync with the iPhone app.
+The first release. A menu bar focus flow with global hotkeys, feed apps hidden while you work, a scroll guard with a full-screen wake-up, a drift guard that notices when you wander off the task, a Safari extension that takes the feed out of the web, and end-to-end encrypted sync with the iPhone app.
 ```
 
 ### Categories (Mac)
@@ -262,7 +296,7 @@ URLs: the same as the iPhone app.
 | Filter covers Safari and in-app browsers | `AdultFilter.apply`: `webContent.blockedByFilter = .auto(...)` |
 | Apple Intelligence used on-device | `TaskExtractor` → `FoundationModels.LanguageModelSession` with fallback `BrainDump` |
 | Live Activity buttons Done / Stuck / Pause | `FocusLiveActivity.swift` `LiveButton(intent: CompleteTaskIntent / StuckIntent / PauseIntent)` |
-| Siri "Done in TrueFocus" | `AppShortcuts.swift` phrases |
+| Siri "Done in TruFocus" | `AppShortcuts.swift` phrases |
 | Music keeps playing when locked | `UIBackgroundModes: audio`, `.playback` session while music or rest ambience plays |
 | No ads, analytics or tracking | No third-party SDK: `Package.swift` has no dependencies, there are no analytics imports, and the only network calls are to Supabase, plus Apple's services (APNs from the server, MusicKit if chosen) |
 | "End-to-end encrypted sync"; "sealed with a key that never leaves your devices" | `SyncCipher` seals payloads with AES-GCM under `HKDF(spaceKey, "payload.v1")`; requests carry only `SyncAccess.token`, `HKDF(spaceKey, "access.v1")`, and the server stores its SHA-256; `tf_records.data` holds ciphertext. The raw key travels once, in an older device's `tf-space` `rekey` move (no App Store build ever had the legacy paths) |
@@ -272,6 +306,17 @@ URLs: the same as the iPhone app.
 | "Put any nudge in your own words, with {task}" | `CustomReminders` (ten moments, `{task}` placeholder), Settings ▸ *Your own words* (`CustomRemindersSection`) |
 | Mac hides apps but quits nothing | `DistractionGuard` calls only `NSRunningApplication.hide()` |
 | Mac scroll guard counts distance, not content | `ScrollWatch` reads `scrollingDeltaY` from a global scroll-wheel monitor, only while a listed feed app is frontmost |
+| "When a task starts, say where it happens: the apps and sites it uses, and your first move" | `StartContractWindow` ("Where does … happen?": Apps, Sites, Topic words, First move, Done when), shown when a task starts on the Mac with no apps or sites yet (`DriftGuard.start`) |
+| "For a minute or more", then a card: Back to it, Part of the task, Switch task | `DriftConfig.standard`: 90 s clearly off-task, 4 min unsure, both doubled in the 5-minute warm-up; `DriftPanel` buttons; the app's own copy says "more than a minute or two" |
+| "Remembers that for this task" | `TaskContract.include` adds the host or app to that task's contract (`DriftGuard.partOfTask`) |
+| "The Safari extension adds the site and the tab's title" | `core.js` `tabActivity` (host and title only, during focus), `SafariWebExtensionHandler` `activity` → App Group, read by `ActivityWatcher.latestTab` |
+| "Reads window titles", "macOS asks for Accessibility access", "with your OK" | `ActivityWatcher.focusedWindowTitle` (AX), only when `AXIsProcessTrusted()`; the prompt comes only from Settings ▸ Guard ▸ Drift guard ▸ *Allow…* |
+| "Apple Intelligence decides on your Mac, if it's available" | `DriftJudge.judge` → `LanguageModelSession`, only for `.unsure` verdicts with `macDriftUsesModel` on and `TaskExtractor.usesOnDeviceModel` |
+| "The menu bar panel shows today's time on task and time drifted" | `MenuBarPanel` `DriftTodayLine`: "On task … · drifted …, mostly …" |
+| "Only app names, sites, and window and tab titles … No screenshots, no page contents, nothing uploaded" | `ActivityWatcher` reads those three only; `DriftBook` lives in the App Group and isn't a sync record kind (`privacy.md` §1.5) |
+| "On by default, and one switch turns it off" | `TFSettings.macDriftGuard = true`; Settings ▸ Guard ▸ Drift guard ▸ "Nudge me when I drift off the task" |
+| "Blockers know which sites are bad. TruFocus knows what you're working on." | The positioning line: verdicts come from the task's own contract (`DriftClassifier.classify`), not from a block list alone |
+| `TruFocus: ADHD Hyperfocus`, "made with ADHD brains in mind", "doesn't diagnose or treat ADHD" | Audience and brand line (`docs/brand/README.md`); the website footer says the same ("TruFocus is a focus tool. It doesn't diagnose or treat ADHD.") |
 
 **Left out on purpose:**
 
@@ -282,6 +327,13 @@ URLs: the same as the iPhone app.
   an attacking server one guess in 10,000 per link (`privacy.md` §1.3, caveat 4). "Linking is
   checked with a match number on both screens" is accurate; "impossible to intercept" isn't.
 - **"Blocks Reels in the Instagram app."** It doesn't, and the README says so.
+- **Any medical or outcome claim about ADHD:** "treats", "manages symptoms", "clinically proven",
+  "science-backed", "doctor-approved". The name uses ADHD for the audience only. Keep shame words
+  ("lazy", "no excuses", "weak moment", "procrastinator") out too; the adult-filter line now reads
+  "so it's never an impulse decision".
+- **"Watches everything you do"** or "knows exactly what you're doing" for the drift guard. It reads
+  app names, window titles and tab sites and titles, nothing more, and only during focus.
+- **Drift guard on iPhone.** It's Mac only. The iPhone copy doesn't mention it.
 - **Specific scroll counts on iPhone native apps.** iPhone native apps are guarded by time only.
 - **"Works without the app"** for the Chrome extension on the iPhone listing. Not relevant there.
 - **Profanity.** Guideline 2.3.8 requires metadata suitable for a 4+ audience even when the app is

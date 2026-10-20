@@ -31,7 +31,8 @@ public enum BrainDump {
         var tasks: [String] = []
         for raw in lines {
             if isDoneMarker(raw) { continue }
-            var line = stripPrefix(raw)
+            // The trailing space lets a bare marker ("- [ ]", "3.") match its prefix and vanish.
+            var line = stripPrefix(raw + " ")
             line = line.trimmingCharacters(in: .whitespaces)
             // "Work:" style headers aren't tasks.
             if line.hasSuffix(":") { continue }

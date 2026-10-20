@@ -294,7 +294,7 @@ private struct LiveButton<I: AppIntent>: View {
                     .font(.system(size: compact ? 14 : 15, weight: .semibold))
                     .lineLimit(1)
             }
-            .foregroundStyle(prominent ? Color.black : TF.Palette.nightInk)
+            .foregroundStyle(prominent ? TF.Palette.onSignal : TF.Palette.nightInk)
             .frame(maxWidth: .infinity, minHeight: compact ? 36 : 42)
             .background(
                 Capsule().fill(prominent ? TF.Palette.signal : Color.white.opacity(0.12))

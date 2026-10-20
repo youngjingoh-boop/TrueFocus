@@ -20,18 +20,27 @@ final class DriftGuard: FocusEffect {
     private(set) var verdict: DriftVerdict?
     private(set) var book = DriftBook()
 
-    @ObservationIgnored private var monitor = DriftMonitor()
+    /// Every timing (sample rate, warm-up, how long before a nudge, idle) is in `DriftConfig`.
+    @ObservationIgnored private let config = DriftConfig.standard
+    @ObservationIgnored private var monitor = DriftMonitor(config: .standard)
     @ObservationIgnored private var snapshot = LiveSnapshot.idle
     @ObservationIgnored private var settings = TFSettings.default
     @ObservationIgnored private var timer: Timer?
-    @ObservationIgnored private var promptedTasks: Set<UUID> = []
     @ObservationIgnored private var lastSample: ActivitySample?
-
-    private static let tick: TimeInterval = 3
+    /// When the loop last ran: a long gap means the Mac slept.
+    @ObservationIgnored private var lastTick: Date?
+    /// The day the running tally belongs to.
+    @ObservationIgnored private var tallyDay = ""
+    @ObservationIgnored private var lastPersist = Date.distantPast
 
     private init() {
         book = SharedStore.shared.read(DriftBook.self, DriftBook.key) ?? DriftBook()
+        // Yesterday's tally doesn't outlive yesterday, even on a day without focus.
+        if book.prune(dayKey: Self.dayKey()) { persist() }
     }
+
+    /// True while a focus task is being watched.
+    var isWatching: Bool { monitor.taskID != nil }
 
     // MARK: FocusEffect
 
@@ -39,8 +48,10 @@ final class DriftGuard: FocusEffect {
         self.snapshot = snapshot
         self.settings = settings
 
+        // Focus only: rest, think, pause (idle) and a finished day are never watched.
         let watching = settings.macDriftGuard && snapshot.mode == .focus && snapshot.taskID != nil && !snapshot.dayEnded
         guard watching, let taskID = snapshot.taskID else {
+            if isWatching { ActivityWatcher.shared.forgetTabs() }
             stop()
             return
         }
@@ -55,15 +66,25 @@ final class DriftGuard: FocusEffect {
         var contract = book.contracts[taskID] ?? TaskContract(taskID: taskID, taskTitle: title)
         contract.taskTitle = title
         self.contract = contract
-        monitor.begin(taskID: taskID, title: title, at: Date(), tally: book.tally(for: taskID, dayKey: Self.dayKey()))
-        timer = Timer.scheduledTimer(withTimeInterval: Self.tick, repeats: true) { [weak self] _ in
+        let now = Date()
+        tallyDay = Self.dayKey(now)
+        book.prune(dayKey: tallyDay)
+        monitor.begin(taskID: taskID, title: title, at: now, tally: book.tally(for: taskID, dayKey: tallyDay))
+        lastTick = nil
+        let timer = Timer(timeInterval: config.sampleSeconds, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.check() }
         }
-        // Started here on the Mac, with nothing written yet: ask where the task happens.
+        timer.tolerance = 0.5
+        // Common modes: keep looking while a menu is open or a window is being dragged.
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
+        // Started here on the Mac, with nothing written yet: ask where the task happens, once
+        // per task. Marked as asked before showing, so a skip, a close or a relaunch all stick.
         let startedHere = snapshot.originDevice == TFDevice.name || snapshot.originDevice.isEmpty
-        if startedHere, !contract.hasWorkspace, !promptedTasks.contains(taskID) {
-            promptedTasks.insert(taskID)
-            StartContractWindow.shared.show(for: contract)
+        if startedHere, contract.needsStartQuestion {
+            contract.askedAt = now
+            save(contract)
+            StartContractWindow.shared.show(for: self.contract ?? contract, activate: false)
         }
     }
 
@@ -82,33 +103,76 @@ final class DriftGuard: FocusEffect {
     // MARK: The loop
 
     private func check() {
-        guard var contract, let sample = ActivityWatcher.shared.sample() else { return }
-        // Our own windows are always fine (writing the contract, ticking the task off).
-        if sample.appBundleID == Bundle.main.bundleIdentifier { return }
+        let now = Date()
+        // The timer doesn't fire while the Mac sleeps: a long gap is time away, not drift.
+        if let lastTick, now.timeIntervalSince(lastTick) > config.maxGapSeconds {
+            monitor.away(at: lastTick)
+        }
+        lastTick = now
 
-        var verdict = DriftClassifier.classify(sample, contract: contract)
-        if verdict == .unsure && settings.macDriftUsesModel {
-            if let judged = DriftJudge.shared.cachedVerdict(for: sample, contract: contract) {
-                verdict = judged
-            } else {
-                DriftJudge.shared.judge(sample, contract: contract)
+        // Days roll over at 4 am: a task running across it starts today's tally from zero.
+        let day = Self.dayKey(now)
+        if day != tallyDay {
+            tallyDay = day
+            monitor.startNewTally()
+            book.prune(dayKey: day)
+        }
+
+        // No keyboard or mouse for a while: you've stepped away. Nothing is sampled or counted.
+        if Self.secondsSinceInput() >= config.idleSeconds {
+            monitor.away(at: now)
+            return
+        }
+
+        guard let contract, let sample = ActivityWatcher.shared.sample() else { return }
+        var verdict: DriftVerdict
+        if sample.appBundleID == Bundle.main.bundleIdentifier || StartContractWindow.shared.isAnswering {
+            // Our own windows (writing the contract, ticking the task off) are neither task nor
+            // drift. The start panel doesn't activate TruFocus, so check it by itself.
+            verdict = .neutral
+        } else {
+            verdict = DriftClassifier.classify(sample, contract: contract)
+            if verdict == .unsure && settings.macDriftUsesModel {
+                if let judged = DriftJudge.shared.cachedVerdict(for: sample, contract: contract) {
+                    verdict = judged
+                } else {
+                    DriftJudge.shared.judge(sample, contract: contract)
+                }
             }
         }
-        self.verdict = verdict
+        if self.verdict != verdict { self.verdict = verdict }
         lastSample = sample
 
         if verdict == .onTask, DriftPanel.shared.isShowing {
             DriftPanel.shared.dismiss()
         }
 
-        if let nudge = monitor.observe(sample, verdict: verdict, at: Date()) {
+        if let nudge = monitor.observe(sample, verdict: verdict, at: now) {
             show(nudge)
         }
         if let tally = monitor.tally, let taskID = monitor.taskID {
+            book.record(tally, for: taskID, dayKey: day)
+        }
+        // Keep today's tally on disk every half minute, so a quit or crash loses little.
+        if now.timeIntervalSince(lastPersist) >= 30 { persist() }
+        if let title = snapshot.taskTitle, title != contract.taskTitle {
+            self.contract?.taskTitle = title
+        }
+    }
+
+    /// Seconds since the last keyboard, mouse or trackpad event in this login session. Needs no
+    /// permission.
+    private static func secondsSinceInput() -> TimeInterval {
+        guard let anyInput = CGEventType(rawValue: ~0) else { return 0 }
+        return CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: anyInput)
+    }
+
+    /// Writes today's tally and the contracts now (the app is quitting).
+    func flush() {
+        if let tally = monitor.tally, let taskID = monitor.taskID {
             book.record(tally, for: taskID, dayKey: Self.dayKey())
         }
-        contract.taskTitle = snapshot.taskTitle ?? contract.taskTitle
-        self.contract = contract
+        persist()
     }
 
     private func show(_ nudge: DriftNudge) {
@@ -170,7 +234,7 @@ final class DriftGuard: FocusEffect {
     /// Opens the start contract for the current task (from the menu bar).
     func editCurrentContract() {
         guard let taskID = snapshot.taskID else { return }
-        StartContractWindow.shared.show(for: contract(for: taskID, title: snapshot.taskTitle ?? "your task"))
+        StartContractWindow.shared.show(for: contract(for: taskID, title: snapshot.taskTitle ?? "your task"), activate: true)
     }
 
     // MARK: Today
@@ -181,6 +245,7 @@ final class DriftGuard: FocusEffect {
 
     private func persist() {
         SharedStore.shared.write(book, DriftBook.key)
+        lastPersist = Date()
     }
 
     static func dayKey(_ date: Date = Date()) -> String {
