@@ -46,6 +46,9 @@ struct GuardConfig: Codable {
     /// Apps you still need to answer messages in. They're shielded too, but the shield
     /// offers a Post or reply pass.
     var replySelection = FamilyActivitySelection()
+    /// Apps that are never shielded, even when their category is (a booking or banking app in
+    /// Social or Sports, say), and even in focus.
+    var allowedSelection = FamilyActivitySelection()
     /// Apps currently let through on a Post or reply pass.
     var passTokens: Set<ApplicationToken> = []
     var passesUsed = 0
@@ -65,6 +68,7 @@ struct GuardConfig: Codable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         scrollSelection = (try? c.decodeIfPresent(FamilyActivitySelection.self, forKey: .scrollSelection)) ?? FamilyActivitySelection()
         replySelection = (try? c.decodeIfPresent(FamilyActivitySelection.self, forKey: .replySelection)) ?? FamilyActivitySelection()
+        allowedSelection = (try? c.decodeIfPresent(FamilyActivitySelection.self, forKey: .allowedSelection)) ?? FamilyActivitySelection()
         passTokens = (try? c.decodeIfPresent(Set<ApplicationToken>.self, forKey: .passTokens)) ?? []
         passesUsed = (try? c.decodeIfPresent(Int.self, forKey: .passesUsed)) ?? 0
         passesDay = try? c.decodeIfPresent(Date.self, forKey: .passesDay)
@@ -77,9 +81,14 @@ struct GuardConfig: Codable {
 
     // MARK: Derived
 
-    /// Every app the guard shields: scroll apps plus reply apps.
+    /// Every app the guard shields: scroll apps plus reply apps, minus the ones you always allow.
     var shieldedApps: Set<ApplicationToken> {
-        scrollSelection.applicationTokens.union(replySelection.applicationTokens)
+        scrollSelection.applicationTokens.union(replySelection.applicationTokens).subtracting(allowedApps)
+    }
+
+    /// Apps you always allow. Category shields leave them out too.
+    var allowedApps: Set<ApplicationToken> {
+        allowedSelection.applicationTokens
     }
 
     var categories: Set<ActivityCategoryToken> {

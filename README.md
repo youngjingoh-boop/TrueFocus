@@ -39,6 +39,7 @@ Sync runs through the TruFocus server, end-to-end encrypted: the key stays on yo
 | **Drifting off the task** | — | When a task starts, say where it happens (apps, sites). Something else in front for a minute and a half — a clinic site in the middle of marketing research — and a small card asks if you're heading back. On-device AI settles what the rules can't place. Names and titles only; no screenshots. |
 | **Browser** | Safari extension: scroll strokes counted on feed sites; Reels, Shorts and TikTok removed; Instagram opens to your DMs only. | Same extension in Safari, Chrome, Arc, Brave, Edge. |
 | **Still need to reply** | Shield button **Reply · 2 min** on apps you mark as messaging apps (limited passes per day). | Instagram web stays usable for DMs, minus the feed. |
+| **Apps you need** | *Always allowed* keeps an app open even when its category is shielded (a booking app filed under Social, say). Locked out with no passes left? **Unlock now** in Guard ends the cooldown and counts as a boot-out. | — |
 | **Notifications** | Use a system Focus with the TruFocus filter; with *Share Across Devices*, turning it on from the Mac silences and shields the iPhone too. | Optional Shortcuts hook flips the Focus when a session starts. |
 | **Adult sites** | On by default: Screen Time web-content filter + the extension's blocklist. Turning it off takes a 24-hour cool-off. | The extension's blocklist, plus a guide to macOS's built-in filter. |
 

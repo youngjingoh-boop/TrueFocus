@@ -37,7 +37,7 @@ enum GuardShields {
             store.shield.applicationCategories = nil
             store.shield.webDomainCategories = nil
         } else {
-            store.shield.applicationCategories = .specific(categories, except: config.replyApps.union(pass))
+            store.shield.applicationCategories = .specific(categories, except: config.replyApps.union(pass).union(config.allowedApps))
             store.shield.webDomainCategories = .specific(categories, except: [])
         }
         store.shield.webDomains = config.webDomains.tfNilIfEmpty
@@ -52,7 +52,7 @@ enum GuardShields {
         let categories = config.categories
         store.shield.applicationCategories = categories.isEmpty
             ? nil
-            : .specific(categories, except: config.replyApps.union(pass))
+            : .specific(categories, except: config.replyApps.union(pass).union(config.allowedApps))
         store.shield.webDomains = nil
         store.shield.webDomainCategories = nil
     }
@@ -230,6 +230,15 @@ enum GuardReactions {
         }
         GuardShields.reapply(config)
         SharedStore.shared.appendBoot(BootEvent(at: now, source: "ios-budget", site: nil, reason: "budget"))
+    }
+
+    /// You chose to end a lockout early. It counts as one more boot-out today, then the shield
+    /// lifts and a fresh budget starts, exactly as when a cooldown runs out.
+    static func unlockEarly(now: Date = Date()) {
+        guard GuardStore.load().budgetShieldActive else { return }
+        DeviceActivityCenter().stopMonitoring([.cooldown])
+        SharedStore.shared.appendBoot(BootEvent(at: now, source: "ios-budget", site: nil, reason: "unlocked-early"))
+        cooldownEnded(now: now)
     }
 
     /// The cooldown is over: lift the shield and start a fresh budget.

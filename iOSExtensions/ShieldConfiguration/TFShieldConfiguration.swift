@@ -117,6 +117,7 @@ final class TFShieldConfiguration: ShieldConfigurationDataSource {
         if let task, !task.isEmpty {
             line += " Back to “\(task)”."
         }
+        line += " Need it? Open TruFocus ▸ Guard to unlock now or always allow an app."
         return line
     }
 
