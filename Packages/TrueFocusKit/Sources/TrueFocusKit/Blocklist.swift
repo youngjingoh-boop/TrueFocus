@@ -164,6 +164,22 @@ public enum Blocklist {
         "com.netflix.Netflix": "Netflix",
     ]
 
+    /// Feed sites that have a work mode: the site stays open, even in focus, with its feeds hidden.
+    /// LinkedIn and Facebook have their own switches (`linkedInWorkOnly`, `facebookWorkOnly`).
+    public static let workPlatforms: [String] = ["YouTube", "Instagram", "X"]
+
+    /// Mac apps shielded during focus: your own list, plus the built-in feed apps you haven't allowed.
+    public static func macShieldedApps(custom: [String], allowedFeedApps: [String]) -> Set<String> {
+        let allowed = Set(allowedFeedApps)
+        return Set(custom).union(macFeedApps.keys.filter { !allowed.contains($0) })
+    }
+
+    /// Feed apps and sites you've opened up for work: bundle IDs and platform names. The drift
+    /// guard treats these like any other app or site instead of as drift on sight.
+    public static func workAccess(_ settings: TFSettings) -> Set<String> {
+        Set(settings.macAllowedFeedApps).union(settings.workPlatforms)
+    }
+
     /// Browsers the Mac watcher can read the current tab from.
     public static let scriptableBrowsers: [String: String] = [
         "com.apple.Safari": "Safari",

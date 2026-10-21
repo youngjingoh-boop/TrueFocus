@@ -82,11 +82,17 @@ private struct GuardTab: View {
                     }
                 }
                 Button("Add App…", action: addApp)
-                LabeledContent("Always shielded") {
-                    Text(Blocklist.macFeedApps.values.sorted().joined(separator: ", "))
-                        .foregroundStyle(TF.Palette.ink2)
-                        .multilineTextAlignment(.trailing)
+            }
+
+            Section {
+                ForEach(Blocklist.macFeedApps.sorted { $0.value < $1.value }, id: \.key) { entry in
+                    Toggle(entry.value, isOn: feedAppShielded(entry.key))
                 }
+            } header: {
+                Text("Feed apps")
+            } footer: {
+                Text("On means shielded during focus. Turn an app off to use it for work: it opens as normal. TruFocus can't remove the feed inside an app, so the doom-scroll watch still boots you out of a binge. For no feed at all, use the website: turn on \u{201C}for work\u{201D} under Flow \u{25B8} On the web.")
+                    .foregroundStyle(TF.Palette.ink2)
             }
 
             DriftGuardSection()
@@ -101,6 +107,19 @@ private struct GuardTab: View {
             AdultFilterSection()
         }
         .formStyle(.grouped)
+    }
+
+    /// On = shielded during focus. Off = allowed for work.
+    private func feedAppShielded(_ bundleID: String) -> Binding<Bool> {
+        Binding(
+            get: { !controller.settings.macAllowedFeedApps.contains(bundleID) },
+            set: { shield in
+                controller.updateSettings { settings in
+                    settings.macAllowedFeedApps.removeAll { $0 == bundleID }
+                    if !shield { settings.macAllowedFeedApps.append(bundleID) }
+                }
+            }
+        )
     }
 
     private func addApp() {

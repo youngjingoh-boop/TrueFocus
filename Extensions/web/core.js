@@ -351,6 +351,7 @@
     instagramMessagesOnly: true,
     linkedInWorkOnly: true,
     facebookWorkOnly: true,
+    workPlatforms: [],
     guardEnabled: true,
     sensitivity: 'standard'
   });
@@ -438,6 +439,7 @@
         ? settings.linkedInWorkOnly : !!p.linkedInWorkOnly,
       facebookWorkOnly: settings && typeof settings.facebookWorkOnly === 'boolean'
         ? settings.facebookWorkOnly : !!p.facebookWorkOnly,
+      workPlatforms: workPlatformsFrom(settings && Array.isArray(settings.workPlatforms) ? settings.workPlatforms : p.workPlatforms),
       allowedSites: (settings && Array.isArray(settings.allowedSites) ? settings.allowedSites : [])
         .map(normalizedSite).filter(Boolean),
       guardEnabled: p.guardEnabled !== false,
@@ -448,6 +450,24 @@
       adult: adultFilterState(settings, localAdultRequestMs, nowMs),
       customReminders: customReminders(settings)
     };
+  }
+
+  /** Blocklist.workPlatforms: feed sites with a work mode (LinkedIn and Facebook have their own switches). */
+  var WORK_PLATFORMS = Object.freeze(['YouTube', 'Instagram', 'X']);
+
+  function workPlatformsFrom(list) {
+    return (Array.isArray(list) ? list : []).filter(function (n) { return WORK_PLATFORMS.indexOf(n) !== -1; });
+  }
+
+  /**
+   * Work mode: which pages of a work platform hide a feed. YouTube hides its home grid,
+   * suggestions and end screens everywhere; Instagram its home feed; X its home timeline and trends.
+   */
+  function workFeedless(siteName, path) {
+    if (siteName === 'YouTube') { return true; }
+    if (siteName === 'Instagram') { return path === '/' || path === ''; }
+    if (siteName === 'X') { return path === '/home' || path === '/' || path === '' || path.indexOf('/explore') === 0; }
+    return false;
   }
 
   /**
@@ -539,6 +559,11 @@
       if (isFacebookFeed(path)) { return Object.assign({ kind: 'respond', redirect: respondURL(u, site) }, base); }
       // Search results share the feed's markup; keep them so you can find a page or group.
       return Object.assign({ kind: 'safe', feedless: path.indexOf('/search') !== 0 }, base);
+    }
+    // A platform you use for work: the whole site stays open — unguarded, even in focus —
+    // with its feeds hidden on the page. Short-form was walled above.
+    if (eff && eff.workPlatforms && eff.workPlatforms.indexOf(site.name) !== -1) {
+      return Object.assign({ kind: 'safe', work: true, feedless: workFeedless(site.name, path) }, base);
     }
     var remaining = cooldownRemaining(cooldowns, site.name, nowMs);
     if (remaining > 0) { return Object.assign({ kind: 'cooldown', remainingMs: remaining }, base); }
@@ -777,6 +802,8 @@
     feedSiteByName: feedSiteByName,
     isSafePath: isSafePath,
     isLinkedInFeed: isLinkedInFeed,
+    WORK_PLATFORMS: WORK_PLATFORMS,
+    workFeedless: workFeedless,
     isFacebookFeed: isFacebookFeed,
     isFacebookVideo: isFacebookVideo,
     normalizedSite: normalizedSite,

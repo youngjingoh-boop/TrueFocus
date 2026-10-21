@@ -89,6 +89,9 @@
     setSwitch('instagramMessagesOnly', eff.instagramMessagesOnly, managed);
     setSwitch('linkedInWorkOnly', eff.linkedInWorkOnly, managed);
     setSwitch('facebookWorkOnly', eff.facebookWorkOnly, managed);
+    ['YouTube', 'Instagram', 'X'].forEach(function (name) {
+      setSwitch('work' + name, eff.workPlatforms.indexOf(name) !== -1, managed);
+    });
     setSwitch('guardEnabled', eff.guardEnabled, false);
     var preset = Core.presetName(eff.doomScroll);
     Array.prototype.forEach.call($('sensitivity').querySelectorAll('button'), function (b) {
@@ -193,6 +196,14 @@
       var change = {};
       change[id] = e.target.checked;
       savePrefs(change);
+    });
+  });
+
+  ['YouTube', 'Instagram', 'X'].forEach(function (name) {
+    $('work' + name).addEventListener('change', function (e) {
+      var current = Core.effective(null, prefs, Date.now(), null).workPlatforms.filter(function (n) { return n !== name; });
+      if (e.target.checked) current.push(name);
+      savePrefs({ workPlatforms: current });
     });
   });
 

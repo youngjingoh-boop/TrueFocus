@@ -133,6 +133,19 @@ struct FlowSettingsView<Extra: View>: View {
 
     // MARK: Web
 
+    /// On = this platform is open for work, with its feeds hidden.
+    private func workPlatform(_ name: String) -> Binding<Bool> {
+        Binding(
+            get: { controller.settings.workPlatforms.contains(name) },
+            set: { on in
+                controller.updateSettings { settings in
+                    settings.workPlatforms.removeAll { $0 == name }
+                    if on { settings.workPlatforms.append(name) }
+                }
+            }
+        )
+    }
+
     private var web: some View {
         SettingsSection("On the web", footnote: "Applied by the TruFocus browser extension in Safari and Chrome.") {
             ToggleRow(title: "Remove Reels, Shorts and TikTok", isOn: controller.binding(\.hideShortForm))
@@ -143,6 +156,15 @@ struct FlowSettingsView<Extra: View>: View {
             ToggleRow(title: "Facebook for work only",
                       subtitle: "No feed, posts, stories or video. Pages, groups, Messenger, events and sign-ins stay open, even in focus.",
                       isOn: controller.binding(\.facebookWorkOnly))
+            ToggleRow(title: "YouTube for work",
+                      subtitle: "Watch, search, channels and Studio stay open, even in focus. The home feed, suggested videos and end screens are hidden; Shorts stay gone.",
+                      isOn: workPlatform("YouTube"))
+            ToggleRow(title: "Instagram for work",
+                      subtitle: "Profiles, posts, search and DMs stay open, even in focus. The home feed and suggestions are hidden; Reels and Explore stay gone.",
+                      isOn: workPlatform("Instagram"))
+            ToggleRow(title: "X for work",
+                      subtitle: "Profiles, posts, search, messages and posting stay open, even in focus. The home timeline and trends are hidden.",
+                      isOn: workPlatform("X"))
             AllowedSitesEditor()
         }
     }

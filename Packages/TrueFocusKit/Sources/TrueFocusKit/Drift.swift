@@ -214,7 +214,9 @@ public enum DriftClassifier {
         "com.operasoftware.Opera", "com.google.Chrome.canary",
     ]
 
-    public static func classify(_ sample: ActivitySample, contract: TaskContract) -> DriftVerdict {
+    /// `workAccess`: feed apps (bundle IDs) and sites (platform names) you've opened up for work.
+    /// They aren't drift on sight; they count like any other app or site.
+    public static func classify(_ sample: ActivitySample, contract: TaskContract, workAccess: Set<String> = []) -> DriftVerdict {
         let words = contract.topicWords
 
         if let rawHost = sample.host, let host = Blocklist.normalizedSite(rawHost) {
@@ -222,7 +224,7 @@ public enum DriftClassifier {
                 return .onTask
             }
             if TopicWords.overlaps(words, with: sample.text) { return .onTask }
-            if Blocklist.feedSite(forHost: host) != nil { return .offTask }
+            if let feed = Blocklist.feedSite(forHost: host), !workAccess.contains(feed.name) { return .offTask }
             if communicationSites.contains(where: { host == $0 || host.hasSuffix("." + $0) }) { return .unsure }
             return contract.hasWorkspace ? .offTask : .unsure
         }
@@ -237,7 +239,7 @@ public enum DriftClassifier {
         }
         if neutralApps.contains(id) { return .neutral }
         if TopicWords.overlaps(words, with: sample.text) { return .onTask }
-        if Blocklist.macFeedApps[id] != nil { return .offTask }
+        if Blocklist.macFeedApps[id] != nil, !workAccess.contains(id) { return .offTask }
         if isBrowser {
             // No tab report (extension missing, not connected, or the report went stale): the
             // site is unknown, so a declared site can't be recognised. Only an obvious feed in
