@@ -89,8 +89,9 @@
     setSwitch('instagramMessagesOnly', eff.instagramMessagesOnly, managed);
     setSwitch('linkedInWorkOnly', eff.linkedInWorkOnly, managed);
     setSwitch('facebookWorkOnly', eff.facebookWorkOnly, managed);
-    ['YouTube', 'Instagram', 'X'].forEach(function (name) {
-      setSwitch('work' + name, eff.workPlatforms.indexOf(name) !== -1, managed);
+    // "For work" switches go through the app when it's running, so they never lock.
+    Core.WORK_PLATFORMS.forEach(function (name) {
+      setSwitch('work' + name, eff.workPlatforms.indexOf(name) !== -1, false);
     });
     setSwitch('guardEnabled', eff.guardEnabled, false);
     var preset = Core.presetName(eff.doomScroll);
@@ -199,11 +200,9 @@
     });
   });
 
-  ['YouTube', 'Instagram', 'X'].forEach(function (name) {
+  Core.WORK_PLATFORMS.forEach(function (name) {
     $('work' + name).addEventListener('change', function (e) {
-      var current = Core.effective(null, prefs, Date.now(), null).workPlatforms.filter(function (n) { return n !== name; });
-      if (e.target.checked) current.push(name);
-      savePrefs({ workPlatforms: current });
+      send({ type: 'work', platform: name, open: e.target.checked });
     });
   });
 

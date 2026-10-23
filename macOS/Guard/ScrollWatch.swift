@@ -17,6 +17,8 @@ final class ScrollWatch: FocusEffect {
     private(set) var watchedApp: String?
 
     private var detector = DoomScrollDetector()
+    /// For a feed app you've opened for work: "working or scrolling?" instead of a boot-out.
+    private var checkIn = ScrollCheckIn()
     private var snapshot = LiveSnapshot.idle
     private var settings = TFSettings.default
     private var scrollMonitor: Any?
@@ -78,7 +80,10 @@ final class ScrollWatch: FocusEffect {
             stopWatching()
             return
         }
-        if bundleID != watchedApp { detector.reset() }
+        if bundleID != watchedApp {
+            detector.reset()
+            checkIn.reset()
+        }
         startWatching(bundleID)
     }
 
@@ -148,13 +153,48 @@ final class ScrollWatch: FocusEffect {
 
     private func finishStroke(forwardDistance: CGFloat) {
         guard forwardDistance >= Self.minStrokePoints else { return }
+        if isOpenForWork {
+            checkIn.stroke(at: Date())
+            return
+        }
         let screens = Double(forwardDistance / Self.pointsPerScreen)
         react(to: detector.stroke(at: Date(), screens: screens))
     }
 
     private func tick() {
         guard watchedApp != nil else { return }
+        if isOpenForWork {
+            if checkIn.tick(at: Date()) { askWorkingOrScrolling() }
+            return
+        }
         react(to: detector.tick(at: Date()))
+    }
+
+    /// The watched app is one you've opened for work under Guard ▸ Feed apps.
+    private var isOpenForWork: Bool {
+        guard let watchedApp else { return false }
+        return settings.macAllowedFeedApps.contains(watchedApp)
+    }
+
+    private func askWorkingOrScrolling() {
+        guard let bundleID = watchedApp else { return }
+        let name = Blocklist.macFeedApps[bundleID] ?? "this app"
+        let minutes = checkIn.minutes
+        WakeUpOverlay.shared.show(WakeUpContent(
+            eyebrow: "Open for work",
+            title: "Working or scrolling?",
+            message: "\(minutes) minutes of scrolling in \(name).",
+            taskLabel: snapshot.taskTitle == nil ? nil : "You're on",
+            task: snapshot.taskTitle,
+            primaryTitle: "Scrolling. Back to it",
+            primary: { [weak self] in
+                for app in NSRunningApplication.runningApplications(withBundleIdentifier: bundleID) { app.hide() }
+                self?.checkIn.reset()
+                if self?.snapshot.mode == .think { FocusController.shared.backToIt() }
+            },
+            snoozeTitle: "Working",
+            snooze: { [weak self] in self?.checkIn.working() }
+        ))
     }
 
     // MARK: Verdicts

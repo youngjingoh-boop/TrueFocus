@@ -452,8 +452,83 @@
     };
   }
 
-  /** Blocklist.workPlatforms: feed sites with a work mode (LinkedIn and Facebook have their own switches). */
-  var WORK_PLATFORMS = Object.freeze(['YouTube', 'Instagram', 'X']);
+  /**
+   * "Working or scrolling?" for a site you've opened for work. Instead of a boot-out it asks
+   * after two minutes of scrolling, then after five more each time you say you're working.
+   * A stroke counts as scrolling for 8 seconds, so reading or writing a post doesn't add up;
+   * ten quiet minutes start the count over. Times are in seconds. Mirrors ScrollCheckIn in
+   * TrueFocusKit. `saved` restores one from JSON.
+   */
+  var CHECKIN = Object.freeze({ firstAsk: 120, askAgain: 300, activeWindow: 8, idleReset: 600 });
+
+  function ScrollCheckIn(saved) {
+    this.scrolled = 0;
+    this.threshold = CHECKIN.firstAsk;
+    this.asking = false;
+    this.lastStroke = null;
+    this.lastUpdate = null;
+    if (saved && typeof saved === 'object') {
+      var self = this;
+      ['scrolled', 'threshold', 'lastStroke', 'lastUpdate'].forEach(function (k) {
+        if (typeof saved[k] === 'number' && isFinite(saved[k])) { self[k] = saved[k]; }
+      });
+      this.asking = saved.asking === true;
+    }
+  }
+
+  ScrollCheckIn.prototype._accrue = function (time) {
+    if (this.lastStroke !== null && this.lastUpdate !== null) {
+      var start = Math.max(this.lastUpdate, this.lastStroke);
+      var end = Math.min(time, this.lastStroke + CHECKIN.activeWindow);
+      if (end > start) { this.scrolled += end - start; }
+    }
+    this.lastUpdate = time;
+  };
+
+  ScrollCheckIn.prototype.stroke = function (time) {
+    if (this.lastStroke !== null && time - this.lastStroke > CHECKIN.idleReset && !this.asking) {
+      this.scrolled = 0;
+      this.threshold = CHECKIN.firstAsk;
+      this.lastUpdate = time;
+    }
+    this._accrue(time);
+    this.lastStroke = time;
+  };
+
+  /** True once, when it's time to ask; then not again until answered. */
+  ScrollCheckIn.prototype.tick = function (time) {
+    this._accrue(time);
+    if (this.asking || this.scrolled < this.threshold) { return false; }
+    this.asking = true;
+    return true;
+  };
+
+  /** "Working": quiet until five more minutes of scrolling. */
+  ScrollCheckIn.prototype.working = function () {
+    this.asking = false;
+    this.scrolled = 0;
+    this.threshold = CHECKIN.askAgain;
+    // The last stroke's tail belongs to the question just answered.
+    this.lastStroke = null;
+  };
+
+  Object.defineProperty(ScrollCheckIn.prototype, 'minutes', {
+    get: function () { return Math.round(this.threshold / 60); }
+  });
+
+  /** What the check-in card says. */
+  function checkInCopy(siteName, task, minutes) {
+    var where = siteName ? ' on ' + siteName : '';
+    var body = minutes + ' minutes of scrolling' + where + '.';
+    if (task) { body += ' You\u2019re on \u201C' + task + '\u201D.'; }
+    return { title: 'Working or scrolling?', body: body, working: 'Working', back: 'Back to work' };
+  }
+
+  /**
+   * Blocklist.workPlatforms: feed sites with a work mode. LinkedIn has its own switch; Facebook's
+   * stricter work-only mode (no posts anywhere) applies while Facebook isn't open for work.
+   */
+  var WORK_PLATFORMS = Object.freeze(['YouTube', 'Instagram', 'X', 'Facebook']);
 
   function workPlatformsFrom(list) {
     return (Array.isArray(list) ? list : []).filter(function (n) { return WORK_PLATFORMS.indexOf(n) !== -1; });
@@ -461,9 +536,11 @@
 
   /**
    * Work mode: which pages of a work platform hide a feed. YouTube hides its home grid,
-   * suggestions and end screens everywhere; Instagram its home feed; X its home timeline and trends.
+   * suggestions and end screens everywhere; Instagram its home feed; X its home timeline and
+   * trends; Facebook its News Feed and groups feed (pages, posting and Ads Manager stay whole).
    */
   function workFeedless(siteName, path) {
+    if (siteName === 'Facebook') { return isFacebookFeed(path); }
     if (siteName === 'YouTube') { return true; }
     if (siteName === 'Instagram') { return path === '/' || path === ''; }
     if (siteName === 'X') { return path === '/home' || path === '/' || path === '' || path.indexOf('/explore') === 0; }
@@ -543,6 +620,12 @@
     var base = { site: site.name, host: host, path: path };
     if (isSafePath(site, path)) { return Object.assign({ kind: 'safe' }, base); }
     if (eff && eff.hideShortForm && isShortFormPath(site, path)) { return Object.assign({ kind: 'shortform' }, base); }
+    // A platform you use for work: the whole site stays open — unguarded, even in focus —
+    // with only its home feed hidden. Short-form was walled above. It comes before the
+    // stricter modes below, which would close what you opened it for.
+    if (eff && eff.workPlatforms && eff.workPlatforms.indexOf(site.name) !== -1) {
+      return Object.assign({ kind: 'safe', work: true, feedless: workFeedless(site.name, path) }, base);
+    }
     // Messages-only Instagram: the home feed and the story viewer land you in your DMs.
     if (eff && eff.instagramMessagesOnly && site.name === 'Instagram' &&
         (path === '/' || path === '' || path === '/stories' || path.indexOf('/stories/') === 0)) {
@@ -559,11 +642,6 @@
       if (isFacebookFeed(path)) { return Object.assign({ kind: 'respond', redirect: respondURL(u, site) }, base); }
       // Search results share the feed's markup; keep them so you can find a page or group.
       return Object.assign({ kind: 'safe', feedless: path.indexOf('/search') !== 0 }, base);
-    }
-    // A platform you use for work: the whole site stays open — unguarded, even in focus —
-    // with its feeds hidden on the page. Short-form was walled above.
-    if (eff && eff.workPlatforms && eff.workPlatforms.indexOf(site.name) !== -1) {
-      return Object.assign({ kind: 'safe', work: true, feedless: workFeedless(site.name, path) }, base);
     }
     var remaining = cooldownRemaining(cooldowns, site.name, nowMs);
     if (remaining > 0) { return Object.assign({ kind: 'cooldown', remainingMs: remaining }, base); }
@@ -804,6 +882,9 @@
     isLinkedInFeed: isLinkedInFeed,
     WORK_PLATFORMS: WORK_PLATFORMS,
     workFeedless: workFeedless,
+    CHECKIN: CHECKIN,
+    ScrollCheckIn: ScrollCheckIn,
+    checkInCopy: checkInCopy,
     isFacebookFeed: isFacebookFeed,
     isFacebookVideo: isFacebookVideo,
     normalizedSite: normalizedSite,

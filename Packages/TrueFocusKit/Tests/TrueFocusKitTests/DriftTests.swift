@@ -19,12 +19,12 @@ final class WorkPlatformSwitchTests: XCTestCase {
         XCTAssertTrue(s.workPlatforms.isEmpty)
     }
 
-    func testOpeningFacebookTurnsOnWorkOnlyFacebook() {
+    func testFacebookOpensTheAppAndTheWholeWebsite() {
         var s = TFSettings.default
-        s.facebookWorkOnly = false
         s.setOpenForWork("Facebook", true)
-        XCTAssertTrue(s.facebookWorkOnly)
-        s.setOpenForWork("Facebook", false)
+        XCTAssertEqual(s.macAllowedFeedApps, ["com.facebook.Facebook"])
+        XCTAssertEqual(s.workPlatforms, ["Facebook"])
+        // Work-only Facebook (no posts anywhere) is untouched; it applies again once closed.
         XCTAssertTrue(s.facebookWorkOnly)
     }
 

@@ -11,6 +11,8 @@ import TrueFocusKit
 /// - `{type: "command", kind: "switchTo" | "wait", taskID}` → queues a juggling command
 ///   for the app, then replies like `state`.
 /// - `{type: "activity", host, title}` → (Mac, during focus) the active tab for the drift guard.
+/// - `{type: "work", platform, open}` → opens a feed platform for work, or closes it, then
+///   replies like `state` (with the new settings, so the page follows at once).
 final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
     /// Posted (Darwin notification) whenever the extension writes to the App Group,
     /// so a running app can pick the change up without waiting to be foregrounded.
@@ -54,6 +56,17 @@ final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             #else
             break
             #endif
+        case "work":
+            if let platform = message["platform"] as? String, Blocklist.workPlatforms.contains(platform),
+               let open = message["open"] as? Bool {
+                var settings = store.settings
+                settings.setOpenForWork(platform, open)
+                store.settings = settings
+                Self.postSharedChanged()
+            } else {
+                reply["ok"] = false
+                reply["error"] = "bad platform"
+            }
         case "state":
             break
         default:

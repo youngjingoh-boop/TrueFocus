@@ -44,9 +44,11 @@ test('Instagram for work: profiles and posts open; home hides its feed; Reels st
   assert.equal(verdict('https://www.instagram.com/reels/', e).kind, 'shortform');
 });
 
-test('Instagram for work keeps messages-only home when that is on', () => {
+test('Instagram for work opens home in place of messages-only, with its feed hidden', () => {
   const e = eff({ strict: true, workPlatforms: ['Instagram'] });
-  assert.equal(verdict('https://www.instagram.com/', e).kind, 'respond');
+  const home = verdict('https://www.instagram.com/', e);
+  assert.equal(home.kind, 'safe');
+  assert.equal(home.feedless, true);
 });
 
 test('X for work: profiles open; the home timeline hides its feed', () => {

@@ -143,7 +143,7 @@ struct FlowSettingsView<Extra: View>: View {
     }
 
     private var web: some View {
-        SettingsSection("On the web", footnote: "Applied by the TruFocus browser extension in Safari and Chrome.") {
+        SettingsSection("On the web", footnote: "Applied by the TruFocus browser extension in Safari and Chrome. On a platform open for work, two minutes of scrolling brings a quick check: working or scrolling?") {
             ToggleRow(title: "Remove Reels, Shorts and TikTok", isOn: controller.binding(\.hideShortForm))
             ToggleRow(title: "Instagram opens to messages only", isOn: controller.binding(\.instagramMessagesOnly))
             ToggleRow(title: "LinkedIn for work only",
@@ -161,6 +161,9 @@ struct FlowSettingsView<Extra: View>: View {
             ToggleRow(title: "X for work",
                       subtitle: "Profiles, posts, search, messages and posting stay open, even in focus. The home timeline and trends are hidden.",
                       isOn: workPlatform("X"))
+            ToggleRow(title: "Facebook for work",
+                      subtitle: "Pages, posting, groups, Ads Manager and Messenger stay open, even in focus. Only the News Feed is hidden.",
+                      isOn: workPlatform("Facebook"))
             AllowedSitesEditor()
         }
     }

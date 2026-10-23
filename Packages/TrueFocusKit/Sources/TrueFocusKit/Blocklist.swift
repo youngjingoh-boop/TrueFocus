@@ -164,9 +164,11 @@ public enum Blocklist {
         "com.netflix.Netflix": "Netflix",
     ]
 
-    /// Feed sites that have a work mode: the site stays open, even in focus, with its feeds hidden.
-    /// LinkedIn and Facebook have their own switches (`linkedInWorkOnly`, `facebookWorkOnly`).
-    public static let workPlatforms: [String] = ["YouTube", "Instagram", "X"]
+    /// Feed sites that have a work mode: the site stays open, even in focus, with only its home
+    /// feed hidden, and scrolling it brings a "working or scrolling?" check instead of a boot-out.
+    /// LinkedIn has its own switch (`linkedInWorkOnly`); Facebook's stricter `facebookWorkOnly`
+    /// (no posts anywhere) applies only while Facebook isn't open for work.
+    public static let workPlatforms: [String] = ["YouTube", "Instagram", "X", "Facebook"]
 
     /// Mac apps shielded during focus: your own list, plus the built-in feed apps you haven't allowed.
     public static func macShieldedApps(custom: [String], allowedFeedApps: [String]) -> Set<String> {
