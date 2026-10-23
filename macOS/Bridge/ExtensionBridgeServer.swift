@@ -168,6 +168,18 @@ private final class BridgeConnection: @unchecked Sendable {
                 FocusController.shared.drainSharedQueues()
             }
             send(status: 200, body: Data(#"{"ok":true}"#.utf8), origin: origin)
+        case ("POST", "/work"):
+            // Open a feed platform for work, or close it: the popup's and block page's switch.
+            let json = (try? JSONSerialization.jsonObject(with: request.body)) as? [String: Any] ?? [:]
+            guard let platform = json["platform"] as? String, Blocklist.workPlatforms.contains(platform),
+                  let open = json["open"] as? Bool else {
+                send(status: 400, body: Data(#"{"error":"bad platform"}"#.utf8), origin: origin)
+                return
+            }
+            Task { @MainActor in
+                FocusController.shared.updateSettings { $0.setOpenForWork(platform, open) }
+            }
+            send(status: 200, body: Data(#"{"ok":true}"#.utf8), origin: origin)
         case ("POST", "/activity"):
             // The active tab, for the drift guard: host and title only, kept in memory, and
             // dropped unless a focus task is being watched (see ActivityWatcher).

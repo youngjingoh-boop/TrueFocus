@@ -78,6 +78,39 @@
       link.textContent = 'Reply to messages';
     }
     show('respond', !!reply);
+
+    // One tap to open the platform for work and go straight back to the page.
+    var canWork = siteName && Core.WORK_PLATFORMS.indexOf(siteName) !== -1 &&
+      (reason === 'focus' || reason === 'cooldown' || reason === 'doomscroll') &&
+      eff.workPlatforms.indexOf(siteName) === -1;
+    setText('work', siteName ? 'Use ' + siteName + ' for work' : 'Use it for work');
+    show('work', !!canWork);
+  }
+
+  /** The page you were on, if it belongs to this site; otherwise the site's front page. */
+  function returnURL() {
+    var site = siteName ? Core.feedSiteByName(siteName) : null;
+    if (!site) return null;
+    var from = params.get('from');
+    try {
+      var u = new URL(from);
+      var match = Core.feedSiteForHost(u.hostname);
+      if (u.protocol === 'https:' && match && match.name === siteName) return u.href;
+    } catch (e) { /* no or bad return address */ }
+    return 'https://' + (site.name === 'X' ? 'x.com' : 'www.' + site.hosts[0]) + '/';
+  }
+
+  function useForWork() {
+    var button = $('work');
+    button.disabled = true;
+    Promise.resolve(api.runtime.sendMessage({ type: 'work', platform: siteName, open: true })).then(function (r) {
+      if (r && r.ok) {
+        var url = returnURL();
+        if (url) location.replace(url);
+      } else {
+        button.disabled = false;
+      }
+    }, function () { button.disabled = false; });
   }
 
   function load() {
@@ -106,6 +139,7 @@
   }
 
   $('back').addEventListener('click', backToWork);
+  $('work').addEventListener('click', useForWork);
 
   if (api && api.storage) {
     api.storage.onChanged.addListener(function (changes, area) {

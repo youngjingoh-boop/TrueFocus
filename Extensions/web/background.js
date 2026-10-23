@@ -211,6 +211,49 @@ async function sendCommand(message) {
   return { ok: true };
 }
 
+// ─────────────────────────────────── Work mode ───────────────────────────────────
+
+/**
+ * Opens a feed platform for work, or closes it. The app owns the switch when it's running
+ * (its Mac app opens too, and its settings win); otherwise the extension's own prefs do.
+ */
+async function setWorkPlatform(platform, open) {
+  if (Core.WORK_PLATFORMS.indexOf(platform) === -1) return { ok: false, error: 'unknown platform' };
+  try {
+    if (IS_SAFARI) {
+      const reply = await api.runtime.sendNativeMessage(NATIVE_APP, { type: 'work', platform, open });
+      if (!reply || reply.ok === false) throw new Error('native refused');
+    } else {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2000);
+      try {
+        const res = await fetch(BRIDGE + '/work', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ platform, open }),
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error('bridge ' + res.status);
+      } finally {
+        clearTimeout(timer);
+      }
+      // The app applies it on its main thread; give it a beat before reading it back.
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    await refreshState();
+    return { ok: true, via: 'app' };
+  } catch (error) {
+    // No app: keep it in the extension.
+  }
+  const { prefs } = await loadAll();
+  const current = Core.effective(null, prefs, Date.now(), null).workPlatforms.filter((n) => n !== platform);
+  if (open) current.push(platform);
+  const next = Object.assign({}, Core.DEFAULT_PREFS, prefs || {}, { workPlatforms: current });
+  await api.storage.local.set({ [KEY.prefs]: next });
+  await applyRulesets();
+  return { ok: true, via: 'extension' };
+}
+
 // ──────────────────────────────────── Activity ────────────────────────────────────
 
 let lastActivity = null;
@@ -273,6 +316,8 @@ async function handle(message, sender) {
       return { ok: true, boots: await recordBoot(message) };
     case 'command':
       return sendCommand(message);
+    case 'work':
+      return setWorkPlatform(message.platform, !!message.open);
     case 'closeTab': {
       const tabId = sender && sender.tab && sender.tab.id;
       if (typeof tabId === 'number' && api.tabs && api.tabs.remove) {

@@ -172,7 +172,8 @@ final class FocusController {
     // MARK: Settings
 
     func updateSettings(_ change: (inout TFSettings) -> Void) {
-        var next = settings
+        // Start from the stored copy: the Safari extension can open a platform for work there.
+        var next = sharedStore.settings
         change(&next)
         sharedStore.settings = next
         settings = sharedStore.settings
@@ -514,6 +515,12 @@ final class FocusController {
 
     /// Pull in anything other processes queued while we weren't looking.
     func drainSharedQueues() {
+        // Settings the Safari extension changed (opening a platform for work).
+        let stored = sharedStore.settings
+        if stored != settings {
+            settings = stored
+            publish(force: true)
+        }
         let boots = sharedStore.drainBoots()
         if !boots.isEmpty { recordBoots(boots) }
         for command in sharedStore.drainCommands() where Date().timeIntervalSince(command.at) < 6 * 3600 {

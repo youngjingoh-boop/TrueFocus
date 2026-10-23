@@ -7,6 +7,8 @@
  *    re-checked on every SPA navigation.
  * 2. Doom-scroll guard — counts downward strokes (touch, wheel, keys, scroll fallback)
  *    through TFCore.DoomScrollDetector; warns, then boots you out.
+ * 3. Work check-in — on a platform you've opened for work the same strokes feed
+ *    TFCore.ScrollCheckIn, which asks "working or scrolling?" instead of booting you out.
  */
 (function () {
   'use strict';
@@ -36,6 +38,9 @@
   var detector = null;
   var detectorKey = '';
   var guardOn = false;
+  var checkinOn = false;
+  var CHECKIN_KEY = 'tfCheckin';
+  var checkin = loadCheckin();
   var leaving = false;
   var lastHref = location.href;
   var currentSite = null;
@@ -47,7 +52,8 @@
   function recompute() {
     eff = Core.effective(state, prefs, now(), adultOff);
     root.classList.toggle('tf-hide-shorts', !!eff.hideShortForm);
-    root.classList.toggle('tf-ig-dm-only', !!eff.instagramMessagesOnly && /(^|\.)instagram\.com$/.test(location.hostname));
+    root.classList.toggle('tf-ig-dm-only', !!eff.instagramMessagesOnly && /(^|\.)instagram\.com$/.test(location.hostname) &&
+      eff.workPlatforms.indexOf('Instagram') === -1);
     evaluateRoute();
   }
 
@@ -115,12 +121,16 @@
       root.classList.remove('tf-hide-shorts');
       root.classList.remove('tf-ig-dm-only');
     }
+    // Opened for work: ask "working or scrolling?" instead of guarding.
+    checkinOn = verdict.kind === 'safe' && !!verdict.work && !!eff.guardEnabled;
+    if (checkinOn && checkin.asking) showCheckIn();
+    if (!checkinOn) hideCheckIn();
     switch (verdict.kind) {
       case 'adult': return leave(api.runtime.getURL('wall.html'));
       case 'shortform': return leave(blockedURL('shortform', verdict.site));
       case 'respond': return leave(verdict.redirect);
-      case 'cooldown': return leave(blockedURL('cooldown', verdict.site));
-      case 'strict': return leave(blockedURL('focus', verdict.site));
+      case 'cooldown': return leave(blockedURL('cooldown', verdict.site, { from: location.href }));
+      case 'strict': return leave(blockedURL('focus', verdict.site, { from: location.href }));
       case 'feed': return startGuard();
       default: return stopGuard();
     }
@@ -171,20 +181,31 @@
     return Math.max(320, window.innerHeight || document.documentElement.clientHeight || 800);
   }
 
+  /** Strokes count while the doom-scroll guard or the work check-in is on. */
+  function watching() { return guardOn || checkinOn; }
+
   /** One downward stroke from a direct gesture (touch, wheel, key). */
   function stroke(screens) {
-    if (!guardOn || !detector || leaving) return;
+    if (!watching() || leaving) return;
     var t = now();
     lastDirectStroke = t;
     suppressFallbackUntil = t + 1500;
     fallbackTravel = 0;
-    handle(detector.stroke(t / 1000, screens));
+    countStroke(t, screens);
   }
 
   /** A stroke inferred from scroll position alone (sites that scroll inner containers). */
   function fallbackStroke(screens) {
-    if (!guardOn || !detector || leaving) return;
-    handle(detector.stroke(now() / 1000, screens));
+    if (!watching() || leaving) return;
+    countStroke(now(), screens);
+  }
+
+  function countStroke(t, screens) {
+    if (checkinOn) {
+      checkin.stroke(t / 1000);
+      saveCheckin();
+    }
+    if (guardOn && detector) handle(detector.stroke(t / 1000, screens));
   }
 
   function isTyping(target) {
@@ -197,7 +218,7 @@
   // Touch: finger travels up ≥ 60px = content scrolls down.
   var touchStartY = null;
   document.addEventListener('touchstart', function (e) {
-    if (!guardOn || !e.touches || e.touches.length !== 1) { touchStartY = null; return; }
+    if (!watching() || !e.touches || e.touches.length !== 1) { touchStartY = null; return; }
     touchStartY = e.touches[0].clientY;
   }, { capture: true, passive: true });
 
@@ -218,7 +239,7 @@
     wheelTravel = 0;
   }
   document.addEventListener('wheel', function (e) {
-    if (!guardOn) return;
+    if (!watching()) return;
     var unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? viewport() : 1;
     var dy = e.deltaY * unit;
     if (dy <= 0) {
@@ -242,7 +263,7 @@
   // Keys: Space, PageDown and j are page-sized strokes; held ArrowDown counts every 400ms.
   var lastArrow = 0;
   document.addEventListener('keydown', function (e) {
-    if (!guardOn || e.metaKey || e.ctrlKey || e.altKey || e.isComposing || isTyping(e.target)) return;
+    if (!watching() || e.metaKey || e.ctrlKey || e.altKey || e.isComposing || isTyping(e.target)) return;
     if ((e.key === ' ' && !e.shiftKey) || e.key === 'PageDown' || e.key === 'j') {
       if (!e.repeat || now() - lastDirectStroke > 400) stroke(1);
     } else if (e.key === 'ArrowDown') {
@@ -256,7 +277,7 @@
   // Scroll-position fallback: catches scrolling we didn't see as a gesture.
   var lastTops = new WeakMap();
   document.addEventListener('scroll', function (e) {
-    if (!guardOn) return;
+    if (!watching()) return;
     var target = e.target === document ? (document.scrollingElement || document.documentElement) : e.target;
     if (!target || typeof target.scrollTop !== 'number') return;
     var top = target.scrollTop;
@@ -278,6 +299,25 @@
     if (!guardOn || !detector || leaving || document.visibilityState !== 'visible') return;
     handle(detector.tick(now() / 1000));
   }, TICK_MS);
+
+  setInterval(function () {
+    if (!checkinOn || leaving || document.visibilityState !== 'visible') return;
+    if (checkin.tick(now() / 1000)) showCheckIn();
+    saveCheckin();
+  }, TICK_MS);
+
+  // The count survives reloads within the tab (sessionStorage is per tab and per site).
+  function loadCheckin() {
+    try {
+      return new Core.ScrollCheckIn(JSON.parse(sessionStorage.getItem(CHECKIN_KEY) || 'null'));
+    } catch (e) {
+      return new Core.ScrollCheckIn();
+    }
+  }
+
+  function saveCheckin() {
+    try { sessionStorage.setItem(CHECKIN_KEY, JSON.stringify(checkin)); } catch (e) { /* storage off */ }
+  }
 
   function handle(verdict) {
     if (!verdict || leaving) return;
@@ -304,8 +344,9 @@
     }).catch(function () {});
     send({ type: 'boot', site: site, reason: reason, strict: strict });
 
+    var from = location.href;
     showBootOverlay(line, reason, function () {
-      location.replace(blockedURL('doomscroll', site, { why: reason }));
+      location.replace(blockedURL('doomscroll', site, { why: reason, from: from }));
     });
   }
 
@@ -391,6 +432,57 @@
 
   function hideToast() {
     var host = document.getElementById('tf-toast');
+    if (!host || !host.shadowRoot) return;
+    var el = host.shadowRoot.querySelector('.toast');
+    if (el) el.classList.remove('on');
+  }
+
+  // "Working or scrolling?" — stays until answered; the page keeps working underneath.
+  var CHECKIN_CSS = TOAST_CSS + '\n' + [
+    '.toast { align-items: flex-start; flex-wrap: wrap; padding: 16px 16px 14px 18px; }',
+    '.toast .dot { margin-top: 6px; }',
+    '.body { white-space: normal; }',
+    '.actions { display: flex; gap: 8px; width: 100%; justify-content: flex-end; margin-top: 4px; }',
+    'button.quiet { color: #F4F3EE; background: rgba(255,255,255,.10); }'
+  ].join('\n');
+
+  function showCheckIn() {
+    var shadow = mount('tf-checkin', CHECKIN_CSS);
+    var el = shadow.querySelector('.toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'toast';
+      el.setAttribute('role', 'alertdialog');
+      el.setAttribute('aria-live', 'assertive');
+      el.innerHTML = '<span class="dot"></span><div class="text"><div class="title"></div><div class="body"></div></div>' +
+        '<div class="actions"><button type="button" class="quiet" data-act="working"></button>' +
+        '<button type="button" data-act="back"></button></div>';
+      el.querySelector('[data-act="working"]').addEventListener('click', function () {
+        checkin.working();
+        saveCheckin();
+        hideCheckIn();
+      });
+      el.querySelector('[data-act="back"]').addEventListener('click', function () {
+        checkin = new Core.ScrollCheckIn();
+        saveCheckin();
+        hideCheckIn();
+        pauseMedia();
+        send({ type: 'closeTab' }).then(function (r) {
+          if (!r || !r.ok) history.length > 1 ? history.back() : location.replace('about:blank');
+        });
+      });
+      shadow.appendChild(el);
+    }
+    var copy = Core.checkInCopy(currentSite, eff.task, checkin.minutes);
+    el.querySelector('.title').textContent = copy.title;
+    el.querySelector('.body').textContent = copy.body;
+    el.querySelector('[data-act="working"]').textContent = copy.working;
+    el.querySelector('[data-act="back"]').textContent = copy.back;
+    if (!el.classList.contains('on')) requestAnimationFrame(function () { el.classList.add('on'); });
+  }
+
+  function hideCheckIn() {
+    var host = document.getElementById('tf-checkin');
     if (!host || !host.shadowRoot) return;
     var el = host.shadowRoot.querySelector('.toast');
     if (el) el.classList.remove('on');

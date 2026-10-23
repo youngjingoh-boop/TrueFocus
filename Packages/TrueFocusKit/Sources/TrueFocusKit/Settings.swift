@@ -133,8 +133,7 @@ public struct TFSettings: Codable, Equatable, Sendable {
 
     /// Opens a feed platform for work, or closes it again, with one switch: the Mac app
     /// (Blocklist.macFeedApps) and the website's work mode go together. `platform` is a name
-    /// like "YouTube". Opening Facebook also turns on its work-only website; closing it leaves
-    /// that alone, since work-only Facebook is on by default.
+    /// like "YouTube".
     public mutating func setOpenForWork(_ platform: String, _ open: Bool) {
         let apps = Blocklist.macFeedApps.filter { $0.value == platform }.map(\.key)
         macAllowedFeedApps.removeAll { apps.contains($0) }
@@ -142,7 +141,6 @@ public struct TFSettings: Codable, Equatable, Sendable {
         guard open else { return }
         macAllowedFeedApps.append(contentsOf: apps.sorted())
         if Blocklist.workPlatforms.contains(platform) { workPlatforms.append(platform) }
-        if platform == "Facebook" { facebookWorkOnly = true }
     }
 
     /// Whether a feed platform is open for work: its Mac app is allowed, or its website is in work mode.
