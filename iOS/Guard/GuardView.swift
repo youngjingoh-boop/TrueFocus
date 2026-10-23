@@ -10,6 +10,9 @@ struct GuardView: View {
 
     @State private var pickingScroll = false
     @State private var pickingReply = false
+    @State private var pickingAllowed = false
+    @State private var allowedDraft = FamilyActivitySelection()
+    @State private var confirmUnlock = false
     @State private var scrollDraft = FamilyActivitySelection()
     @State private var replyDraft = FamilyActivitySelection()
     @State private var confirmFilterOff = false
@@ -44,6 +47,15 @@ struct GuardView: View {
         }
         .onChange(of: pickingReply) { _, isOpen in
             if !isOpen { shield.setReplySelection(replyDraft) }
+        }
+        .onChange(of: pickingAllowed) { _, isOpen in
+            if !isOpen { shield.setAllowedSelection(allowedDraft) }
+        }
+        .confirmationDialog("Unlock your scroll apps now?", isPresented: $confirmUnlock, titleVisibility: .visible) {
+            Button("Unlock now", role: .destructive) { shield.unlockEarly() }
+            Button("Stay locked", role: .cancel) {}
+        } message: {
+            Text("It counts as one more boot-out today, and your scroll budget starts again from zero. To keep one app open for good, add it to Always allowed instead.")
         }
         .confirmationDialog("Turn off the adult filter?", isPresented: $confirmFilterOff, titleVisibility: .visible) {
             Button("Start the \(coolOffHours)-hour cool-off", role: .destructive) {
@@ -100,6 +112,10 @@ struct GuardView: View {
                     .font(.callout)
                     .foregroundStyle(TF.Palette.ink2)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+            if case .budget = status {
+                Button("Unlock now") { confirmUnlock = true }
+                    .buttonStyle(QuietButtonStyle())
             }
             Hairline()
             HStack(alignment: .top, spacing: TF.Space.l) {
@@ -218,8 +234,19 @@ struct GuardView: View {
                 pickingReply = true
             }
             Hairline()
+            SelectionRow(
+                title: "Always allowed",
+                caption: "Apps you need even when their category is shielded: booking, banking, maps. Never shielded, in focus or after the budget.",
+                selection: shield.config.allowedSelection,
+                enabled: shield.isAuthorized
+            ) {
+                allowedDraft = shield.config.allowedSelection
+                pickingAllowed = true
+            }
+            // Each picker hangs off its own view: two presentations on one view can clash.
+            .familyActivityPicker(isPresented: $pickingAllowed, selection: $allowedDraft)
+            Hairline()
         }
-        // Each picker hangs off its own view: two presentations on one view can clash.
         .familyActivityPicker(isPresented: $pickingReply, selection: $replyDraft)
     }
 

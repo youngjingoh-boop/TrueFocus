@@ -20,7 +20,7 @@ final class TFMonitor: DeviceActivityMonitor {
         case .cooldown:
             GuardReactions.cooldownEnded()
         case .replyPass:
-            GuardReactions.replyPassEnded()
+            GuardReactions.replyPassScheduleEnded()
         case .adultCoolOff:
             AdultFilter.apply()
         default:
@@ -38,7 +38,7 @@ final class TFMonitor: DeviceActivityMonitor {
         case .budgetWarning:
             GuardReactions.budgetWarning()
         case .replyPassUsed:
-            GuardReactions.replyPassEnded()
+            GuardReactions.replyPassUsedUp()
         case .replyPassWarning:
             GuardReactions.replyPassWarning()
         default:

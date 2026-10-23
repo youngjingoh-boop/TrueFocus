@@ -7,54 +7,68 @@ import UserNotifications
 
 /// Applies and clears the guard's shields. Idempotent: call `reapply` whenever anything
 /// changes and every store ends up matching `GuardConfig`.
+///
+/// Only settings that differ are written. Every write makes iOS re-evaluate every shield on
+/// screen, and a burst of them while the shield is waiting on a button froze the phone for
+/// seconds: a Post or reply pass now changes one setting, not six.
 enum GuardShields {
     static var focusStore: ManagedSettingsStore { ManagedSettingsStore(named: .focus) }
     static var budgetStore: ManagedSettingsStore { ManagedSettingsStore(named: .scrollBudget) }
 
+    private struct Shields {
+        var applications: Set<ApplicationToken>?
+        var applicationCategories: ShieldSettings.ActivityCategoryPolicy<Application>?
+        var webDomains: Set<WebDomainToken>?
+        var webDomainCategories: ShieldSettings.ActivityCategoryPolicy<WebDomain>?
+    }
+
     /// Brings both shield stores in line with the config.
-    static func reapply(_ config: GuardConfig) {
-        if config.focusShieldActive {
-            shieldFocus(config)
-        } else {
-            focusStore.clearAllSettings()
+    static func reapply(_ config: GuardConfig, now: Date = Date()) {
+        let pass = config.livePassTokens(now: now)
+        write(config.focusShieldActive ? focusShields(config, pass: pass) : Shields(), to: focusStore)
+        write(config.budgetShieldActive ? budgetShields(config, pass: pass) : Shields(), to: budgetStore)
+    }
+
+    private static func write(_ shields: Shields, to store: ManagedSettingsStore) {
+        if store.shield.applications != shields.applications {
+            store.shield.applications = shields.applications
         }
-        if config.budgetShieldActive {
-            shieldBudget(config)
-        } else {
-            budgetStore.clearAllSettings()
+        if store.shield.applicationCategories != shields.applicationCategories {
+            store.shield.applicationCategories = shields.applicationCategories
+        }
+        if store.shield.webDomains != shields.webDomains {
+            store.shield.webDomains = shields.webDomains
+        }
+        if store.shield.webDomainCategories != shields.webDomainCategories {
+            store.shield.webDomainCategories = shields.webDomainCategories
         }
     }
 
     /// While working: every scroll and reply app, their categories, and chosen sites.
-    private static func shieldFocus(_ config: GuardConfig) {
-        let store = focusStore
-        let pass = config.passTokens
-        store.shield.applications = config.shieldedApps.subtracting(pass).tfNilIfEmpty
+    private static func focusShields(_ config: GuardConfig, pass: Set<ApplicationToken>) -> Shields {
+        var shields = Shields()
+        shields.applications = config.shieldedApps.subtracting(pass).tfNilIfEmpty
         // Reply apps are shielded one by one (never through their category) so the
         // shield can offer them a Post or reply pass.
         let categories = config.categories
-        if categories.isEmpty {
-            store.shield.applicationCategories = nil
-            store.shield.webDomainCategories = nil
-        } else {
-            store.shield.applicationCategories = .specific(categories, except: config.replyApps.union(pass))
-            store.shield.webDomainCategories = .specific(categories, except: [])
+        if !categories.isEmpty {
+            shields.applicationCategories = .specific(categories, except: config.replyApps.union(pass).union(config.allowedApps))
+            shields.webDomainCategories = .specific(categories, except: [])
         }
-        store.shield.webDomains = config.webDomains.tfNilIfEmpty
+        shields.webDomains = config.webDomains.tfNilIfEmpty
+        return shields
     }
 
     /// After the scroll budget is spent: the apps only. Safari stays usable for
     /// messages, where the extension keeps feeds and Reels out.
-    private static func shieldBudget(_ config: GuardConfig) {
-        let store = budgetStore
-        let pass = config.passTokens
-        store.shield.applications = config.shieldedApps.subtracting(pass).tfNilIfEmpty
+    private static func budgetShields(_ config: GuardConfig, pass: Set<ApplicationToken>) -> Shields {
+        var shields = Shields()
+        shields.applications = config.shieldedApps.subtracting(pass).tfNilIfEmpty
         let categories = config.categories
-        store.shield.applicationCategories = categories.isEmpty
-            ? nil
-            : .specific(categories, except: config.replyApps.union(pass))
-        store.shield.webDomains = nil
-        store.shield.webDomainCategories = nil
+        if !categories.isEmpty {
+            shields.applicationCategories = .specific(categories, except: config.replyApps.union(pass).union(config.allowedApps))
+        }
+        return shields
     }
 }
 
@@ -232,6 +246,15 @@ enum GuardReactions {
         SharedStore.shared.appendBoot(BootEvent(at: now, source: "ios-budget", site: nil, reason: "budget"))
     }
 
+    /// You chose to end a lockout early. It counts as one more boot-out today, then the shield
+    /// lifts and a fresh budget starts, exactly as when a cooldown runs out.
+    static func unlockEarly(now: Date = Date()) {
+        guard GuardStore.load().budgetShieldActive else { return }
+        DeviceActivityCenter().stopMonitoring([.cooldown])
+        SharedStore.shared.appendBoot(BootEvent(at: now, source: "ios-budget", site: nil, reason: "unlocked-early"))
+        cooldownEnded(now: now)
+    }
+
     /// The cooldown is over: lift the shield and start a fresh budget.
     static func cooldownEnded(now: Date = Date()) {
         let settings = SharedStore.shared.settings
@@ -269,9 +292,29 @@ enum GuardReactions {
         GuardNotice.post(Copy(settings: store.settings).passEnding(task: store.snapshot.headline), id: "tf.guard.passWarning")
     }
 
+    /// The pass's time in the app is used up. Ignored when it came too soon to be true:
+    /// iOS can report a threshold the moment monitoring starts.
+    static func replyPassUsedUp(now: Date = Date()) {
+        let config = GuardStore.load()
+        guard GuardTiming.passCouldBeUsedUp(startedAt: config.passStartedAt, pass: config.passMinutes ?? 1, now: now) else { return }
+        replyPassEnded()
+    }
+
+    /// The pass's schedule ended. Ignored when a newer pass replaced it: starting the new
+    /// schedule ends the old one, and that must not close the new pass.
+    static func replyPassScheduleEnded(now: Date = Date()) {
+        let config = GuardStore.load()
+        guard GuardTiming.passWindowOver(startedAt: config.passStartedAt, pass: config.passMinutes ?? 1, now: now) else { return }
+        replyPassEnded()
+    }
+
     /// A Post or reply pass ran out: shield those apps again.
     static func replyPassEnded() {
-        let config = GuardStore.update { $0.passTokens = [] }
+        let config = GuardStore.update { config in
+            config.passTokens = []
+            config.passStartedAt = nil
+            config.passMinutes = nil
+        }
         GuardMonitoring.stopReplyPass()
         GuardShields.reapply(config)
     }
@@ -289,22 +332,52 @@ enum GuardReactions {
                 config.budgetShieldSince = nil
             }
             config.passTokens = []
+            config.passStartedAt = nil
+            config.passMinutes = nil
         }
         GuardShields.reapply(config)
     }
 
-    /// Grants a Post or reply pass for a shielded reply app. Returns false if none are left.
-    static func grantReplyPass(for token: ApplicationToken, now: Date = Date()) -> Bool {
+    /// A pass about to be granted. Opening the shield comes first, so the shield can answer
+    /// at once; `start` then sets up when it ends.
+    struct ReplyPass {
+        fileprivate let token: ApplicationToken
+        fileprivate let minutes: Int
+        fileprivate let now: Date
+        fileprivate let before: GuardConfig
+
+        /// Starts the Screen Time schedule that closes the pass. If iOS refuses it, the pass
+        /// is taken back and refunded.
+        func start() {
+            guard !GuardMonitoring.startReplyPass(for: token, minutes: minutes, from: now) else { return }
+            let config = GuardStore.update { config in
+                config.passTokens = before.passTokens
+                config.passStartedAt = before.passStartedAt
+                config.passMinutes = before.passMinutes
+                config.passesUsed = before.passesUsed
+                config.passesDay = before.passesDay
+            }
+            GuardShields.reapply(config)
+        }
+    }
+
+    /// Lets a shielded reply app through on a Post or reply pass: one shield setting changes,
+    /// nothing else. Returns nil if it isn't a reply app or no passes are left; otherwise call
+    /// `start()` on the result once the shield has had its answer.
+    static func openReplyPass(for token: ApplicationToken, now: Date = Date()) -> ReplyPass? {
         let settings = SharedStore.shared.settings
-        var config = GuardStore.load()
-        guard config.isReplyApp(token), config.passesRemaining(settings: settings, now: now) > 0 else { return false }
+        let before = GuardStore.load()
+        guard before.isReplyApp(token), before.passesRemaining(settings: settings, now: now) > 0 else { return nil }
+        let minutes = max(1, settings.respondPassMinutes)
+        var config = before
         // One pass at a time: a new pass replaces the previous one.
-        guard GuardMonitoring.startReplyPass(for: token, minutes: settings.respondPassMinutes, from: now) else { return false }
         config.passTokens = [token]
+        config.passStartedAt = now
+        config.passMinutes = minutes
         config.consumePass(now: now)
         GuardStore.save(config)
-        GuardShields.reapply(config)
-        return true
+        GuardShields.reapply(config, now: now)
+        return ReplyPass(token: token, minutes: minutes, now: now, before: before)
     }
 }
 

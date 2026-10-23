@@ -105,6 +105,19 @@ final class ScreenTimeGuard: FocusEffect {
         applyEverything(settings: SharedStore.shared.settings)
     }
 
+    func setAllowedSelection(_ selection: FamilyActivitySelection) {
+        config = GuardStore.update { $0.allowedSelection = selection }
+        applyEverything(settings: SharedStore.shared.settings)
+    }
+
+    /// Ends a scroll-budget lockout now. Costs one boot-out on today's scoreboard.
+    func unlockEarly() {
+        GuardReactions.unlockEarly()
+        config = GuardStore.load()
+        applyEverything(settings: SharedStore.shared.settings)
+        FocusController.shared.publish(force: true)
+    }
+
     func passesRemaining(settings: TFSettings) -> Int {
         config.passesRemaining(settings: settings)
     }
