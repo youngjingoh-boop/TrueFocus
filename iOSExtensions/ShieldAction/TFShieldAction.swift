@@ -9,12 +9,14 @@ final class TFShieldAction: ShieldActionDelegate {
     override func handle(action: ShieldAction, for application: ApplicationToken,
                          completionHandler: @escaping (ShieldActionResponse) -> Void) {
         // Anything but "Post or reply" (the primary button, or a button added later) closes the app.
-        if action == .secondaryButtonPressed, GuardReactions.grantReplyPass(for: application) {
-            // The token is no longer shielded; deferring re-evaluates and lets you in.
-            completionHandler(.defer)
-        } else {
+        guard action == .secondaryButtonPressed, let pass = GuardReactions.openReplyPass(for: application) else {
             completionHandler(.close)
+            return
         }
+        // The token is no longer shielded; deferring re-evaluates and lets you in. Answer
+        // before the slower Screen Time scheduling: iOS holds the whole screen until we do.
+        completionHandler(.defer)
+        pass.start()
     }
 
     override func handle(action: ShieldAction, for webDomain: WebDomainToken,

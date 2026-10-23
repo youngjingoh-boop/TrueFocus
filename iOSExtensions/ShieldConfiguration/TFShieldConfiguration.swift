@@ -96,7 +96,7 @@ final class TFShieldConfiguration: ShieldConfigurationDataSource {
         return ShieldConfiguration(
             backgroundBlurStyle: .systemUltraThinMaterialDark,
             backgroundColor: Self.canvas,
-            icon: icon(),
+            icon: Self.icon,
             title: ShieldConfiguration.Label(text: title, color: Self.ink),
             subtitle: ShieldConfiguration.Label(text: subtitle, color: Self.ink2),
             primaryButtonLabel: ShieldConfiguration.Label(text: "Back to work", color: Self.onEmber),
@@ -124,7 +124,9 @@ final class TFShieldConfiguration: ShieldConfigurationDataSource {
     /// The TruFocus mark (docs/brand, "Ember Open"): one ring, one point of light. The shield is
     /// always dark, so this is the glow cut. Drawn on the brand's 100-unit field: ring radius 37,
     /// stroke 5.5; core radius 17; a soft Signal glow behind the core and along the ring.
-    private func icon() -> UIImage? {
+    private static let icon: UIImage? = drawIcon()
+
+    private static func drawIcon() -> UIImage? {
         let side: CGFloat = 64
         let u = side / 100
         let center = CGPoint(x: side / 2, y: side / 2)

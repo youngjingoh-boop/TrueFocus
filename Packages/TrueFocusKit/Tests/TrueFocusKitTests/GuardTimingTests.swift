@@ -2,6 +2,23 @@ import XCTest
 @testable import TrueFocusKit
 
 final class GuardTimingTests: XCTestCase {
+    func testPassCannotBeUsedUpFasterThanTheClock() {
+        let start = Date(timeIntervalSince1970: 1_000_000)
+        XCTAssertFalse(GuardTiming.passCouldBeUsedUp(startedAt: start, pass: 2, now: start))
+        XCTAssertFalse(GuardTiming.passCouldBeUsedUp(startedAt: start, pass: 2, now: start.addingTimeInterval(60)))
+        XCTAssertTrue(GuardTiming.passCouldBeUsedUp(startedAt: start, pass: 2, now: start.addingTimeInterval(120)))
+        XCTAssertTrue(GuardTiming.passCouldBeUsedUp(startedAt: nil, pass: 2, now: start))
+    }
+
+    func testReplacedPassEndingDoesNotCloseTheNewOne() {
+        let start = Date(timeIntervalSince1970: 1_000_000)
+        // A 2-minute pass runs on a 15-minute window.
+        XCTAssertFalse(GuardTiming.passWindowOver(startedAt: start, pass: 2, now: start.addingTimeInterval(5)))
+        XCTAssertFalse(GuardTiming.passWindowOver(startedAt: start, pass: 2, now: start.addingTimeInterval(10 * 60)))
+        XCTAssertTrue(GuardTiming.passWindowOver(startedAt: start, pass: 2, now: start.addingTimeInterval(15 * 60)))
+        XCTAssertTrue(GuardTiming.passWindowOver(startedAt: nil, pass: 2, now: start))
+    }
+
     func testBudgetWarnsTwoMinutesBeforeTheShield() {
         XCTAssertEqual(GuardTiming.budgetWarningMinute(budget: 5), 3)
         XCTAssertEqual(GuardTiming.budgetWarningMinute(budget: 3), 1)

@@ -51,6 +51,10 @@ struct GuardConfig: Codable {
     var allowedSelection = FamilyActivitySelection()
     /// Apps currently let through on a Post or reply pass.
     var passTokens: Set<ApplicationToken> = []
+    /// When the current pass began and how long it was granted for, so a stale report from
+    /// Screen Time can't close it early and a pass whose time is up always closes.
+    var passStartedAt: Date?
+    var passMinutes: Int?
     var passesUsed = 0
     var passesDay: Date?
     /// Mirrors of what the stores are doing, so extensions can re-apply consistently.
@@ -70,6 +74,8 @@ struct GuardConfig: Codable {
         replySelection = (try? c.decodeIfPresent(FamilyActivitySelection.self, forKey: .replySelection)) ?? FamilyActivitySelection()
         allowedSelection = (try? c.decodeIfPresent(FamilyActivitySelection.self, forKey: .allowedSelection)) ?? FamilyActivitySelection()
         passTokens = (try? c.decodeIfPresent(Set<ApplicationToken>.self, forKey: .passTokens)) ?? []
+        passStartedAt = try? c.decodeIfPresent(Date.self, forKey: .passStartedAt)
+        passMinutes = try? c.decodeIfPresent(Int.self, forKey: .passMinutes)
         passesUsed = (try? c.decodeIfPresent(Int.self, forKey: .passesUsed)) ?? 0
         passesDay = try? c.decodeIfPresent(Date.self, forKey: .passesDay)
         focusShieldActive = (try? c.decodeIfPresent(Bool.self, forKey: .focusShieldActive)) ?? false
@@ -109,6 +115,12 @@ struct GuardConfig: Codable {
 
     var selectionCount: Int {
         scrollSelection.applicationTokens.count + scrollSelection.categoryTokens.count + scrollSelection.webDomainTokens.count
+    }
+
+    /// Apps let through on a pass right now: none once the pass's clock-time window is over,
+    /// even if the end of the pass was never reported.
+    func livePassTokens(now: Date = Date()) -> Set<ApplicationToken> {
+        GuardTiming.passWindowOver(startedAt: passStartedAt, pass: passMinutes ?? 1, now: now) ? [] : passTokens
     }
 
     func isReplyApp(_ token: ApplicationToken) -> Bool {

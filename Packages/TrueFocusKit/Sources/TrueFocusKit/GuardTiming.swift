@@ -23,6 +23,22 @@ public enum GuardTiming {
         Double(max(15, pass + 5)) * 60
     }
 
+    /// Whether a pass that began at `start` could have been used for all `pass` minutes by
+    /// `now`. iOS sometimes reports a threshold the moment monitoring starts; a pass can't be
+    /// used up faster than the clock runs, so such a report is ignored.
+    public static func passCouldBeUsedUp(startedAt start: Date?, pass: Int, now: Date) -> Bool {
+        guard let start else { return true }
+        return now.timeIntervalSince(start) >= Double(max(1, pass)) * 60 - 5
+    }
+
+    /// Whether the clock-time window of a pass that began at `start` is over. A new pass
+    /// replaces the old one's schedule, and iOS reports the old one ending: that report
+    /// arrives inside the new window and must not close the new pass.
+    public static func passWindowOver(startedAt start: Date?, pass: Int, now: Date) -> Bool {
+        guard let start else { return true }
+        return now.timeIntervalSince(start) >= passWindow(pass: pass) - 60
+    }
+
     /// Screen Time schedules name whole seconds. Ends round up, so a schedule never ends
     /// before the moment it stands for: an adult-filter cool-off checked when its schedule
     /// ends must already be over.
