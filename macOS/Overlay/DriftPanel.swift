@@ -100,13 +100,15 @@ private struct DriftCard: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(TF.Palette.ink)
                     Text(message)
-                        .font(.system(size: 12.5))
-                        .foregroundStyle(TF.Palette.ink2)
+                        .font(.system(size: 13))
+                        .foregroundStyle(TF.Palette.ink)
+                        .fixedSize(horizontal: false, vertical: true)
                     if let breadcrumb, !breadcrumb.isEmpty {
                         Text("↳ \(breadcrumb)")
-                            .font(.system(size: 12))
+                            .font(.system(size: 12.5))
                             .foregroundStyle(TF.Palette.ink2)
                             .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
                 Spacer(minLength: 8)
@@ -120,23 +122,56 @@ private struct DriftCard: View {
                 .buttonStyle(.plain)
                 .accessibilityLabel("Dismiss")
             }
-            HStack(spacing: 8) {
-                Button("Back to it", action: onBack)
-                    .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: TF.Palette.onSignal))
-                    .keyboardShortcut(.defaultAction)
-                Button("Part of the task", action: onPartOfTask)
-                    .buttonStyle(QuietButtonStyle())
-                    .fixedSize()
-                Button("Switch task", action: onSwitch)
-                    .buttonStyle(QuietButtonStyle())
-                    .fixedSize()
+            // All three labels always show in full: side by side when they fit, stacked if not.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) { buttons }
+                VStack(alignment: .leading, spacing: 8) { buttons }
             }
         }
         .padding(16)
         .frame(width: 380, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        // Solid, not translucent: the card sits over whatever you were doing, and text on a
+        // material over a busy window loses its contrast.
+        .background(TF.Palette.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(TF.Palette.hairline, lineWidth: 1))
         .shadow(color: .black.opacity(0.18), radius: 16, x: 0, y: 8)
         .padding(12)
+    }
+
+    @ViewBuilder private var buttons: some View {
+        Button("Back to it", action: onBack)
+            .buttonStyle(CardButtonStyle(prominent: true))
+            .keyboardShortcut(.defaultAction)
+        Button("Part of the task", action: onPartOfTask)
+            .buttonStyle(CardButtonStyle(prominent: false))
+        Button("Switch task", action: onSwitch)
+            .buttonStyle(CardButtonStyle(prominent: false))
+    }
+}
+
+/// A button sized for a small card: never truncates, Ember with an Ink label when prominent,
+/// a hairline capsule otherwise.
+private struct CardButtonStyle: ButtonStyle {
+    var prominent: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(prominent ? TF.Palette.onSignal : TF.Palette.ink)
+            .lineLimit(1)
+            .fixedSize()
+            .padding(.horizontal, 14)
+            .frame(minHeight: 32)
+            .background {
+                if prominent {
+                    Capsule().fill(TF.Palette.signal)
+                } else {
+                    Capsule().strokeBorder(TF.Palette.ink.opacity(0.22), lineWidth: 1)
+                }
+            }
+            .contentShape(Capsule())
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(TF.Motion.snappy, value: configuration.isPressed)
     }
 }
