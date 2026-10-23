@@ -70,3 +70,33 @@ html.tf-fb-feedless a[href^="/reel"],
 html.tf-fb-feedless a[href^="/gaming"] {
   display: none !important;
 }
+
+/* YouTube, for work: watch, search, channels and Studio stay; the recommendation feeds go. */
+html.tf-yt-feedless ytd-browse[page-subtype="home"] ytd-rich-grid-renderer,
+html.tf-yt-feedless ytd-browse[page-subtype="home"] #header,
+html.tf-yt-feedless ytd-watch-flexy #related,
+html.tf-yt-feedless ytd-watch-next-secondary-results-renderer,
+html.tf-yt-feedless ytd-reel-shelf-renderer,
+html.tf-yt-feedless ytd-rich-shelf-renderer,
+html.tf-yt-feedless .ytp-endscreen-content,
+html.tf-yt-feedless .ytp-ce-element,
+html.tf-yt-feedless .ytp-pause-overlay,
+html.tf-yt-feedless .videowall-endscreen,
+html.tf-yt-feedless ytd-guide-entry-renderer a[href="/feed/trending"],
+html.tf-yt-feedless ytd-mini-guide-entry-renderer a[title="Shorts"] {
+  display: none !important;
+}
+
+/* Instagram, for work: the home feed and suggestions go; profiles, posts and DMs stay. */
+html.tf-ig-feedless main article,
+html.tf-ig-feedless main [aria-label*="Suggested"],
+html.tf-ig-feedless main a[href^="/stories/"] {
+  display: none !important;
+}
+
+/* X, for work: the home timeline and trends go; profiles, posts, search and messages stay. */
+html.tf-x-feedless [data-testid="primaryColumn"] [aria-label^="Timeline:"],
+html.tf-x-feedless [data-testid="sidebarColumn"] [aria-label^="Timeline: Trending"],
+html.tf-x-feedless [data-testid="sidebarColumn"] section[aria-labelledby] {
+  display: none !important;
+}

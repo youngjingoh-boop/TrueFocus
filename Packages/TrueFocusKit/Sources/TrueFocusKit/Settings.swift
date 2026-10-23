@@ -52,6 +52,9 @@ public struct TFSettings: Codable, Equatable, Sendable {
     /// Web: Facebook without the feed. The News Feed opens Messenger; posts, stories, Reels and
     /// video are gone; pages, groups, events, Marketplace and sign-ins stay open, even in focus.
     public var facebookWorkOnly: Bool = true
+    /// Web: platforms you use for work (Blocklist.workPlatforms names, e.g. "YouTube"). The whole
+    /// site stays open, even in focus, with its feeds hidden; Shorts and Reels stay gone.
+    public var workPlatforms: [String] = []
     /// Web: sites you always allow (host names like "notion.so"). Never blocked, guarded or
     /// cooled down. The adult filter still applies.
     public var allowedSites: [String] = []
@@ -69,6 +72,9 @@ public struct TFSettings: Codable, Equatable, Sendable {
     /// Mac: use the on-device model to judge windows and tabs the rules can't place.
     public var macDriftUsesModel: Bool = true
     public var macBlockedApps: [String] = []
+    /// Mac: built-in feed apps (Blocklist.macFeedApps bundle IDs) you've allowed. They open during
+    /// focus; the doom-scroll watch still boots you out of a binge.
+    public var macAllowedFeedApps: [String] = []
 
     // Adult-content filter. On by default. Turning it off asks you to wait out a
     // cool-off period first, so the decision is never made in a weak moment.
@@ -107,6 +113,7 @@ public struct TFSettings: Codable, Equatable, Sendable {
         hideShortForm = try c.decodeIfPresent(Bool.self, forKey: .hideShortForm) ?? d.hideShortForm
         linkedInWorkOnly = try c.decodeIfPresent(Bool.self, forKey: .linkedInWorkOnly) ?? d.linkedInWorkOnly
         facebookWorkOnly = try c.decodeIfPresent(Bool.self, forKey: .facebookWorkOnly) ?? d.facebookWorkOnly
+        workPlatforms = try c.decodeIfPresent([String].self, forKey: .workPlatforms) ?? d.workPlatforms
         allowedSites = try c.decodeIfPresent([String].self, forKey: .allowedSites) ?? d.allowedSites
         macRunFocusShortcuts = try c.decodeIfPresent(Bool.self, forKey: .macRunFocusShortcuts) ?? d.macRunFocusShortcuts
         macFocusOnShortcut = try c.decodeIfPresent(String.self, forKey: .macFocusOnShortcut) ?? d.macFocusOnShortcut
@@ -117,6 +124,7 @@ public struct TFSettings: Codable, Equatable, Sendable {
         macDriftGuard = try c.decodeIfPresent(Bool.self, forKey: .macDriftGuard) ?? d.macDriftGuard
         macDriftUsesModel = try c.decodeIfPresent(Bool.self, forKey: .macDriftUsesModel) ?? d.macDriftUsesModel
         macBlockedApps = try c.decodeIfPresent([String].self, forKey: .macBlockedApps) ?? d.macBlockedApps
+        macAllowedFeedApps = try c.decodeIfPresent([String].self, forKey: .macAllowedFeedApps) ?? d.macAllowedFeedApps
         adultFilterEnabled = try c.decodeIfPresent(Bool.self, forKey: .adultFilterEnabled) ?? d.adultFilterEnabled
         adultFilterOffRequestedAt = try c.decodeIfPresent(Date.self, forKey: .adultFilterOffRequestedAt)
         adultFilterCoolOffHours = try c.decodeIfPresent(Double.self, forKey: .adultFilterCoolOffHours) ?? d.adultFilterCoolOffHours

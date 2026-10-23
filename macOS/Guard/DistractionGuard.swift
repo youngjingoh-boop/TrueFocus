@@ -33,9 +33,9 @@ final class DistractionGuard: FocusEffect {
         }
     }
 
-    /// Bundle IDs shielded during focus: your own list plus the known feed apps.
+    /// Bundle IDs shielded during focus: your own list plus the known feed apps you haven't allowed.
     func blockedBundleIDs() -> Set<String> {
-        Set(settings.macBlockedApps).union(Blocklist.macFeedApps.keys)
+        Blocklist.macShieldedApps(custom: settings.macBlockedApps, allowedFeedApps: settings.macAllowedFeedApps)
     }
 
     func isBlocked(_ bundleID: String) -> Bool {

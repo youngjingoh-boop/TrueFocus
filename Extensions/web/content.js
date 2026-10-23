@@ -2,6 +2,7 @@
  * TruFocus content script (feed sites only, top frame, document_start).
  *
  * 1. Route guard — short-form, messages-only Instagram, work-only LinkedIn and Facebook,
+ *    work mode for YouTube, Instagram and X (site open, feeds hidden),
  *    cooldowns and focus mode,
  *    re-checked on every SPA navigation.
  * 2. Doom-scroll guard — counts downward strokes (touch, wheel, keys, scroll fallback)
@@ -103,8 +104,12 @@
     if (leaving) return;
     var verdict = Core.classify(location.href, eff, cooldowns, now());
     currentSite = verdict.site || null;
-    // Work-only Facebook: the page stays, its posts and stories go.
-    root.classList.toggle('tf-fb-feedless', !!verdict.feedless);
+    // Work-only Facebook and work-mode platforms: the page stays, its feeds go.
+    var feedless = !!verdict.feedless;
+    root.classList.toggle('tf-fb-feedless', feedless && verdict.site === 'Facebook');
+    root.classList.toggle('tf-yt-feedless', feedless && verdict.site === 'YouTube');
+    root.classList.toggle('tf-ig-feedless', feedless && verdict.site === 'Instagram');
+    root.classList.toggle('tf-x-feedless', feedless && verdict.site === 'X');
     // Sites you always allow keep everything, Shorts shelves included.
     if (verdict.allowed) {
       root.classList.remove('tf-hide-shorts');

@@ -42,6 +42,40 @@ final class DriftTests: XCTestCase {
         XCTAssertEqual(DriftClassifier.classify(korean, contract: marketing), .onTask)
     }
 
+    func testWorkAccessMakesFeedsCountLikeAnyOtherAppOrSite() {
+        let youtube = ActivitySample(appBundleID: "com.google.Chrome", host: "www.youtube.com", pageTitle: "Lo-fi beats")
+        let youtubeApp = ActivitySample(appBundleID: "com.google.ios.youtube", appName: "YouTube", windowTitle: "YouTube")
+        let open = TaskContract(taskID: task, taskTitle: "Teach a client")
+        // Without work access a feed is drift on sight.
+        XCTAssertEqual(DriftClassifier.classify(youtube, contract: open), .offTask)
+        XCTAssertEqual(DriftClassifier.classify(youtubeApp, contract: open), .offTask)
+        // Opened up for work, it waits for the rules (or the on-device judge) like anything else.
+        XCTAssertEqual(DriftClassifier.classify(youtube, contract: open, workAccess: ["YouTube"]), .unsure)
+        XCTAssertEqual(DriftClassifier.classify(youtubeApp, contract: open, workAccess: ["com.google.ios.youtube"]), .unsure)
+        // A task that names its own workspace still treats it as off the task.
+        XCTAssertEqual(DriftClassifier.classify(youtube, contract: marketing, workAccess: ["YouTube"]), .offTask)
+    }
+
+    func testFeedAppsYouAllowAreNotShielded() {
+        let all = Blocklist.macShieldedApps(custom: ["com.example.Game"], allowedFeedApps: [])
+        XCTAssertTrue(all.contains("com.google.ios.youtube"))
+        XCTAssertTrue(all.contains("com.example.Game"))
+        let some = Blocklist.macShieldedApps(custom: [], allowedFeedApps: ["com.google.ios.youtube", "com.burbn.instagram"])
+        XCTAssertFalse(some.contains("com.google.ios.youtube"))
+        XCTAssertFalse(some.contains("com.burbn.instagram"))
+        XCTAssertTrue(some.contains("com.zhiliaoapp.musically"))
+        var settings = TFSettings.default
+        settings.workPlatforms = ["YouTube"]
+        settings.macAllowedFeedApps = ["com.facebook.Facebook"]
+        XCTAssertEqual(Blocklist.workAccess(settings), ["YouTube", "com.facebook.Facebook"])
+    }
+
+    func testOlderSettingsDecodeWithNothingOpenedUp() throws {
+        let decoded = try JSONDecoder().decode(TFSettings.self, from: Data("{}".utf8))
+        XCTAssertEqual(decoded.workPlatforms, [])
+        XCTAssertEqual(decoded.macAllowedFeedApps, [])
+    }
+
     func testFeedsUtilitiesAndBuildingTheAppInstead() {
         XCTAssertEqual(DriftClassifier.classify(ActivitySample(appBundleID: "com.google.Chrome", host: "www.youtube.com", pageTitle: "Lo-fi beats"), contract: marketing), .offTask)
         XCTAssertEqual(DriftClassifier.classify(ActivitySample(appBundleID: "com.apple.finder", appName: "Finder"), contract: marketing), .neutral)
