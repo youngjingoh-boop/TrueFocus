@@ -133,16 +133,12 @@ struct FlowSettingsView<Extra: View>: View {
 
     // MARK: Web
 
-    /// On = this platform is open for work, with its feeds hidden.
+    /// On = this platform is open for work, with its feeds hidden. The same switch as the
+    /// platform's Mac app under Guard ▸ Feed apps.
     private func workPlatform(_ name: String) -> Binding<Bool> {
         Binding(
             get: { controller.settings.workPlatforms.contains(name) },
-            set: { on in
-                controller.updateSettings { settings in
-                    settings.workPlatforms.removeAll { $0 == name }
-                    if on { settings.workPlatforms.append(name) }
-                }
-            }
+            set: { on in controller.updateSettings { $0.setOpenForWork(name, on) } }
         )
     }
 

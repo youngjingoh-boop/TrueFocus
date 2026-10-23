@@ -91,7 +91,7 @@ private struct GuardTab: View {
             } header: {
                 Text("Feed apps")
             } footer: {
-                Text("On means shielded during focus. Turn an app off to use it for work: it opens as normal. TruFocus can't remove the feed inside an app, so the doom-scroll watch still boots you out of a binge. For no feed at all, use the website: turn on \u{201C}for work\u{201D} under Flow \u{25B8} On the web.")
+                Text("On means shielded during focus. Turn an app off to use it for work: it opens as normal, and for YouTube, Instagram, X and Facebook the website opens too, with its feeds hidden. TruFocus can't remove the feed inside an app, so the doom-scroll watch still boots you out of a binge; the website has no feed at all.")
                     .foregroundStyle(TF.Palette.ink2)
             }
 
@@ -114,10 +114,9 @@ private struct GuardTab: View {
         Binding(
             get: { !controller.settings.macAllowedFeedApps.contains(bundleID) },
             set: { shield in
-                controller.updateSettings { settings in
-                    settings.macAllowedFeedApps.removeAll { $0 == bundleID }
-                    if !shield { settings.macAllowedFeedApps.append(bundleID) }
-                }
+                // One switch per platform: the app and the website's work mode go together.
+                let platform = Blocklist.macFeedApps[bundleID] ?? bundleID
+                controller.updateSettings { $0.setOpenForWork(platform, !shield) }
             }
         )
     }

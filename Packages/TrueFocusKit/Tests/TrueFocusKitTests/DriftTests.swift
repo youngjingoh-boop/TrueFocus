@@ -1,6 +1,43 @@
 import XCTest
 @testable import TrueFocusKit
 
+final class WorkPlatformSwitchTests: XCTestCase {
+    func testOpeningAMacFeedAppOpensItsWebsite() {
+        var s = TFSettings.default
+        s.setOpenForWork("YouTube", true)
+        XCTAssertEqual(s.macAllowedFeedApps, ["com.google.ios.youtube"])
+        XCTAssertEqual(s.workPlatforms, ["YouTube"])
+        s.setOpenForWork("YouTube", false)
+        XCTAssertTrue(s.macAllowedFeedApps.isEmpty)
+        XCTAssertTrue(s.workPlatforms.isEmpty)
+    }
+
+    func testPlatformsWithoutAWebsiteModeOnlyOpenTheApp() {
+        var s = TFSettings.default
+        s.setOpenForWork("Netflix", true)
+        XCTAssertEqual(s.macAllowedFeedApps, ["com.netflix.Netflix"])
+        XCTAssertTrue(s.workPlatforms.isEmpty)
+    }
+
+    func testOpeningFacebookTurnsOnWorkOnlyFacebook() {
+        var s = TFSettings.default
+        s.facebookWorkOnly = false
+        s.setOpenForWork("Facebook", true)
+        XCTAssertTrue(s.facebookWorkOnly)
+        s.setOpenForWork("Facebook", false)
+        XCTAssertTrue(s.facebookWorkOnly)
+    }
+
+    func testOlderSettingsWithOnlyTheAppOpenGetTheWebsiteToo() throws {
+        var old = TFSettings.default
+        old.macAllowedFeedApps = ["com.google.ios.youtube"]
+        old.workPlatforms = ["X"]
+        let decoded = try JSONDecoder().decode(TFSettings.self, from: JSONEncoder().encode(old))
+        XCTAssertEqual(Set(decoded.workPlatforms), ["YouTube", "X"])
+        XCTAssertEqual(Set(decoded.macAllowedFeedApps), ["com.google.ios.youtube", "com.atebits.Tweetie2"])
+    }
+}
+
 final class DriftTests: XCTestCase {
     let task = UUID()
     let t0 = Date(timeIntervalSince1970: 2_000_000)

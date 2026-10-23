@@ -128,6 +128,35 @@ public struct TFSettings: Codable, Equatable, Sendable {
         adultFilterEnabled = try c.decodeIfPresent(Bool.self, forKey: .adultFilterEnabled) ?? d.adultFilterEnabled
         adultFilterOffRequestedAt = try c.decodeIfPresent(Date.self, forKey: .adultFilterOffRequestedAt)
         adultFilterCoolOffHours = try c.decodeIfPresent(Double.self, forKey: .adultFilterCoolOffHours) ?? d.adultFilterCoolOffHours
+        linkWorkPlatforms()
+    }
+
+    /// Opens a feed platform for work, or closes it again, with one switch: the Mac app
+    /// (Blocklist.macFeedApps) and the website's work mode go together. `platform` is a name
+    /// like "YouTube". Opening Facebook also turns on its work-only website; closing it leaves
+    /// that alone, since work-only Facebook is on by default.
+    public mutating func setOpenForWork(_ platform: String, _ open: Bool) {
+        let apps = Blocklist.macFeedApps.filter { $0.value == platform }.map(\.key)
+        macAllowedFeedApps.removeAll { apps.contains($0) }
+        workPlatforms.removeAll { $0 == platform }
+        guard open else { return }
+        macAllowedFeedApps.append(contentsOf: apps.sorted())
+        if Blocklist.workPlatforms.contains(platform) { workPlatforms.append(platform) }
+        if platform == "Facebook" { facebookWorkOnly = true }
+    }
+
+    /// Whether a feed platform is open for work: its Mac app is allowed, or its website is in work mode.
+    public func isOpenForWork(_ platform: String) -> Bool {
+        workPlatforms.contains(platform)
+            || Blocklist.macFeedApps.contains { $0.value == platform && macAllowedFeedApps.contains($0.key) }
+    }
+
+    /// Settings saved before the app and the website shared one switch could have one open
+    /// and not the other (an allowed YouTube app, a blocked youtube.com). Open both.
+    mutating func linkWorkPlatforms() {
+        for platform in Blocklist.workPlatforms where isOpenForWork(platform) {
+            setOpenForWork(platform, true)
+        }
     }
 
     /// Whether the adult filter should be active at `now`, honouring a pending cool-off.
@@ -155,5 +184,6 @@ public struct TFSettings: Codable, Equatable, Sendable {
         respondPassesPerDay = min(max(respondPassesPerDay, 0), 30)
         adultFilterCoolOffHours = min(max(adultFilterCoolOffHours, 1), 168)
         customReminders.normalize()
+        linkWorkPlatforms()
     }
 }
