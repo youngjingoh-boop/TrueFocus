@@ -3,7 +3,8 @@ import TrueFocusKit
 
 /// The morning ritual, in three moves:
 /// 1. Empty your head — type everything, no structure.
-/// 2. Keep what matters — the dump becomes a list (on-device model or parser); untick the noise.
+/// 2. Keep what matters — the dump becomes a list, every line as written (or sorted by the
+///    on-device model or parser, if you ask); untick the noise.
 /// 3. Pick the win — the one outcome that makes today count. Then attack.
 struct BrainDumpView: View {
     @Environment(FocusController.self) private var controller
@@ -22,6 +23,8 @@ struct BrainDumpView: View {
     @State private var candidates: [Candidate] = []
     @State private var outcome = ""
     @State private var working = false
+    /// The list is every line as written, not sorted.
+    @State private var asWritten = true
     @FocusState private var dumpFocused: Bool
 
     var body: some View {
@@ -82,17 +85,24 @@ struct BrainDumpView: View {
     private var bottomBar: some View {
         switch step {
         case .dump:
-            Button {
-                Task { await makeList() }
-            } label: {
-                HStack(spacing: 8) {
-                    if working { ProgressView().controlSize(.small).tint(TF.Palette.paper) }
-                    Text(working ? "Sorting…" : "Make it a list")
+            let empty = dump.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            HStack(spacing: 12) {
+                Button {
+                    Task { await sortList() }
+                } label: {
+                    HStack(spacing: 8) {
+                        if working { ProgressView().controlSize(.small) }
+                        Text(working ? "Sorting…" : "Sort it for me")
+                    }
                 }
+                .buttonStyle(QuietButtonStyle())
+                .frame(width: 150)
+                .disabled(empty || working)
+                Button("Make it a list") { makeList() }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .disabled(empty || working)
+                    .keyboardShortcut(.return, modifiers: .command)
             }
-            .buttonStyle(PrimaryButtonStyle())
-            .disabled(dump.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || working)
-            .keyboardShortcut(.return, modifiers: .command)
         case .keep:
             HStack(spacing: 12) {
                 Button("Back") { step = .dump }
@@ -138,7 +148,7 @@ struct BrainDumpView: View {
             Text("Empty your head.")
                 .font(.tfDisplay)
                 .foregroundStyle(TF.Palette.ink)
-            Text("Everything that's pulling at you. Work, calls, ideas, worries. No order, no judgement.")
+            Text("Everything on your mind. No order.")
                 .font(.body)
                 .foregroundStyle(TF.Palette.ink2)
                 .fixedSize(horizontal: false, vertical: true)
@@ -168,11 +178,24 @@ struct BrainDumpView: View {
             Text("Keep what matters.")
                 .font(.tfDisplay)
                 .foregroundStyle(TF.Palette.ink)
-            Text(TaskExtractor.usesOnDeviceModel
-                 ? "Sorted on-device. Untick anything that isn't today."
-                 : "Untick anything that isn't today. Drag the order later.")
-                .font(.body)
-                .foregroundStyle(TF.Palette.ink2)
+            HStack(alignment: .firstTextBaseline) {
+                Text(asWritten ? "Every line, as you wrote it. Untick what isn't today."
+                     : TaskExtractor.usesOnDeviceModel ? "Sorted on-device. Untick what isn't today."
+                     : "Untick what isn't today.")
+                    .font(.body)
+                    .foregroundStyle(TF.Palette.ink2)
+                Spacer(minLength: 12)
+                if !candidates.isEmpty {
+                    let allKept = candidates.allSatisfy(\.keep)
+                    Button(allKept ? "Clear all" : "Select all") {
+                        TFHaptics.tap()
+                        for index in candidates.indices { candidates[index].keep = !allKept }
+                    }
+                    .buttonStyle(.plain)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(TF.Palette.signal)
+                }
+            }
             if candidates.isEmpty {
                 Text("Nothing new in there — it's all on the plan already.")
                     .font(.body)
@@ -248,13 +271,27 @@ struct BrainDumpView: View {
         candidates.filter(\.keep).map { $0.title.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
     }
 
-    private func makeList() async {
+    /// Every line becomes a task, as written.
+    private func makeList() {
+        controller.setBrainDump(dump)
+        asWritten = true
+        showCandidates(BrainDump.lines(from: dump))
+    }
+
+    /// The on-device model (or the parser) cleans the dump up into tasks.
+    private func sortList() async {
         working = true
         controller.setBrainDump(dump)
         let tasks = await TaskExtractor.extract(from: dump)
+        asWritten = false
+        working = false
+        showCandidates(tasks)
+    }
+
+    /// Anything already on the plan starts unticked.
+    private func showCandidates(_ tasks: [String]) {
         let existing = Set(controller.openTasks.map { $0.title.lowercased() })
         candidates = tasks.map { Candidate(title: $0, keep: !existing.contains($0.lowercased())) }
-        working = false
         step = .keep
     }
 

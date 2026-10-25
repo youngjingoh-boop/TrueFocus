@@ -50,6 +50,22 @@ public enum BrainDump {
         return tasks
     }
 
+    /// Every line as you wrote it, one task each. Only list markers ("- ", "1. ", "[ ] ") come
+    /// off; nothing is dropped, merged, split or reworded. Very long lines are shortened.
+    public static func lines(from text: String, limit: Int = 100) -> [String] {
+        var tasks: [String] = []
+        for raw in text.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: "\n") {
+            var line = stripPrefix(raw.trimmingCharacters(in: .whitespaces) + " ").trimmingCharacters(in: .whitespaces)
+            guard !line.isEmpty else { continue }
+            if line.count > 140 {
+                line = String(line.prefix(139)).trimmingCharacters(in: .whitespaces) + "…"
+            }
+            tasks.append(line)
+            if tasks.count >= limit { break }
+        }
+        return tasks
+    }
+
     static func isDoneMarker(_ line: String) -> Bool {
         let lowered = line.lowercased()
         return lowered.hasPrefix("- [x]") || lowered.hasPrefix("[x]") || line.hasPrefix("☑") || line.hasPrefix("✓") || line.hasPrefix("✔")
