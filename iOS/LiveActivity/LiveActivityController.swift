@@ -56,6 +56,9 @@ final class LiveActivityController: FocusEffect {
 
     private func start(with state: State, snapshot: LiveSnapshot) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        // One card at a time: an ended one still on the Lock Screen (the "Up next" card left
+        // after a session) goes before the new one appears.
+        dismissAll()
         do {
             let content = ActivityContent(state: state, staleDate: staleDate(for: snapshot))
             activity = try Activity.request(attributes: FocusActivityAttributes(startedAt: Date()),
@@ -97,9 +100,17 @@ final class LiveActivityController: FocusEffect {
         }
     }
 
+    /// Every other card goes, live or ended: an ended card can linger on the Lock Screen
+    /// for hours, and it showed under the live one.
     private func endDuplicates(of keep: Activity<FocusActivityAttributes>, in live: [Activity<FocusActivityAttributes>]) {
-        for duplicate in live where duplicate.id != keep.id {
-            Task { await duplicate.end(nil, dismissalPolicy: .immediate) }
+        for other in Activity<FocusActivityAttributes>.activities where other.id != keep.id {
+            Task { await other.end(nil, dismissalPolicy: .immediate) }
+        }
+    }
+
+    private func dismissAll() {
+        for old in Activity<FocusActivityAttributes>.activities {
+            Task { await old.end(nil, dismissalPolicy: .immediate) }
         }
     }
 
