@@ -16,7 +16,7 @@ final class PauseTests: XCTestCase {
     func testPauseAndResumeCues() {
         let focus = LiveSnapshot(mode: .focus, taskID: task, updatedAt: t0, originDevice: "Mac")
         let paused = LiveSnapshot(mode: .idle, nextTaskID: task, pausedAt: t0, updatedAt: t0, originDevice: "Mac")
-        XCTAssertEqual(FlowCue.cue(from: focus, to: paused, device: "Mac"), .rest)
+        XCTAssertEqual(FlowCue.cue(from: focus, to: paused, device: "Mac"), .pause)
         XCTAssertEqual(FlowCue.cue(from: paused, to: focus, device: "Mac"), .go)
         let stopped = LiveSnapshot(mode: .idle, updatedAt: t0, originDevice: "Mac")
         XCTAssertNil(FlowCue.cue(from: focus, to: stopped, device: "Mac"))
