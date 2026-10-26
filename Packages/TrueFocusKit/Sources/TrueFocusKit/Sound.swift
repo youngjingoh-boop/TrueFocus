@@ -65,6 +65,8 @@ public enum FlowCue: String, CaseIterable, Sendable {
     case rest
     /// Stuck: think time.
     case think
+    /// The clock stops on a task: a soft two-note settle.
+    case pause
     /// Booted out of a doom-scroll.
     case boot
     /// The day is shut down.
@@ -77,6 +79,7 @@ public enum FlowCue: String, CaseIterable, Sendable {
         case .go: return "tf_go"
         case .rest: return "tf_rest"
         case .think: return "tf_think"
+        case .pause: return "tf_pause"
         case .boot: return "tf_boot"
         case .shutdown: return "tf_shutdown"
         }
@@ -92,8 +95,8 @@ public enum FlowCue: String, CaseIterable, Sendable {
         if next.doneToday > previous.doneToday { return .complete }
         switch (previous.mode, next.mode) {
         case (.focus, .think): return .think
-        // Pausing settles like a rest; resuming is a go (idle → focus, below).
-        case (.focus, .idle), (.think, .idle): return next.isPaused ? .rest : nil
+        // Pausing has its own quiet settle; resuming is a go (idle → focus, below).
+        case (.focus, .idle), (.think, .idle): return next.isPaused ? .pause : nil
         case (.focus, .rest), (.think, .rest): return .rest
         case (.rest, .focus), (.think, .focus), (.idle, .focus): return .go
         case (.focus, .focus) where next.taskID != previous.taskID: return .switchTask

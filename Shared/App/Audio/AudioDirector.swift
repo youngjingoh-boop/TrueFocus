@@ -27,7 +27,7 @@ final class AudioDirector: FocusEffect {
 
     /// How loud each cue sits against the others.
     private static let cueVolume: [FlowCue: Float] = [
-        .complete: 0.9, .switchTask: 0.55, .go: 0.65, .rest: 0.55, .think: 0.5, .boot: 0.85, .shutdown: 0.8,
+        .complete: 0.9, .switchTask: 0.55, .go: 0.65, .rest: 0.55, .think: 0.5, .pause: 0.5, .boot: 0.85, .shutdown: 0.8,
     ]
 
     func focusDidChange(_ snapshot: LiveSnapshot, previous: LiveSnapshot?, settings: TFSettings) {
