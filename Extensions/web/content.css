@@ -19,8 +19,6 @@ html.tf-hide-shorts a[href="/reels/"],
 html.tf-hide-shorts a[href^="/reels/"],
 html.tf-hide-shorts a[href="/explore/"],
 html.tf-hide-shorts a[href^="/explore/"],
-html.tf-hide-shorts a[href^="/reel/"],
-html.tf-hide-shorts a[href*="facebook.com/reel/"],
 html.tf-hide-shorts a[href="/watch/"],
 html.tf-hide-shorts a[href*="facebook.com/watch/"],
 html.tf-hide-shorts a[aria-label="Reels"],
@@ -44,8 +42,7 @@ html.tf-hide-shorts ytm-rich-section-renderer:has(ytm-shorts-lockup-view-model),
 html.tf-hide-shorts ytm-rich-section-renderer:has(a[href^="/shorts"]),
 html.tf-hide-shorts ytm-video-with-context-renderer:has(a[href^="/shorts"]),
 html.tf-hide-shorts ytm-pivot-bar-item-renderer:has(.pivot-shorts),
-html.tf-hide-shorts ytm-pivot-bar-item-renderer:has(a[href^="/shorts"]),
-html.tf-hide-shorts article:has(a[href*="/reel/"]) {
+html.tf-hide-shorts ytm-pivot-bar-item-renderer:has(a[href^="/shorts"]) {
   display: none !important;
 }
 
@@ -98,5 +95,13 @@ html.tf-ig-feedless main a[href^="/stories/"] {
 html.tf-x-feedless [data-testid="primaryColumn"] [aria-label^="Timeline:"],
 html.tf-x-feedless [data-testid="sidebarColumn"] [aria-label^="Timeline: Trending"],
 html.tf-x-feedless [data-testid="sidebarColumn"] section[aria-labelledby] {
+  display: none !important;
+}
+
+/* Reels in a feed: hidden. On an account's or page's own grid they stay, so you can study
+   a business's videos (content.js sets tf-feed-page on home, Reels, Explore and Watch). */
+html.tf-hide-shorts.tf-feed-page a[href^="/reel/"],
+html.tf-hide-shorts.tf-feed-page a[href*="facebook.com/reel/"],
+html.tf-hide-shorts.tf-feed-page article:has(a[href*="/reel/"]) {
   display: none !important;
 }

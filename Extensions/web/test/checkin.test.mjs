@@ -65,7 +65,7 @@ test('Facebook for work: pages, posting and composer stay whole in focus; only t
   const home = verdict('https://www.facebook.com/', e);
   assert.equal(home.kind, 'safe');
   assert.equal(home.feedless, true);
-  assert.equal(verdict('https://www.facebook.com/reel/123', e).kind, 'shortform');
+  assert.equal(core.classify('https://www.facebook.com/reel/123', e, {}, NOW, { from: '/' }).kind, 'shortform');
 });
 
 test('Instagram for work beats messages-only: home stays put with its feed hidden', () => {
