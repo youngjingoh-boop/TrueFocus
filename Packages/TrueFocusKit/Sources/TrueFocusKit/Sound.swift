@@ -67,7 +67,8 @@ public enum FlowCue: String, CaseIterable, Sendable {
     case think
     /// The clock stops on a task: a soft two-note settle.
     case pause
-    /// Booted out of a doom-scroll.
+    /// Booted out of a doom-scroll. Played where the boot-out happens (`AudioDirector.bootOut()`),
+    /// never from a state change: boot counts arrive late and from other devices.
     case boot
     /// The day is shut down.
     case shutdown
@@ -90,7 +91,6 @@ public enum FlowCue: String, CaseIterable, Sendable {
     public static func cue(from previous: LiveSnapshot?, to next: LiveSnapshot, device: String) -> FlowCue? {
         guard let previous, previous.updatedAt.timeIntervalSince1970 > 0 else { return nil }
         if next.dayEnded && !previous.dayEnded { return .shutdown }
-        if next.bootsToday > previous.bootsToday { return .boot }
         guard next.originDevice == device || next.originDevice.isEmpty else { return nil }
         if next.doneToday > previous.doneToday { return .complete }
         switch (previous.mode, next.mode) {

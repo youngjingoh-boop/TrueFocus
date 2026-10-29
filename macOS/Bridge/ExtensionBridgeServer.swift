@@ -152,6 +152,8 @@ private final class BridgeConnection: @unchecked Sendable {
             SharedStore.shared.appendBoot(BootEvent(source: "web", site: site, reason: reason))
             Task { @MainActor in
                 FocusController.shared.drainSharedQueues()
+                // The browser on this Mac just booted you out: it sounds here, now.
+                AudioDirector.shared.bootOut()
             }
             send(status: 200, body: Data(#"{"ok":true}"#.utf8), origin: origin)
         case ("POST", "/command"):

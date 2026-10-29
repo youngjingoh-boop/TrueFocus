@@ -15,7 +15,9 @@ final class SoundTests: XCTestCase {
         XCTAssertEqual(FlowCue.cue(from: snap(.focus, task: a), to: snap(.think, task: a), device: "Mac"), .think)
         XCTAssertEqual(FlowCue.cue(from: snap(.rest), to: snap(.focus, task: b), device: "Mac"), .go)
         XCTAssertEqual(FlowCue.cue(from: snap(.focus, task: a), to: snap(.focus, task: b), device: "Mac"), .switchTask)
-        XCTAssertEqual(FlowCue.cue(from: snap(.focus, task: a), to: snap(.focus, task: a, boots: 1), device: "Mac"), .boot)
+        // A boot-out sounds where it happens, not when its count syncs in.
+        XCTAssertNil(FlowCue.cue(from: snap(.focus, task: a), to: snap(.focus, task: a, boots: 1), device: "Mac"))
+        XCTAssertNil(FlowCue.cue(from: snap(.focus, task: a), to: snap(.focus, task: a, boots: 1, device: "iPhone"), device: "Mac"))
         XCTAssertEqual(FlowCue.cue(from: snap(.idle), to: snap(.idle, ended: true), device: "Mac"), .shutdown)
         XCTAssertNil(FlowCue.cue(from: snap(.focus, task: a), to: snap(.focus, task: a), device: "Mac"))
     }

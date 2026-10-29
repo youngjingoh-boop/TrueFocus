@@ -10,7 +10,8 @@ import MusicKit
 /// micro-rests. Sounds play only on the device that made the change.
 ///
 /// Effects: Sonniss GDC bundle (Rescopic Sound, CB Sounddesign, Orbital Emitter, Doex Studio,
-/// Stefano Cremona), royalty-free. Music: TrueFocus originals made with ElevenLabs Music.
+/// Stefano Cremona), royalty-free; the pause and boot-out cues are synthesised in-house.
+/// Music: TrueFocus originals made with ElevenLabs Music.
 @MainActor
 final class AudioDirector: FocusEffect {
     static let shared = AudioDirector()
@@ -27,7 +28,7 @@ final class AudioDirector: FocusEffect {
 
     /// How loud each cue sits against the others.
     private static let cueVolume: [FlowCue: Float] = [
-        .complete: 0.9, .switchTask: 0.55, .go: 0.65, .rest: 0.55, .think: 0.5, .pause: 0.5, .boot: 0.85, .shutdown: 0.8,
+        .complete: 0.9, .switchTask: 0.55, .go: 0.65, .rest: 0.55, .think: 0.5, .pause: 0.5, .boot: 0.6, .shutdown: 0.8,
     ]
 
     func focusDidChange(_ snapshot: LiveSnapshot, previous: LiveSnapshot?, settings: TFSettings) {
@@ -73,6 +74,12 @@ final class AudioDirector: FocusEffect {
     }
 
     // MARK: Cues
+
+    /// A doom-scroll boot-out on this device, right now.
+    func bootOut() {
+        guard SharedStore.shared.settings.soundEffects else { return }
+        play(.boot)
+    }
 
     private func play(_ cue: FlowCue) {
         let player = cuePlayers[cue] ?? load(cue.file, loops: false)
