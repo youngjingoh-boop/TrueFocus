@@ -173,7 +173,10 @@
 
   /** Blocklist.feedSites. */
   var FEED_SITES = Object.freeze([
-    { name: 'Instagram', hosts: ['instagram.com'], shortFormPaths: ['/reels', '/reel', '/explore'],
+    // The Reels tab and Explore are the scroll. A single reel opened from an account isn't
+    // (see isShortFormVisit), and search lives under /explore but stays open.
+    { name: 'Instagram', hosts: ['instagram.com'], shortFormPaths: ['/reels', '/explore'],
+      shortFormOpen: ['/explore/search'],
       respondPath: '/direct/inbox/', safePaths: ['/direct', '/accounts', '/create'], allShortForm: false,
       workHosts: ['business.instagram.com', 'accountscenter.instagram.com', 'help.instagram.com', 'l.instagram.com'] },
     // youtube.com/upload opens in Studio, so Studio is work too.
@@ -187,7 +190,10 @@
       workHosts: ['ads.tiktok.com', 'business.tiktok.com', 'developers.tiktok.com', 'seller-us.tiktok.com'] },
     // Facebook's sign-in and app-login dialogs (Graph API Explorer, "Log in with Facebook")
     // are safe, so connecting a tool never hits the focus wall.
-    { name: 'Facebook', hosts: ['facebook.com'], shortFormPaths: ['/reel', '/reels', '/watch', '/stories'],
+    // Watch, Reels and Stories are the scroll. A page's video or reel isn't, and neither is a
+    // single Watch video (?v=) someone linked you to.
+    { name: 'Facebook', hosts: ['facebook.com'], shortFormPaths: ['/reels', '/watch', '/stories'],
+      shortFormOpen: ['/watch/?v=', '/watch?v='],
       respondPath: '/messages/',
       safePaths: ['/messages', '/settings', '/adsmanager', '/ads/', '/business', '/events_manager',
         '/commerce_manager', '/billing_hub', '/ad_center', '/help', '/dialog', '/login', '/oauth',
@@ -284,6 +290,39 @@
   function isShortFormPath(site, path) {
     if (site.allShortForm) { return !isSafePath(site, path); }
     return site.shortFormPaths.some(function (p) { return path === p || path.indexOf(p + '/') === 0; });
+  }
+
+  /**
+   * Whether a visit is short-form you'd scroll: a site's Reels/Watch/Explore/Stories feeds.
+   * A single reel or video opened from an account or page is fine, so you can study a
+   * business's videos. Unless you got there from a feed (`fromPath`, the page before this one
+   * on the same site): a reel tapped in the home feed is the same endless scroll.
+   */
+  function isShortFormVisit(site, u, fromPath) {
+    var path = u.pathname || '/';
+    var full = path + (u.search || '');
+    if ((site.shortFormOpen || []).some(function (p) { return full.indexOf(p) === 0; })) { return false; }
+    if (isShortFormPath(site, path)) { return true; }
+    if (isSingleReel(site, path)) { return !!fromPath && isFeedPath(site, fromPath); }
+    return false;
+  }
+
+  /** One reel's own page: /reel/ID (and Instagram's /account/reel/ID). */
+  function isSingleReel(site, path) {
+    if (site.name === 'Instagram') { return /^\/(?:[\w.]+\/)?reel\/[^/]+/.test(path); }
+    if (site.name === 'Facebook') { return /^\/reel\/[^/]+/.test(path); }
+    return false;
+  }
+
+  /** A site's feeds: home, and its Reels/Watch/Explore/Stories scroll. Accounts, pages and search aren't. */
+  function isFeedPath(site, path) {
+    if (!site) { return false; }
+    if (site.name === 'Instagram') {
+      if (path.indexOf('/explore/search') === 0) { return false; }
+      return path === '/' || path === '' || /^\/(reels|explore)(\/|$)/.test(path);
+    }
+    if (site.name === 'Facebook') { return isFacebookFeed(path) || /^\/(watch|reels|stories)(\/|$)/.test(path); }
+    return false;
   }
 
   /** Blocklist.isLinkedInFeed(path:): the home feed, the only scroll on LinkedIn. */
@@ -605,8 +644,10 @@
    *   safe      → a feed site's messages/settings: leave alone (`feedless`: hide posts on the page)
    *   feed      → a feed: run the doom-scroll guard
    *   other     → not ours
+   * `ctx.from` is the path of the page before this one on the same site, so a reel opened
+   * from an account stays open and one opened from the home feed doesn't.
    */
-  function classify(url, eff, cooldowns, nowMs) {
+  function classify(url, eff, cooldowns, nowMs, ctx) {
     var u;
     try { u = new URL(url); } catch (e) { return { kind: 'other' }; }
     if (u.protocol !== 'http:' && u.protocol !== 'https:') { return { kind: 'other' }; }
@@ -619,7 +660,7 @@
     if (!site) { return { kind: 'other', host: host }; }
     var base = { site: site.name, host: host, path: path };
     if (isSafePath(site, path)) { return Object.assign({ kind: 'safe' }, base); }
-    if (eff && eff.hideShortForm && isShortFormPath(site, path)) { return Object.assign({ kind: 'shortform' }, base); }
+    if (eff && eff.hideShortForm && isShortFormVisit(site, u, ctx && ctx.from)) { return Object.assign({ kind: 'shortform' }, base); }
     // A platform you use for work: the whole site stays open — unguarded, even in focus —
     // with only its home feed hidden. Short-form was walled above. It comes before the
     // stricter modes below, which would close what you opened it for.
@@ -891,6 +932,8 @@
     isAllowedHost: isAllowedHost,
     allowRules: allowRules,
     isShortFormPath: isShortFormPath,
+    isShortFormVisit: isShortFormVisit,
+    isFeedPath: isFeedPath,
     isAdultHost: isAdultHost,
     adultFilterActive: adultFilterActive,
     adultFilterState: adultFilterState,

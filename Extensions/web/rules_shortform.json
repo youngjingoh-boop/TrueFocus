@@ -25,7 +25,7 @@
       }
     },
     "condition": {
-      "urlFilter": "||instagram.com/reel^",
+      "urlFilter": "||instagram.com/explore^",
       "resourceTypes": [
         "main_frame"
       ]
@@ -41,7 +41,7 @@
       }
     },
     "condition": {
-      "urlFilter": "||instagram.com/explore^",
+      "urlFilter": "||youtube.com/shorts^",
       "resourceTypes": [
         "main_frame"
       ]
@@ -57,7 +57,7 @@
       }
     },
     "condition": {
-      "urlFilter": "||youtube.com/shorts^",
+      "urlFilter": "||youtu.be/shorts^",
       "resourceTypes": [
         "main_frame"
       ]
@@ -73,7 +73,7 @@
       }
     },
     "condition": {
-      "urlFilter": "||youtu.be/shorts^",
+      "urlFilter": "||facebook.com/reels^",
       "resourceTypes": [
         "main_frame"
       ]
@@ -89,7 +89,7 @@
       }
     },
     "condition": {
-      "urlFilter": "||facebook.com/reel^",
+      "urlFilter": "||facebook.com/watch^",
       "resourceTypes": [
         "main_frame"
       ]
@@ -105,7 +105,7 @@
       }
     },
     "condition": {
-      "urlFilter": "||facebook.com/reels^",
+      "urlFilter": "||facebook.com/stories^",
       "resourceTypes": [
         "main_frame"
       ]
@@ -121,7 +121,7 @@
       }
     },
     "condition": {
-      "urlFilter": "||facebook.com/watch^",
+      "urlFilter": "||linkedin.com/video^",
       "resourceTypes": [
         "main_frame"
       ]
@@ -137,7 +137,7 @@
       }
     },
     "condition": {
-      "urlFilter": "||facebook.com/stories^",
+      "urlFilter": "||linkedin.com/feed/videos^",
       "resourceTypes": [
         "main_frame"
       ]
@@ -153,39 +153,46 @@
       }
     },
     "condition": {
-      "urlFilter": "||linkedin.com/video^",
-      "resourceTypes": [
-        "main_frame"
-      ]
-    }
-  },
-  {
-    "id": 11,
-    "priority": 1,
-    "action": {
-      "type": "redirect",
-      "redirect": {
-        "extensionPath": "/shorts.html"
-      }
-    },
-    "condition": {
-      "urlFilter": "||linkedin.com/feed/videos^",
-      "resourceTypes": [
-        "main_frame"
-      ]
-    }
-  },
-  {
-    "id": 12,
-    "priority": 1,
-    "action": {
-      "type": "redirect",
-      "redirect": {
-        "extensionPath": "/shorts.html"
-      }
-    },
-    "condition": {
       "urlFilter": "||snapchat.com/spotlight^",
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 50,
+    "priority": 2,
+    "action": {
+      "type": "allow"
+    },
+    "condition": {
+      "urlFilter": "||instagram.com/explore/search",
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 51,
+    "priority": 2,
+    "action": {
+      "type": "allow"
+    },
+    "condition": {
+      "urlFilter": "||facebook.com/watch/?v=",
+      "resourceTypes": [
+        "main_frame"
+      ]
+    }
+  },
+  {
+    "id": 52,
+    "priority": 2,
+    "action": {
+      "type": "allow"
+    },
+    "condition": {
+      "urlFilter": "||facebook.com/watch?v=",
       "resourceTypes": [
         "main_frame"
       ]

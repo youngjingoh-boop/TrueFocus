@@ -16,17 +16,19 @@ test('short-form paths are walled', () => {
   const e = eff();
   for (const url of [
     'https://www.instagram.com/reels/',
-    'https://www.instagram.com/reel/C1abc/',
     'https://www.instagram.com/explore/',
     'https://www.youtube.com/shorts/abc123',
     'https://m.youtube.com/shorts/abc123',
     'https://www.tiktok.com/@someone/video/1',
     'https://www.tiktok.com/',
-    'https://www.facebook.com/reel/123',
-    'https://www.facebook.com/watch/?v=1',
+    'https://www.facebook.com/watch/',
     'https://www.snapchat.com/spotlight/xyz',
   ]) {
     assert.equal(core.classify(url, e, {}, NOW).kind, 'shortform', url);
+  }
+  // A single reel is walled when you tapped it in a feed (account reels: account-videos.test).
+  for (const url of ['https://www.instagram.com/reel/C1abc/', 'https://www.facebook.com/reel/123']) {
+    assert.equal(core.classify(url, e, {}, NOW, { from: '/' }).kind, 'shortform', url);
   }
 });
 

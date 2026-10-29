@@ -43,6 +43,13 @@
   var checkin = loadCheckin();
   var leaving = false;
   var lastHref = location.href;
+  // The page before this one on the same site: where a reel was opened from.
+  var fromPath = (function () {
+    try {
+      var r = new URL(document.referrer);
+      return r.hostname === location.hostname ? r.pathname : null;
+    } catch (e) { return null; }
+  })();
   var currentSite = null;
 
   // ───────────────────────────────── State ─────────────────────────────────
@@ -108,8 +115,11 @@
 
   function evaluateRoute() {
     if (leaving) return;
-    var verdict = Core.classify(location.href, eff, cooldowns, now());
+    var verdict = Core.classify(location.href, eff, cooldowns, now(), { from: fromPath });
     currentSite = verdict.site || null;
+    // Reel links and reel posts are hidden in feeds, never on an account's own page.
+    var site = verdict.site ? Core.feedSiteByName(verdict.site) : null;
+    root.classList.toggle('tf-feed-page', !!site && Core.isFeedPath(site, location.pathname));
     // Work-only Facebook and work-mode platforms: the page stays, its feeds go.
     var feedless = !!verdict.feedless;
     root.classList.toggle('tf-fb-feedless', feedless && verdict.site === 'Facebook');
@@ -138,6 +148,7 @@
 
   function onPossibleNavigation() {
     if (location.href === lastHref) return;
+    try { fromPath = new URL(lastHref).pathname; } catch (e) { fromPath = null; }
     lastHref = location.href;
     hideToast();
     evaluateRoute();

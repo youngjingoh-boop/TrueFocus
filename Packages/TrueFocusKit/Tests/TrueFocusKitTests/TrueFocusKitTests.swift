@@ -346,7 +346,8 @@ final class BlocklistTests: XCTestCase {
     func testFeedSitesAndShortForm() throws {
         let ig = try XCTUnwrap(Blocklist.feedSite(forHost: "www.instagram.com"))
         XCTAssertTrue(ig.isShortForm(path: "/reels/"))
-        XCTAssertTrue(ig.isShortForm(path: "/reel/C1abc/"))
+        // A single reel opened from an account isn't the Reels feed.
+        XCTAssertFalse(ig.isShortForm(path: "/reel/C1abc/"))
         XCTAssertTrue(ig.isShortForm(path: "/explore/"))
         XCTAssertFalse(ig.isShortForm(path: "/reelsmith/"))
         XCTAssertFalse(ig.isShortForm(path: "/direct/inbox/"))
@@ -373,7 +374,8 @@ final class BlocklistTests: XCTestCase {
         XCTAssertTrue(fb.isSafe(path: "/ads/library/"))
         XCTAssertTrue(fb.isSafe(path: "/events_manager2/list"))
         XCTAssertFalse(fb.isSafe(path: "/"))
-        XCTAssertTrue(fb.isShortForm(path: "/reel/1"))
+        XCTAssertFalse(fb.isShortForm(path: "/reel/1"))
+        XCTAssertTrue(fb.isShortForm(path: "/watch"))
     }
 
     func testAdultDomainsAreUniqueAndLowercase() {

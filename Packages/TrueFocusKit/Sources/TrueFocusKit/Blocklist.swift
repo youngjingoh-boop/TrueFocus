@@ -62,7 +62,7 @@ public enum Blocklist {
 
     public static let feedSites: [FeedSite] = [
         FeedSite(name: "Instagram", hosts: ["instagram.com"],
-                 shortFormPaths: ["/reels", "/reel", "/explore"],
+                 shortFormPaths: ["/reels", "/explore"],
                  respondPath: "/direct/inbox/", safePaths: ["/direct", "/accounts", "/create"],
                  workHosts: ["business.instagram.com", "accountscenter.instagram.com", "help.instagram.com",
                              "l.instagram.com"]),
@@ -81,7 +81,7 @@ public enum Blocklist {
         // (business.facebook.com), Ads Manager, Events and Commerce Manager, the Ad Library.
         // Sign-in and app-login dialogs (Graph API Explorer, "Log in with Facebook") are safe too.
         FeedSite(name: "Facebook", hosts: ["facebook.com"],
-                 shortFormPaths: ["/reel", "/reels", "/watch", "/stories"],
+                 shortFormPaths: ["/reels", "/watch", "/stories"],
                  respondPath: "/messages/",
                  safePaths: ["/messages", "/settings", "/adsmanager", "/ads/", "/business", "/events_manager",
                              "/commerce_manager", "/billing_hub", "/ad_center", "/help", "/dialog", "/login", "/oauth",

@@ -80,6 +80,20 @@ export function buildRules() {
     action: redirectTo(SHORTS),
     condition: { urlFilter, resourceTypes: ['main_frame'] },
   }));
+  // Pages under a wall that stay open: Instagram search, a single Facebook Watch video.
+  let openId = 50;
+  for (const site of core.FEED_SITES) {
+    for (const host of site.hosts) {
+      for (const path of site.shortFormOpen || []) {
+        shortform.push({
+          id: openId++,
+          priority: 2,
+          action: { type: 'allow' },
+          condition: { urlFilter: `||${host}${path}`, resourceTypes: ['main_frame'] },
+        });
+      }
+    }
+  }
   // Whole-site short-form (TikTok), with its safe paths punched back out at higher priority.
   let nextId = 100;
   for (const site of core.FEED_SITES) {
