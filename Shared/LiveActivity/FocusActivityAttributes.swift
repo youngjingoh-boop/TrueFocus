@@ -75,6 +75,9 @@ struct FocusActivityAttributes: ActivityAttributes {
 
         var isPaused: Bool { mode == .idle && pausedAt != nil }
 
+        /// A break you took yourself: a rest with no planned end.
+        var isOnBreak: Bool { mode == .rest && plannedRestEnd == nil }
+
         /// The mode's symbol, or a pause glyph while paused.
         var symbol: String { isPaused ? "pause.fill" : mode.symbol }
 

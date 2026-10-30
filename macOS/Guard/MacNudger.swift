@@ -31,8 +31,8 @@ final class MacNudger: FocusEffect {
         if stateMoved {
             snoozeTimer?.invalidate()
             snoozeTimer = nil
-            // You did the thing — take the overlay away.
-            if snapshot.mode == .focus || snapshot.dayEnded {
+            // You did the thing, or chose a break or a stop: take the overlay away.
+            if snapshot.mode == .focus || snapshot.dayEnded || snapshot.isOnBreak || snapshot.stoppedAt != nil {
                 WakeUpOverlay.shared.dismiss()
             }
         }
@@ -45,13 +45,14 @@ final class MacNudger: FocusEffect {
 
         let context = NudgeContext(
             mode: snapshot.mode,
-            modeStartedAt: snapshot.mode == .idle ? (snapshot.pausedAt ?? idleSince) : snapshot.modeStartedAt,
+            modeStartedAt: snapshot.mode == .idle ? (snapshot.pausedAt ?? snapshot.stoppedAt ?? idleSince) : snapshot.modeStartedAt,
             plannedRestEnd: snapshot.plannedRestEnd,
             taskTitle: snapshot.taskTitle,
             nextTaskTitle: snapshot.nextTaskTitle,
             openTaskCount: max(0, snapshot.plannedToday - snapshot.doneToday),
             dayEnded: snapshot.dayEnded,
             paused: snapshot.isPaused,
+            stopped: snapshot.stoppedAt != nil,
             tone: settings.tone,
             customReminders: settings.customReminders,
             thinkNudgeMinutes: settings.thinkNudgeMinutes,

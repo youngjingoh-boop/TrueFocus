@@ -9,6 +9,8 @@ public enum FocusMusic: String, Codable, CaseIterable, Sendable {
     case pulse
     /// Upbeat lo-fi house, 112 BPM.
     case flow
+    /// Calm ambient focus: warm pads, a slow piano motif, a faint pulse at 60 BPM.
+    case calm
     /// A focus station from Apple Music, for subscribers. Falls back to Drive.
     case appleMusic
 
@@ -18,6 +20,7 @@ public enum FocusMusic: String, Codable, CaseIterable, Sendable {
         case .drive: return "Drive"
         case .pulse: return "Pulse"
         case .flow: return "Flow"
+        case .calm: return "Calm"
         case .appleMusic: return "Apple Music"
         }
     }
@@ -28,6 +31,7 @@ public enum FocusMusic: String, Codable, CaseIterable, Sendable {
         case .drive: return "Progressive house · 128 BPM"
         case .pulse: return "Liquid drum & bass · 172 BPM"
         case .flow: return "Lo-fi house · 112 BPM"
+        case .calm: return "Ambient focus · 60 BPM"
         case .appleMusic: return "Focus station · subscribers"
         }
     }
@@ -39,16 +43,18 @@ public enum FocusMusic: String, Codable, CaseIterable, Sendable {
         case .drive, .appleMusic: return "tf_music_drive"
         case .pulse: return "tf_music_pulse"
         case .flow: return "tf_music_flow"
+        case .calm: return "tf_music_calm"
         }
     }
 
-    /// The next choice for a one-tap music button: off → Drive → Pulse → Flow → off.
+    /// The next choice for a one-tap music button: off → Drive → Pulse → Flow → Calm → off.
     public var next: FocusMusic {
         switch self {
         case .off: return .drive
         case .drive: return .pulse
         case .pulse: return .flow
-        case .flow, .appleMusic: return .off
+        case .flow: return .calm
+        case .calm, .appleMusic: return .off
         }
     }
 }
@@ -96,8 +102,9 @@ public enum FlowCue: String, CaseIterable, Sendable {
         switch (previous.mode, next.mode) {
         case (.focus, .think): return .think
         // Pausing has its own quiet settle; resuming is a go (idle → focus, below).
-        case (.focus, .idle), (.think, .idle): return next.isPaused ? .pause : nil
-        case (.focus, .rest), (.think, .rest): return .rest
+        // Stopping settles like a pause; so does a break you take yourself.
+        case (.focus, .idle), (.think, .idle): return next.isPaused || next.stoppedAt != nil ? .pause : nil
+        case (.focus, .rest), (.think, .rest): return next.isOnBreak ? .pause : .rest
         case (.rest, .focus), (.think, .focus), (.idle, .focus): return .go
         case (.focus, .focus) where next.taskID != previous.taskID: return .switchTask
         default: return nil

@@ -8,7 +8,7 @@ import WidgetKit
 
 enum WidgetCopy {
     static func label(_ snapshot: LiveSnapshot) -> String {
-        snapshot.isPaused ? "Paused" : modeLabel(snapshot.mode)
+        snapshot.isPaused ? "Paused" : snapshot.isOnBreak ? "Break" : modeLabel(snapshot.mode)
     }
 
     static func modeLabel(_ mode: FlowMode) -> String {
@@ -84,6 +84,9 @@ struct FlowTimerText: View {
                     // Past the planned end: count the overrun up from it.
                     Text("+\(Text(end, style: .timer))")
                 }
+            } else if let start = modeStartedAt {
+                // A break you took yourself: no planned end, so count how long you've rested.
+                countUp(from: start)
             } else {
                 Text("0:00")
             }

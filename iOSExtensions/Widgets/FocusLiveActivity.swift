@@ -114,7 +114,7 @@ private struct LiveBannerView: View {
             HStack(alignment: .lastTextBaseline, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
                     if state.mode == .rest {
-                        Text("Next")
+                        Text(state.isOnBreak ? "Back to" : "Next")
                             .font(.system(size: 12, weight: .medium))
                             .foregroundStyle(TF.Palette.nightInk2)
                     }
@@ -155,7 +155,7 @@ private struct LiveBannerView: View {
 
 private enum LiveCopy {
     static func label(_ state: FocusActivityAttributes.ContentState) -> String {
-        state.isPaused ? "PAUSED" : label(state.mode)
+        state.isPaused ? "PAUSED" : state.isOnBreak ? "BREAK" : label(state.mode)
     }
 
     static func label(_ mode: FlowMode) -> String {
@@ -246,7 +246,9 @@ private struct LiveActions: View {
                 LiveButton(intent: CompleteTaskIntent(), title: "Done", symbol: "checkmark", prominent: false, compact: compact)
                 LiveIconButton(intent: PauseIntent(), symbol: "pause.fill", label: "Pause", compact: compact)
             case .rest:
-                LiveButton(intent: BackToItIntent(), title: "Go now", symbol: "bolt.fill", prominent: true, compact: compact)
+                // Back to it resumes a break too.
+                LiveButton(intent: BackToItIntent(), title: state.isOnBreak ? "Resume" : "Go now",
+                           symbol: state.isOnBreak ? "play.fill" : "bolt.fill", prominent: true, compact: compact)
             case .idle:
                 if state.isPaused {
                     LiveButton(intent: ResumeIntent(), title: "Resume", symbol: "play.fill", prominent: true, compact: compact)

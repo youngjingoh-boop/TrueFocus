@@ -89,6 +89,9 @@ public struct DayStats: Equatable, Sendable {
                     best = max(best, chain)
                     chainDeadline = end.addingTimeInterval(300 + RestPolicy.chainSlack)
                 }
+            case .rest where segment.plannedSeconds == nil:
+                // A break you took yourself: no planned length, so nothing to overrun.
+                stats.restSeconds += duration
             case .rest:
                 stats.restSeconds += duration
                 let planned = segment.plannedSeconds ?? 60

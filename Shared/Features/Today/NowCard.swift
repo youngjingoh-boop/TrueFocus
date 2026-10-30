@@ -61,7 +61,7 @@ struct NowCard: View {
         switch snapshot.mode {
         case .focus: return "Now"
         case .think: return "Thinking"
-        case .rest: return "Rest · next"
+        case .rest: return snapshot.isOnBreak ? "Break · back to" : "Rest · next"
         case .idle: return snapshot.isPaused ? "Paused" : "Up next"
         }
     }
@@ -74,7 +74,11 @@ struct NowCard: View {
         case .think:
             ElapsedText(since: snapshot.modeStartedAt ?? Date(), font: .tfTimerSmall)
         case .rest:
-            CountdownText(until: snapshot.plannedRestEnd ?? Date(), font: .tfTimerSmall)
+            if snapshot.isOnBreak {
+                ElapsedText(since: snapshot.modeStartedAt ?? Date(), font: .tfTimerSmall)
+            } else {
+                CountdownText(until: snapshot.plannedRestEnd ?? Date(), font: .tfTimerSmall)
+            }
         case .idle:
             if snapshot.isPaused {
                 // Frozen where you stopped.
@@ -98,7 +102,8 @@ struct NowCard: View {
                 }
                 .buttonStyle(OrbButtonStyle(tint: TF.Palette.ink2, size: 44))
                 .accessibilityLabel("Pause")
-                .help("Pause — stop the clock, keep your place")
+                .help("Pause — stop the clock, keep your place. Hold or right-click for Rest or Stop.")
+                .contextMenu { restAndStop }
 
                 Button {
                     TFHaptics.tap()
@@ -139,8 +144,31 @@ struct NowCard: View {
                 }
                 .buttonStyle(OrbButtonStyle(tint: TF.Palette.ink2, size: 44))
                 .accessibilityLabel("Pause")
+                .contextMenu { restAndStop }
                 Button("Back to it") { controller.backToIt() }
                     .buttonStyle(QuietButtonStyle(foreground: TF.Palette.think))
+            }
+        case .rest where snapshot.isOnBreak:
+            HStack(spacing: 6) {
+                Button {
+                    TFHaptics.tap()
+                    withAnimation(TF.Motion.snappy) { controller.stop() }
+                } label: {
+                    Image(systemName: "stop.fill")
+                }
+                .buttonStyle(OrbButtonStyle(tint: TF.Palette.ink2, size: 44))
+                .accessibilityLabel("Stop")
+                .help("Stop — end the task for now; it stays on the plan")
+
+                Button {
+                    TFHaptics.success()
+                    withAnimation(TF.Motion.snappy) { controller.resume() }
+                } label: {
+                    Image(systemName: "play.fill")
+                }
+                .buttonStyle(OrbButtonStyle(tint: TF.Palette.signal, size: 44, filled: true))
+                .accessibilityLabel("Resume")
+                .help("Resume — back to the task, its clock picking up where it stopped")
             }
         case .rest:
             Button("Go now") {
@@ -162,6 +190,26 @@ struct NowCard: View {
                     .help("Done — cross it off")
 
                     Button {
+                        TFHaptics.tap()
+                        withAnimation(TF.Motion.snappy) { controller.stop() }
+                    } label: {
+                        Image(systemName: "stop.fill")
+                    }
+                    .buttonStyle(OrbButtonStyle(tint: TF.Palette.ink2, size: 44))
+                    .accessibilityLabel("Stop")
+                    .help("Stop — end the task for now; it stays on the plan, and nothing asks you back")
+
+                    Button {
+                        TFHaptics.tap()
+                        withAnimation(TF.Motion.snappy) { controller.takeBreak() }
+                    } label: {
+                        Image(systemName: "cup.and.saucer.fill")
+                    }
+                    .buttonStyle(OrbButtonStyle(tint: TF.Palette.rest, size: 44))
+                    .accessibilityLabel("Rest")
+                    .help("Rest — a break as long as you like, with rest music")
+
+                    Button {
                         TFHaptics.success()
                         withAnimation(TF.Motion.snappy) { controller.resume() }
                     } label: {
@@ -172,6 +220,21 @@ struct NowCard: View {
                     .help("Resume — the clock picks up where it stopped")
                 }
             }
+        }
+    }
+
+    /// Rest and Stop, behind a hold (iPhone) or right-click (Mac) on Pause.
+    @ViewBuilder
+    private var restAndStop: some View {
+        Button {
+            withAnimation(TF.Motion.snappy) { controller.takeBreak() }
+        } label: {
+            Label("Rest", systemImage: "cup.and.saucer.fill")
+        }
+        Button {
+            withAnimation(TF.Motion.snappy) { controller.stop() }
+        } label: {
+            Label("Stop", systemImage: "stop.fill")
         }
     }
 }

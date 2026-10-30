@@ -78,13 +78,14 @@ final class NudgeScheduler: NSObject, FocusEffect, UNUserNotificationCenterDeleg
         if ownsNudges {
             let context = NudgeContext(
                 mode: snapshot.mode,
-                modeStartedAt: snapshot.mode == .idle ? (snapshot.pausedAt ?? idleSince) : snapshot.modeStartedAt,
+                modeStartedAt: snapshot.mode == .idle ? (snapshot.pausedAt ?? snapshot.stoppedAt ?? idleSince) : snapshot.modeStartedAt,
                 plannedRestEnd: snapshot.plannedRestEnd,
                 taskTitle: snapshot.taskTitle,
                 nextTaskTitle: snapshot.nextTaskTitle,
                 openTaskCount: openTasks,
                 dayEnded: snapshot.dayEnded,
                 paused: snapshot.isPaused,
+                stopped: snapshot.stoppedAt != nil,
                 tone: settings.tone,
                 customReminders: settings.customReminders,
                 thinkNudgeMinutes: settings.thinkNudgeMinutes,

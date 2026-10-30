@@ -76,8 +76,12 @@ struct FlowCommands: Commands {
             }
             .keyboardShortcut("f", modifiers: [.command, .shift])
 
-            Button(controller.isPaused ? "Resume" : "Pause") { controller.togglePause() }
+            Button(controller.isPaused || controller.isOnBreak ? "Resume" : "Pause") { controller.togglePause() }
                 .keyboardShortcut("p", modifiers: [.command, .shift])
+            Button("Take a Break") { controller.takeBreak() }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
+            Button("Stop Task") { controller.stop() }
+                .keyboardShortcut(".", modifiers: [.command, .shift])
 
             Divider()
 

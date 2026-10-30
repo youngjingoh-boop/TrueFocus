@@ -1,12 +1,13 @@
 import SwiftUI
 import TrueFocusKit
 
-/// Sound: studio cues for each moment, music while you focus, a river under rests.
+/// Sound: studio cues for each moment, music while you focus, a river under rests and slow
+/// music under a break you take yourself.
 struct SoundSettingsSection: View {
     @Environment(FocusController.self) private var controller
 
     var body: some View {
-        SettingsSection("Sound", footnote: "Effects from the Sonniss pro library (Rescopic Sound, CB Sounddesign, Orbital Emitter, Doex Studio, Stefano Cremona). Music: TruFocus originals made with ElevenLabs. Apple Music needs a subscription; without one you hear Drive.") {
+        SettingsSection("Sound", footnote: "Effects from the Sonniss pro library (Rescopic Sound, CB Sounddesign, Orbital Emitter, Doex Studio, Stefano Cremona). Music: TruFocus originals made with ElevenLabs; Calm and the break music are composed in-house. Apple Music needs a subscription; without one you hear Drive.") {
             ToggleRow(title: "Sound effects", subtitle: "Done, rest, stuck, back to it, switching, shutting down",
                       isOn: controller.binding(\.soundEffects))
 
@@ -32,7 +33,8 @@ struct SoundSettingsSection: View {
                           format: { "\(Int(($0 * 100).rounded()))%" })
             }
 
-            ToggleRow(title: "River sounds during rests", isOn: controller.binding(\.restAmbience))
+            ToggleRow(title: "Rest sounds", subtitle: "A river under short rests, slow music when you tap Rest",
+                      isOn: controller.binding(\.restAmbience))
         }
     }
 }

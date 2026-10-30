@@ -252,10 +252,72 @@ private struct NowSection: View {
                 .help("Pause — stop the clock, keep your place (⇧⌘P)")
         }
         .padding(.top, 2)
+        restAndStopRow()
+    }
+
+    /// Rest (a break as long as you like) and Stop (end the task for now), under the main moves.
+    private func restAndStopRow(includeRest: Bool = true) -> some View {
+        HStack(spacing: 14) {
+            if includeRest {
+                Button {
+                    withAnimation(TF.Motion.snappy) { controller.takeBreak() }
+                } label: {
+                    Label("Rest", systemImage: "cup.and.saucer.fill")
+                }
+                .help("A break as long as you like, with rest music. Resume when you're ready.")
+            }
+            Button {
+                withAnimation(TF.Motion.snappy) { controller.stop() }
+            } label: {
+                Label("Stop", systemImage: "stop.fill")
+            }
+            .help("End this task for now. It stays on the plan; nothing asks you back.")
+            Spacer()
+        }
+        .buttonStyle(.plain)
+        .font(.system(size: 12.5, weight: .medium))
+        .foregroundStyle(TF.Palette.ink2)
     }
 
     @ViewBuilder
     private func resting(_ snapshot: LiveSnapshot) -> some View {
+        if snapshot.isOnBreak {
+            onBreak(snapshot)
+        } else {
+            microRest(snapshot)
+        }
+    }
+
+    @ViewBuilder
+    private func onBreak(_ snapshot: LiveSnapshot) -> some View {
+        HStack {
+            ModeLabel(mode: .rest, text: "Break")
+            Spacer()
+            if let start = snapshot.modeStartedAt {
+                ElapsedText(since: start, font: .system(size: 15, weight: .light).monospacedDigit())
+                    .foregroundStyle(TF.Palette.ink2)
+            }
+        }
+        Text("Rest as long as you like.")
+            .font(.system(size: 19, weight: .semibold))
+            .foregroundStyle(TF.Palette.ink)
+        if let task = snapshot.nextTaskTitle {
+            Text("Back to — \(task)")
+                .font(.system(size: 13))
+                .foregroundStyle(TF.Palette.ink2)
+                .lineLimit(2)
+        }
+        Button {
+            controller.resume()
+        } label: {
+            Label("Resume", systemImage: "play.fill")
+        }
+        .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: TF.Palette.onSignal))
+        restAndStopRow(includeRest: false)
+    }
+
+    @ViewBuilder
+    private func microRest(_ snapshot: LiveSnapshot) -> some View {
         HStack {
             ModeLabel(mode: .rest, text: "Rest")
             Spacer()
@@ -334,6 +396,7 @@ private struct NowSection: View {
                 .buttonStyle(QuietButtonStyle())
             }
             .padding(.top, 2)
+            restAndStopRow()
         } else if let next = snapshot.nextTaskTitle {
             ModeLabel(mode: .idle, text: "Up next")
             Text(next)

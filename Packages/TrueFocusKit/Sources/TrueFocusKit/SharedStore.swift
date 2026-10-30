@@ -44,6 +44,8 @@ public struct RemoteCommand: Codable, Equatable, Sendable {
         case wait
         /// Stop the clock on the current task, or pick the paused one back up.
         case pause, resume
+        /// Take an open-ended break; end the task without pausing it.
+        case rest, stop
     }
 
     public var kind: Kind

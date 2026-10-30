@@ -56,6 +56,10 @@ struct MenuBarLabel: View {
             guard showTimer else { return "Think · \(title)" }
             return "Think · \(title) · \(minutes(snapshot.elapsedInMode(now: now)))"
         case .rest:
+            if snapshot.isOnBreak {
+                guard showTimer else { return "Break" }
+                return "Break · \(minutes(snapshot.elapsedInMode(now: now)))"
+            }
             if let next = snapshot.nextTaskTitle {
                 return "Rest · next: \(TFFormat.truncate(next, to: 20))"
             }

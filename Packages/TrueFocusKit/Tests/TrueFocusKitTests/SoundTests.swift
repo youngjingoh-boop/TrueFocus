@@ -37,7 +37,9 @@ final class SoundTests: XCTestCase {
         let future = try JSONDecoder().decode(TFSettings.self, from: Data(#"{"focusMusic":"spotify"}"#.utf8))
         XCTAssertEqual(future.focusMusic, .off, "an unknown choice from a newer build falls back to off")
         XCTAssertEqual(FocusMusic.off.next, .drive)
-        XCTAssertEqual(FocusMusic.flow.next, .off)
+        XCTAssertEqual(FocusMusic.flow.next, .calm)
+        XCTAssertEqual(FocusMusic.calm.next, .off)
+        XCTAssertEqual(FocusMusic.calm.bundledTrack, "tf_music_calm")
         XCTAssertEqual(FocusMusic.appleMusic.bundledTrack, "tf_music_drive")
     }
 }
