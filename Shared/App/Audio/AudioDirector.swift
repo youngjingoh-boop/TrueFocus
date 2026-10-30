@@ -6,12 +6,14 @@ import MusicKit
 #endif
 
 /// The sound of the flow. A short studio cue for each moment (done, rest, stuck, back to it,
-/// switching, boot-outs, shutting down), focus music while you work, and a river under
-/// micro-rests. Sounds play only on the device that made the change.
+/// switching, boot-outs, shutting down), focus music while you work, a river under
+/// micro-rests, and slow music under a break you take yourself. Sounds play only on the
+/// device that made the change.
 ///
 /// Effects: Sonniss GDC bundle (Rescopic Sound, CB Sounddesign, Orbital Emitter, Doex Studio,
 /// Stefano Cremona), royalty-free; the pause and boot-out cues are synthesised in-house.
-/// Music: TrueFocus originals made with ElevenLabs Music.
+/// Music: TrueFocus originals made with ElevenLabs Music; Calm (focus) and the break music
+/// are composed in code in-house.
 @MainActor
 final class AudioDirector: FocusEffect {
     static let shared = AudioDirector()
@@ -22,6 +24,7 @@ final class AudioDirector: FocusEffect {
     /// The track that just faded out, kept so a resume picks the music up where it stopped.
     private var parked: (player: AVAudioPlayer, track: String)?
     private var ambience: AVAudioPlayer?
+    private var ambienceTrack: String?
     private var appleMusicActive = false
     private var appleMusicUnavailable = false
     private var fadeTasks: [ObjectIdentifier: Task<Void, Never>] = [:]
@@ -51,7 +54,12 @@ final class AudioDirector: FocusEffect {
         }
 
         if restMode {
-            startAmbience()
+            // A break you took yourself gets music; a micro-rest after Done gets the river.
+            if snapshot.isOnBreak {
+                startAmbience("tf_music_rest", volume: Float(settings.musicVolume) * 0.8)
+            } else {
+                startAmbience("tf_rest_ambience", volume: 0.55)
+            }
         } else {
             stopAmbience()
         }
@@ -165,23 +173,26 @@ final class AudioDirector: FocusEffect {
 
     // MARK: Rest ambience
 
-    private func startAmbience() {
-        if let ambience {
+    private func startAmbience(_ track: String, volume: Float) {
+        if let ambience, ambienceTrack == track {
             if !ambience.isPlaying { ambience.play() }
-            fade(ambience, to: 0.55, over: 2)
+            fade(ambience, to: volume, over: 2)
             return
         }
-        guard let player = load("tf_rest_ambience", loops: true) else { return }
+        stopAmbience()
+        guard let player = load(track, loops: true) else { return }
         player.volume = 0
         player.play()
-        fade(player, to: 0.55, over: 2.5)
+        fade(player, to: volume, over: 2.5)
         ambience = player
+        ambienceTrack = track
     }
 
     private func stopAmbience() {
         guard let ambience else { return }
         fadeOut(ambience, over: 1.5)
         self.ambience = nil
+        ambienceTrack = nil
     }
 
     // MARK: Plumbing

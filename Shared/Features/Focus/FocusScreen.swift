@@ -30,7 +30,8 @@ struct FocusScreen: View {
                     switch snapshot.mode {
                     case .focus: FocusStage(snapshot: snapshot)
                     case .think: ThinkStage(snapshot: snapshot)
-                    case .rest: RestStage(snapshot: snapshot)
+                    case .rest:
+                        if snapshot.isOnBreak { BreakStage(snapshot: snapshot) } else { RestStage(snapshot: snapshot) }
                     case .idle: IdleStage()
                     }
                 }
@@ -84,7 +85,7 @@ struct FocusScreen: View {
             Spacer()
 
             VStack(spacing: 2) {
-                ModeLabel(mode: snapshot.mode, text: snapshot.isPaused ? "Paused" : nil)
+                ModeLabel(mode: snapshot.mode, text: snapshot.isPaused ? "Paused" : snapshot.isOnBreak ? "Break" : nil)
                 if snapshot.mode.isWorking {
                     MusicQuickButton(onDark: true)
                 }
@@ -152,6 +153,24 @@ struct FocusScreen: View {
                     .buttonStyle(OrbButtonStyle(tint: TF.Palette.nightInk, size: 52))
                     .accessibilityLabel("Switch task")
             }
+        case .rest where snapshot.isOnBreak:
+            HStack(spacing: 12) {
+                Button {
+                    TFHaptics.success()
+                    withAnimation(TF.Motion.snappy) { controller.resume() }
+                } label: {
+                    Label("Resume", systemImage: "play.fill")
+                }
+                .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: TF.Palette.onSignal))
+                .keyboardShortcut(.return, modifiers: .command)
+                Button {
+                    TFHaptics.tap()
+                    withAnimation(TF.Motion.snappy) { controller.stop() }
+                } label: { Image(systemName: "stop.fill") }
+                    .buttonStyle(OrbButtonStyle(tint: TF.Palette.nightInk, size: 52))
+                    .accessibilityLabel("Stop")
+                    .accessibilityHint("Ends the task for now. It stays on the plan.")
+            }
         case .rest:
             HStack(spacing: 12) {
                 Button("Go now") {
@@ -175,6 +194,20 @@ struct FocusScreen: View {
                     }
                     .buttonStyle(PrimaryButtonStyle(tint: TF.Palette.signal, foreground: TF.Palette.onSignal))
                     .keyboardShortcut(.return, modifiers: .command)
+                    Button {
+                        TFHaptics.tap()
+                        withAnimation(TF.Motion.snappy) { controller.takeBreak() }
+                    } label: { Image(systemName: "cup.and.saucer.fill") }
+                        .buttonStyle(OrbButtonStyle(tint: TF.Palette.rest, size: 52))
+                        .accessibilityLabel("Rest")
+                        .accessibilityHint("A break for as long as you like, with rest music.")
+                    Button {
+                        TFHaptics.tap()
+                        withAnimation(TF.Motion.snappy) { controller.stop() }
+                    } label: { Image(systemName: "stop.fill") }
+                        .buttonStyle(OrbButtonStyle(tint: TF.Palette.nightInk, size: 52))
+                        .accessibilityLabel("Stop")
+                        .accessibilityHint("Ends the task for now. It stays on the plan.")
                     Button {
                         TFHaptics.success()
                         withAnimation(TF.Motion.snappy) { controller.toggleDone(paused) }
@@ -230,7 +263,7 @@ private struct FocusStage: View {
             ElapsedText(since: snapshot.modeStartedAt ?? Date(), base: snapshot.taskFocusBefore, font: .tfTimerHero)
                 .foregroundStyle(TF.Palette.nightInk)
 
-            PauseChip()
+            ClockControls()
 
             BreadcrumbField(placeholder: "Next step…")
 
@@ -279,7 +312,7 @@ private struct ThinkStage: View {
             ElapsedText(since: snapshot.modeStartedAt ?? Date(), font: .tfTimerSmall)
                 .foregroundStyle(TF.Palette.nightInk2)
 
-            PauseChip()
+            ClockControls()
         }
         .task {
             // A new question every 40 seconds keeps thinking from turning into staring.
@@ -344,6 +377,41 @@ private struct RestStage: View {
                 }
             }
         }
+    }
+}
+
+/// A break you took yourself: no countdown, just how long you've rested and what you'll go
+/// back to.
+private struct BreakStage: View {
+    let snapshot: LiveSnapshot
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Text("Rest.")
+                .font(.system(size: 54, weight: .thin))
+                .foregroundStyle(TF.Palette.rest)
+
+            ZStack {
+                Circle().stroke(Color.white.opacity(0.07), lineWidth: 6)
+                BreathingDot(tint: TF.Palette.rest)
+                ElapsedText(since: snapshot.modeStartedAt ?? Date(), font: .tfTimer)
+                    .foregroundStyle(TF.Palette.nightInk)
+            }
+            .frame(width: 220, height: 220)
+
+            VStack(spacing: 6) {
+                Text("Back to").tfEyebrowStyle(TF.Palette.nightInk2)
+                Text(snapshot.nextTaskTitle ?? "—")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(TF.Palette.nightInk)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                Text("No clock on this. Resume when you're ready.")
+                    .font(.tfCaption)
+                    .foregroundStyle(TF.Palette.nightInk2)
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -432,16 +500,35 @@ private struct PausedStage: View {
     }
 }
 
-/// The clock's own control: stop it, keep your place.
-private struct PauseChip: View {
+/// The clock's own controls: Pause keeps your place, Rest is a break as long as you like,
+/// Stop ends the task for now.
+private struct ClockControls: View {
     @Environment(FocusController.self) private var controller
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ClockChip(title: "Pause", symbol: "pause.fill",
+                      hint: "Stops the clock. Resume picks up where you left off.") { controller.pause() }
+            ClockChip(title: "Rest", symbol: "cup.and.saucer.fill",
+                      hint: "A break for as long as you like, with rest music. Resume when you're ready.") { controller.takeBreak() }
+            ClockChip(title: "Stop", symbol: "stop.fill",
+                      hint: "Ends this task for now. It stays on the plan, and nothing asks you back.") { controller.stop() }
+        }
+    }
+}
+
+private struct ClockChip: View {
+    let title: String
+    let symbol: String
+    let hint: String
+    let action: () -> Void
 
     var body: some View {
         Button {
             TFHaptics.tap()
-            withAnimation(TF.Motion.snappy) { controller.pause() }
+            withAnimation(TF.Motion.snappy) { action() }
         } label: {
-            Label("Pause", systemImage: "pause.fill")
+            Label(title, systemImage: symbol)
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(TF.Palette.nightInk)
                 .padding(.horizontal, 18)
@@ -451,7 +538,7 @@ private struct PauseChip: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityHint("Stops the clock. Resume picks up where you left off.")
+        .accessibilityHint(hint)
     }
 }
 

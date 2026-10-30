@@ -57,6 +57,8 @@ public struct NudgeContext: Sendable {
     public var dayEnded: Bool
     /// Idle because you paused on `nextTaskTitle`: gentler, later nudges to resume.
     public var paused: Bool
+    /// Idle because you stopped on purpose: the first "start the next one" nudge waits 30 minutes.
+    public var stopped: Bool
     public var tone: NudgeTone
     /// Your own words per moment (`TFSettings.customReminders`).
     public var customReminders: CustomReminders
@@ -68,7 +70,7 @@ public struct NudgeContext: Sendable {
 
     public init(mode: FlowMode, modeStartedAt: Date?, plannedRestEnd: Date? = nil,
                 taskTitle: String? = nil, nextTaskTitle: String? = nil, openTaskCount: Int = 0,
-                dayEnded: Bool = false, paused: Bool = false, tone: NudgeTone = .direct,
+                dayEnded: Bool = false, paused: Bool = false, stopped: Bool = false, tone: NudgeTone = .direct,
                 customReminders: CustomReminders = CustomReminders(),
                 thinkNudgeMinutes: Double = 5, focusCheckIn: Bool = false, now: Date) {
         self.mode = mode
@@ -79,6 +81,7 @@ public struct NudgeContext: Sendable {
         self.openTaskCount = openTaskCount
         self.dayEnded = dayEnded
         self.paused = paused
+        self.stopped = stopped
         self.tone = tone
         self.customReminders = customReminders
         self.thinkNudgeMinutes = thinkNudgeMinutes
@@ -96,6 +99,10 @@ public enum NudgePlanner {
         var nudges: [Nudge] = []
 
         switch context.mode {
+        case .rest where context.plannedRestEnd == nil:
+            // A break you took yourself lasts until you resume. Nothing asks you back.
+            break
+
         case .rest:
             let end = context.plannedRestEnd ?? (context.modeStartedAt ?? context.now).addingTimeInterval(60)
             let next = context.nextTaskTitle
@@ -136,7 +143,10 @@ public enum NudgePlanner {
 
         case .idle:
             guard context.openTaskCount > 0, let since = context.modeStartedAt else { break }
-            let steps: [(TimeInterval, Int)] = [(180, 1), (600, 2), (1500, 3), (3000, 3)]
+            // After a deliberate Stop, give the time off room before asking for the next task.
+            let steps: [(TimeInterval, Int)] = context.stopped
+                ? [(1800, 1), (3000, 2)]
+                : [(180, 1), (600, 2), (1500, 3), (3000, 3)]
             for (index, step) in steps.enumerated() {
                 let line = copy.idle(level: step.1, next: context.nextTaskTitle, left: context.openTaskCount)
                 nudges.append(Nudge(id: "idle.\(index)", fireAt: since.addingTimeInterval(step.0),

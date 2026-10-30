@@ -51,6 +51,9 @@ public enum SegmentOutcome: String, Codable, Sendable {
     case ended
     /// You paused: the clock stopped and the task waits for you to resume it.
     case paused
+    /// You stopped: the task stays on the plan, but nothing holds its place or asks you back.
+    /// (An older app reads an unknown outcome as none, so this syncs safely.)
+    case stopped
     /// Another device started a newer segment; this one was closed to keep a single timeline.
     case superseded
 }

@@ -93,6 +93,8 @@ final class FocusController {
             return task
         }
         if let paused = ready(pausedTask?.id) { return paused }
+        // A break goes back to the task you left, whatever is pinned next.
+        if isOnBreak, let resting = ready(current?.taskID) { return resting }
         if let pinned = ready(pinnedNextID) { return pinned }
         if mode == .rest, let upcoming = ready(current?.taskID) { return upcoming }
         if let juggled = nextJuggled(after: nowTask) { return juggled }
@@ -113,6 +115,15 @@ final class FocusController {
     }
 
     var isPaused: Bool { pausedTask != nil }
+
+    /// On a break you took yourself: a rest with no planned length. It lasts until you resume.
+    var isOnBreak: Bool { current?.mode == .rest && current?.plannedSeconds == nil }
+
+    /// When you last stopped a task (rather than pausing it), while nothing has run since.
+    var stoppedAt: Date? {
+        guard current == nil, !dayEnded, let last = segmentsToday.last, last.outcome == .stopped else { return nil }
+        return last.endedAt
+    }
 
     /// Nothing ready, but tasks are parked waiting: the one that has waited longest.
     var longestWaiting: FocusTask? {
@@ -431,8 +442,10 @@ final class FocusController {
         commit()
     }
 
-    /// From think: back to the same task. From rest or idle: the next task.
+    /// From think: back to the same task. From rest or idle: the next task. From a break: the
+    /// task you left.
     func backToIt() {
+        if isOnBreak { return resume() }
         switch mode {
         case .think:
             if let task = nowTask { start(task) }
@@ -466,10 +479,48 @@ final class FocusController {
         commit()
     }
 
-    /// Back on the paused task, its clock picking up where it stopped.
+    /// Back on the paused task (or the one you took a break from), its clock picking up where
+    /// it stopped.
     func resume() {
+        if isOnBreak, let id = current?.taskID, let task = task(id: id), !task.isDone {
+            start(task)
+            return
+        }
         guard let task = pausedTask else { return }
         start(task)
+    }
+
+    /// Rest for as long as you like. The clock stops on the task you're on (or the one you
+    /// paused), shields drop, and the rest music plays. No countdown and no nudges: Resume
+    /// picks the task back up where it stopped.
+    func takeBreak() {
+        let now = Date()
+        let task: FocusTask
+        if let current, current.mode.isWorking, let working = nowTask {
+            close(current, at: now, outcome: .paused)
+            task = working
+        } else if let paused = pausedTask {
+            task = paused
+        } else {
+            return
+        }
+        open(.rest, task: task, at: now)
+        commit()
+    }
+
+    /// End the task here instead of pausing it: the clock stops, shields drop and nothing holds
+    /// its place or asks you back to it. It stays on the plan. Apps you've opened up are yours
+    /// again, under the usual scroll budget and doom-scroll guard. Works from focus, think, a
+    /// break, a rest or a pause.
+    func stop() {
+        if let current {
+            close(current, at: Date(), outcome: .stopped)
+        } else if isPaused, let last = segmentsToday.last {
+            last.outcomeRaw = SegmentOutcome.stopped.rawValue
+        } else {
+            return
+        }
+        commit()
     }
 
     func togglePause() {
@@ -487,6 +538,8 @@ final class FocusController {
         case .backToIt: backToIt()
         case .pause: pause()
         case .resume: resume()
+        case .rest: takeBreak()
+        case .stop: stop()
         case .startNext: startNext()
         case .endDay: endDay()
         case .switchTo:
@@ -725,6 +778,12 @@ final class FocusController {
             snap.breadcrumb = paused.breadcrumb.isEmpty ? nil : paused.breadcrumb
             snap.taskFocusBefore = paused.focusSeconds
         }
+        if isOnBreak, let id = current?.taskID, let resting = task(id: id) {
+            // On a break the task you'll resume is `next`, its clock frozen like a pause.
+            snap.breadcrumb = resting.breadcrumb.isEmpty ? nil : resting.breadcrumb
+            snap.taskFocusBefore = resting.focusSeconds
+        }
+        snap.stoppedAt = stoppedAt
         if let next = nextTask {
             snap.nextTaskID = next.id
             snap.nextTaskTitle = next.title
@@ -746,7 +805,8 @@ final class FocusController {
         snap.systemFocusOn = systemFocusOn
         snap.updatedAt = now
         // A pause belongs to the device that paused, so only it plays the pause cue.
-        snap.originDevice = current?.device ?? (paused != nil ? segmentsToday.last?.device : nil) ?? TFDevice.name
+        snap.originDevice = current?.device
+            ?? (paused != nil || snap.stoppedAt != nil ? segmentsToday.last?.device : nil) ?? TFDevice.name
         return snap
     }
 
