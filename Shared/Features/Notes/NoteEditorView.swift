@@ -11,6 +11,7 @@ struct NoteEditorView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @State private var handle = NoteEditorHandle()
     @State private var pendingMarkup: String?
     @State private var saveTask: Task<Void, Never>?
@@ -36,6 +37,11 @@ struct NoteEditorView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .onDisappear(perform: flush)
+        // Leaving the app (Home, the app switcher, a call) saves at once: a swipe-quit right
+        // after typing shouldn't lose the last words to the save delay.
+        .onChange(of: scenePhase) { _, phase in
+            if phase != .active { saveNow() }
+        }
     }
 
     private var openItems: [String] {
@@ -53,6 +59,12 @@ struct NoteEditorView: View {
                 }
                 .help("Add open checklist items to today's plan")
             }
+            Menu {
+                formatMenu
+            } label: {
+                Label("Format", systemImage: "textformat")
+            }
+            .help("Format: styles, lists, indent and text size")
             Button {
                 handle.toggleChecklist()
             } label: {
@@ -81,6 +93,40 @@ struct NoteEditorView: View {
             } label: {
                 Label("More", systemImage: "ellipsis.circle")
             }
+        }
+    }
+
+    /// Apple Notes' Aa menu, with its keyboard shortcuts.
+    @ViewBuilder
+    private var formatMenu: some View {
+        Section {
+            Button("Heading") { handle.applyStyle(.heading) }.keyboardShortcut("h", modifiers: [.command, .shift])
+            Button("Subheading") { handle.applyStyle(.subheading) }.keyboardShortcut("j", modifiers: [.command, .shift])
+            Button("Body") { handle.applyStyle(.text) }.keyboardShortcut("b", modifiers: [.command, .shift])
+            Button("Monostyled") { handle.applyStyle(.mono) }.keyboardShortcut("m", modifiers: [.command, .shift])
+        }
+        Section {
+            Button("Bulleted List", systemImage: "list.bullet") { handle.applyStyle(.bullet) }
+                .keyboardShortcut("7", modifiers: [.command, .shift])
+            Button("Dashed List", systemImage: "list.dash") { handle.applyStyle(.dashed) }
+                .keyboardShortcut("8", modifiers: [.command, .shift])
+            Button("Numbered List", systemImage: "list.number") { handle.applyStyle(.numbered) }
+                .keyboardShortcut("9", modifiers: [.command, .shift])
+            Button("Block Quote", systemImage: "text.quote") { handle.applyStyle(.quote) }
+                .keyboardShortcut("'", modifiers: [.command])
+        }
+        Section {
+            Button("Indent", systemImage: "increase.indent") { handle.indent() }
+                .keyboardShortcut("]", modifiers: [.command])
+            Button("Outdent", systemImage: "decrease.indent") { handle.outdent() }
+                .keyboardShortcut("[", modifiers: [.command])
+        }
+        Section("Text Size") {
+            Button("Larger", systemImage: "plus.magnifyingglass") { NoteFormatter.stepTextScale(1) }
+                .keyboardShortcut("+", modifiers: [.command, .option])
+            Button("Smaller", systemImage: "minus.magnifyingglass") { NoteFormatter.stepTextScale(-1) }
+                .keyboardShortcut("-", modifiers: [.command, .option])
+            Button("Default Size") { NoteFormatter.stepTextScale(0) }
         }
     }
 
@@ -137,6 +183,12 @@ struct NoteEditorView: View {
     private func flush() {
         saveTask?.cancel()
         if let pending = pendingMarkup { commit(pending) }
+    }
+
+    /// Saves exactly what's on screen now.
+    private func saveNow() {
+        saveTask?.cancel()
+        if let live = handle.currentMarkup() ?? pendingMarkup { commit(live) }
     }
 
     // MARK: Actions

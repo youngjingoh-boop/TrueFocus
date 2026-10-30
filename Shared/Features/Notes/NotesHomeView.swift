@@ -85,8 +85,22 @@ struct NotesHomeView: View {
 
     // MARK: List
 
-    @ViewBuilder
     private var listContent: some View {
+        listBody.safeAreaInset(edge: .top, spacing: 0) {
+            if TFStore.isTemporary {
+                Label("Notes can't be saved right now. Quit and reopen TruFocus before writing anything you need.",
+                      systemImage: "exclamationmark.triangle.fill")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(TF.Palette.ink)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(TF.Palette.signal.opacity(0.16))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var listBody: some View {
         if notes.isEmpty {
             emptyState
         } else {

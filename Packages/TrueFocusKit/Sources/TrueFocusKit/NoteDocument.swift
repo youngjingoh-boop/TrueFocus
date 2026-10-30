@@ -6,8 +6,16 @@ public struct NoteLine: Equatable, Sendable {
         /// The first line. Styled like the Apple Notes title.
         case title
         case heading
+        case subheading
         case text
+        /// Monostyled: a fixed-width line, for code or anything that should line up.
+        case mono
         case bullet
+        /// A dashed list item ("–").
+        case dashed
+        /// A numbered list item. The number is worked out from its place in the list.
+        case numbered
+        case quote
         case checklist(done: Bool)
 
         public var isChecklist: Bool {
@@ -16,12 +24,18 @@ public struct NoteLine: Equatable, Sendable {
         }
     }
 
+    /// Deepest indent, like Apple Notes' practical limit.
+    public static let maxIndent = 4
+
     public var kind: Kind
     public var text: String
+    /// How far the paragraph is indented, 0 to `maxIndent`.
+    public var indent: Int
 
-    public init(_ kind: Kind, _ text: String) {
+    public init(_ kind: Kind, _ text: String, indent: Int = 0) {
         self.kind = kind
         self.text = text
+        self.indent = min(max(indent, 0), NoteLine.maxIndent)
     }
 }
 
@@ -30,10 +44,16 @@ public struct NoteLine: Equatable, Sendable {
 ///
 ///     Title line
 ///     ## Heading
+///     ### Subheading
 ///     plain text
+///     ` monostyled
 ///     - bullet
+///     – dashed
+///     1. numbered
+///     > quote
 ///     - [ ] open checklist item
 ///     - [x] crossed-off item
+///     \t- an indented bullet (one tab per level)
 ///
 /// The first line is always the title, like Apple Notes.
 public struct NoteDocument: Equatable, Sendable {
@@ -59,34 +79,75 @@ public struct NoteDocument: Equatable, Sendable {
         lines = parsed
     }
 
-    static func parseBody(_ line: String) -> NoteLine {
+    static func parseBody(_ raw: String) -> NoteLine {
+        // Leading tabs are the indent.
+        let indent = min(raw.prefix(while: { $0 == "\t" }).count, NoteLine.maxIndent)
+        let line = String(raw.dropFirst(raw.prefix(while: { $0 == "\t" }).count))
+        func make(_ kind: NoteLine.Kind, _ drop: Int) -> NoteLine {
+            NoteLine(kind, String(line.dropFirst(drop)), indent: indent)
+        }
         let lowered = line.lowercased()
-        if lowered.hasPrefix("- [x] ") { return NoteLine(.checklist(done: true), String(line.dropFirst(6))) }
-        if lowered == "- [x]" { return NoteLine(.checklist(done: true), "") }
-        if line.hasPrefix("- [ ] ") { return NoteLine(.checklist(done: false), String(line.dropFirst(6))) }
-        if line == "- [ ]" { return NoteLine(.checklist(done: false), "") }
-        if line.hasPrefix("## ") { return NoteLine(.heading, String(line.dropFirst(3))) }
-        if line.hasPrefix("- ") { return NoteLine(.bullet, String(line.dropFirst(2))) }
-        return NoteLine(.text, line)
+        if lowered.hasPrefix("- [x] ") { return make(.checklist(done: true), 6) }
+        if lowered == "- [x]" { return make(.checklist(done: true), 5) }
+        if line.hasPrefix("- [ ] ") { return make(.checklist(done: false), 6) }
+        if line == "- [ ]" { return make(.checklist(done: false), 5) }
+        if line.hasPrefix("### ") { return make(.subheading, 4) }
+        if line.hasPrefix("## ") { return make(.heading, 3) }
+        if line.hasPrefix("- ") { return make(.bullet, 2) }
+        if line.hasPrefix("– ") { return make(.dashed, 2) }
+        if line.hasPrefix("> ") { return make(.quote, 2) }
+        if line.hasPrefix("` ") { return make(.mono, 2) }
+        if let range = line.range(of: #"^\d{1,3}\. "#, options: .regularExpression) {
+            return NoteLine(.numbered, String(line[range.upperBound...]), indent: indent)
+        }
+        return NoteLine(.text, line, indent: indent)
     }
 
     public var markup: String {
-        lines.enumerated().map { index, line in
+        let numbers = listNumbers
+        return lines.enumerated().map { index, line in
             if index == 0 { return line.text }
-            return NoteDocument.serialize(line)
+            return NoteDocument.serialize(line, number: numbers[index])
         }.joined(separator: "\n")
     }
 
-    public static func serialize(_ line: NoteLine) -> String {
+    public static func serialize(_ line: NoteLine, number: Int = 1) -> String {
+        let tabs = String(repeating: "\t", count: line.indent)
+        let body: String
         switch line.kind {
         case .title: return line.text
-        case .heading: return "## " + line.text
-        case .text: return line.text
-        case .bullet: return "- " + line.text
+        case .heading: body = "## " + line.text
+        case .subheading: body = "### " + line.text
+        case .text: body = line.text
+        case .mono: body = "` " + line.text
+        case .bullet: body = "- " + line.text
+        case .dashed: body = "– " + line.text
+        case .numbered: body = "\(number). " + line.text
+        case .quote: body = "> " + line.text
         case .checklist(let done):
             let marker = done ? "- [x]" : "- [ ]"
-            return line.text.isEmpty ? marker : marker + " " + line.text
+            body = line.text.isEmpty ? marker : marker + " " + line.text
         }
+        return tabs + body
+    }
+
+    /// The number each numbered line shows (1 for every other line). A list counts up at its
+    /// own indent; a deeper line inside it doesn't break the count, anything shallower does.
+    public var listNumbers: [Int] {
+        var numbers = Array(repeating: 1, count: lines.count)
+        var counters: [Int: Int] = [:]
+        for (index, line) in lines.enumerated() {
+            if case .numbered = line.kind {
+                let next = (counters[line.indent] ?? 0) + 1
+                counters[line.indent] = next
+                numbers[index] = next
+                counters = counters.filter { $0.key <= line.indent }
+            } else {
+                // Any other line ends the lists at its indent and deeper.
+                counters = counters.filter { $0.key < line.indent }
+            }
+        }
+        return numbers
     }
 
     /// The title, or a fallback built from the first non-empty line.
