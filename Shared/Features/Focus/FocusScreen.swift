@@ -43,7 +43,7 @@ struct FocusScreen: View {
                 actionRow(snapshot)
                     .padding(.horizontal, TF.Space.page)
 
-                JugglePanel(onDark: true)
+                JugglePanel(onDark: true, excluding: controller.nowTask?.id)
                     .padding(.horizontal, TF.Space.page)
                     .padding(.top, 22)
                     .padding(.bottom, 12)

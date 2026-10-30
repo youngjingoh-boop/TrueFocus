@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 import TrueFocusKit
 
@@ -25,6 +26,8 @@ struct BrainDumpView: View {
     @State private var working = false
     /// The list is every line as written, not sorted.
     @State private var asWritten = true
+    /// Keep the dump as a dated note, to reread later, as well as turning it into tasks.
+    @AppStorage("tf.brainDump.saveToNotes") private var saveToNotes = true
     @FocusState private var dumpFocused: Bool
 
     var body: some View {
@@ -168,6 +171,14 @@ struct BrainDumpView: View {
                     .focused($dumpFocused)
             }
             .padding(.top, 8)
+            Toggle(isOn: $saveToNotes) {
+                Label("Also keep it in Notes", systemImage: "note.text")
+                    .font(.subheadline)
+                    .foregroundStyle(TF.Palette.ink2)
+            }
+            .toggleStyle(.switch)
+            .tint(TF.Palette.signal)
+            .padding(.bottom, 6)
         }
         .padding(.horizontal, TF.Space.page)
         .padding(.top, TF.Space.xl)
@@ -274,6 +285,7 @@ struct BrainDumpView: View {
     /// Every line becomes a task, as written.
     private func makeList() {
         controller.setBrainDump(dump)
+        keepInNotes()
         asWritten = true
         showCandidates(BrainDump.lines(from: dump))
     }
@@ -282,10 +294,30 @@ struct BrainDumpView: View {
     private func sortList() async {
         working = true
         controller.setBrainDump(dump)
+        keepInNotes()
         let tasks = await TaskExtractor.extract(from: dump)
         asWritten = false
         working = false
         showCandidates(tasks)
+    }
+
+    /// The dump as written, in a note titled with the day ("Brain dump · Fri, 30 Oct").
+    /// A second dump the same day updates that note rather than adding another.
+    private func keepInNotes() {
+        let text = dump.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard saveToNotes, !text.isEmpty else { return }
+        let title = "Brain dump · " + Date().formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated))
+        let body = title + "\n" + text
+        let context = controller.context
+        let notes = (try? context.fetch(FetchDescriptor<Note>())) ?? []
+        if let today = notes.first(where: { $0.body == title || $0.body.hasPrefix(title + "\n") }) {
+            guard today.body != body else { return }
+            today.body = body
+            today.updatedAt = Date()
+        } else {
+            context.insert(Note(body: body))
+        }
+        try? context.save()
     }
 
     /// Anything already on the plan starts unticked.
