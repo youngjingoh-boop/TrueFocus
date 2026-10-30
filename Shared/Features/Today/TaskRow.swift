@@ -44,6 +44,13 @@ struct TaskRow: View {
                     .onChange(of: editing) { _, isEditing in
                         if !isEditing { commit() }
                     }
+                    #if os(macOS)
+                    // In a reorderable list a text field waits out a rename delay before it
+                    // takes a click, like a file name in Finder; take focus on the first one.
+                    .simultaneousGesture(TapGesture().onEnded {
+                        if !task.isDone { editing = true }
+                    })
+                    #endif
 
                 if !task.breadcrumb.isEmpty, !task.isDone {
                     Text("↳ \(task.breadcrumb)")

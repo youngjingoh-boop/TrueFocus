@@ -6,14 +6,16 @@ import TrueFocusKit
 struct JugglePanel: View {
     @Environment(FocusController.self) private var controller
     var onDark = false
+    /// A task already shown big above the panel (the focus screen's), left out of the list.
+    var excluding: UUID? = nil
 
     var body: some View {
-        let juggling = controller.inPlayTasks
-        if juggling.count > 1 {
+        let juggling = controller.inPlayTasks.filter { $0.id != excluding }
+        if controller.inPlayTasks.count > 1, !juggling.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("Juggling").tfEyebrowStyle(secondary)
-                    Text("\(juggling.count) of \(controller.juggleLimit)")
+                    Text("\(controller.inPlayTasks.count) of \(controller.juggleLimit)")
                         .font(.tfCaption)
                         .foregroundStyle(tertiary)
                     Spacer()
@@ -46,11 +48,52 @@ struct JugglePanel: View {
     private var tertiary: Color { onDark ? TF.Palette.nightInk2 : TF.Palette.ink3 }
 }
 
+/// Inside the Now card, under the task you're on: the other tasks in the air, below a
+/// "Juggling" rule. The main task isn't listed again.
+struct JuggleSection: View {
+    @Environment(FocusController.self) private var controller
+    /// The task the card is about (current, paused or resting into).
+    var main: UUID?
+
+    var body: some View {
+        let others = controller.inPlayTasks.filter { $0.id != main }
+        if !others.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 10) {
+                    rule
+                    Text("Juggling").tfEyebrowStyle(TF.Palette.ink3)
+                    Text("\(controller.inPlayTasks.count) of \(controller.juggleLimit)")
+                        .font(.tfCaption)
+                        .foregroundStyle(TF.Palette.ink3)
+                        .fixedSize()
+                    rule
+                    JuggleAddMenu()
+                }
+                ForEach(others, id: \.id) { task in
+                    JuggleRow(task: task, inset: 0)
+                }
+            }
+        } else if controller.mode.isWorking {
+            HStack {
+                JuggleAddMenu(label: "Juggle another task")
+                Spacer()
+            }
+            .padding(.bottom, -10)
+        }
+    }
+
+    private var rule: some View {
+        Rectangle().fill(TF.Palette.hairline).frame(height: 1)
+    }
+}
+
 /// One juggled task. The current one carries the mode's colour; waiting ones an hourglass.
 struct JuggleRow: View {
     @Environment(FocusController.self) private var controller
     let task: FocusTask
     var onDark = false
+    /// Leading space: inside a bordered panel the row needs it; inside the Now card it doesn't.
+    var inset: CGFloat = 12
 
     private var isNow: Bool { controller.nowTask?.id == task.id }
 
@@ -104,8 +147,8 @@ struct JuggleRow: View {
             .fixedSize()
             .accessibilityLabel("More for \(task.title)")
         }
-        .padding(.leading, 12)
-        .padding(.trailing, 0)
+        .padding(.leading, inset)
+        .padding(.trailing, inset == 0 ? -12 : 0)
         .contextMenu { actions }
     }
 

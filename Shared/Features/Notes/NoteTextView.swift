@@ -75,7 +75,14 @@ final class NoteTextCoordinator: NSObject, UITextViewDelegate, UIGestureRecogniz
         markerTap = tap
         self.textView = textView
         wire(textView)
+        NotificationCenter.default.addObserver(self, selector: #selector(textScaleChanged),
+                                               name: .tfNoteTextScaleChanged, object: nil)
         return textView
+    }
+
+    @objc private func textScaleChanged() {
+        textView?.font = NoteFormatter.bodyFont
+        engine.reloadForTextScale()
     }
 
     private func wire(_ textView: UITextView) {
@@ -112,11 +119,15 @@ final class NoteTextCoordinator: NSObject, UITextViewDelegate, UIGestureRecogniz
 
     private func makeAccessoryBar() -> UIView {
         let bar = UIToolbar(frame: CGRect(x: 0, y: 0, width: 320, height: 44))
+        let format = UIBarButtonItem(image: UIImage(systemName: "textformat"), menu: makeFormatMenu())
         bar.items = [
+            format,
             UIBarButtonItem(image: UIImage(systemName: "checklist"), style: .plain,
                             target: self, action: #selector(toggleChecklist)),
-            UIBarButtonItem(image: UIImage(systemName: "checkmark.circle"), style: .plain,
-                            target: self, action: #selector(toggleDone)),
+            UIBarButtonItem(image: UIImage(systemName: "decrease.indent"), style: .plain,
+                            target: self, action: #selector(outdent)),
+            UIBarButtonItem(image: UIImage(systemName: "increase.indent"), style: .plain,
+                            target: self, action: #selector(indent)),
             UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil),
             UIBarButtonItem(image: UIImage(systemName: "keyboard.chevron.compact.down"), style: .plain,
                             target: self, action: #selector(dismissKeyboard)),
@@ -126,8 +137,35 @@ final class NoteTextCoordinator: NSObject, UITextViewDelegate, UIGestureRecogniz
         return bar
     }
 
+    /// Apple Notes' Aa menu: paragraph styles, lists, and the note text size.
+    private func makeFormatMenu() -> UIMenu {
+        func style(_ title: String, _ image: String, _ kind: NoteBlockKind) -> UIAction {
+            UIAction(title: title, image: UIImage(systemName: image)) { [weak self] _ in self?.engine.applyStyle(kind) }
+        }
+        let styles = UIMenu(options: .displayInline, children: [
+            style("Heading", "textformat.size.larger", .heading),
+            style("Subheading", "textformat.size", .subheading),
+            style("Body", "text.alignleft", .text),
+            style("Monostyled", "chevron.left.forwardslash.chevron.right", .mono),
+        ])
+        let lists = UIMenu(options: .displayInline, children: [
+            style("Bulleted List", "list.bullet", .bullet),
+            style("Dashed List", "list.dash", .dashed),
+            style("Numbered List", "list.number", .numbered),
+            style("Block Quote", "text.quote", .quote),
+        ])
+        let size = UIMenu(title: "Text Size", image: UIImage(systemName: "textformat.size"), children: [
+            UIAction(title: "Larger", image: UIImage(systemName: "plus.magnifyingglass")) { _ in NoteFormatter.stepTextScale(1) },
+            UIAction(title: "Smaller", image: UIImage(systemName: "minus.magnifyingglass")) { _ in NoteFormatter.stepTextScale(-1) },
+            UIAction(title: "Default Size") { _ in NoteFormatter.stepTextScale(0) },
+        ])
+        return UIMenu(children: [styles, lists, size])
+    }
+
     @objc private func toggleChecklist() { engine.toggleChecklistForSelection() }
     @objc private func toggleDone() { engine.toggleDoneForSelection() }
+    @objc private func indent() { engine.changeIndent(by: 1) }
+    @objc private func outdent() { engine.changeIndent(by: -1) }
     @objc private func dismissKeyboard() { textView?.resignFirstResponder() }
 
     // MARK: UITextViewDelegate
@@ -209,9 +247,21 @@ struct NoteTextView: NSViewRepresentable {
     }
 }
 
-/// NSTextView that toggles checklist circles on click and pastes as plain text.
+/// NSTextView that toggles checklist circles on click, indents on Tab, and pastes as plain text.
 final class NoteNSTextView: NSTextView {
     var markerClick: ((NSPoint) -> Bool)?
+    /// Tab (+1) and Shift-Tab (-1). Returns true when it changed the indent.
+    var indentKey: ((Int) -> Bool)?
+
+    override func insertTab(_ sender: Any?) {
+        if let indentKey, indentKey(1) { return }
+        super.insertTab(sender)
+    }
+
+    override func insertBacktab(_ sender: Any?) {
+        if let indentKey, indentKey(-1) { return }
+        super.insertBacktab(sender)
+    }
 
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
@@ -262,11 +312,23 @@ final class NoteTextCoordinator: NSObject, NSTextViewDelegate {
         textView.markerClick = { [weak self] point in
             self?.engine.handleMarkerTap(atContainerPoint: point) ?? false
         }
+        textView.indentKey = { [weak self] delta in
+            guard let engine = self?.engine else { return false }
+            if delta > 0 && !engine.tabIndents() { return false }
+            return engine.changeIndent(by: delta) || delta < 0
+        }
 
         scrollView.documentView = textView
         self.textView = textView
         wire(textView)
+        NotificationCenter.default.addObserver(self, selector: #selector(textScaleChanged),
+                                               name: .tfNoteTextScaleChanged, object: nil)
         return scrollView
+    }
+
+    @objc private func textScaleChanged() {
+        textView?.font = NoteFormatter.bodyFont
+        engine.reloadForTextScale()
     }
 
     private func wire(_ textView: NoteNSTextView) {

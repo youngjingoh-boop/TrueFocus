@@ -46,6 +46,9 @@ struct NowCard: View {
                 Spacer(minLength: 8)
                 actions(for: snapshot, tint: tint)
             }
+
+            // One box: the main task above, the rest of what you're juggling below.
+            JuggleSection(main: controller.nowTask?.id ?? controller.pausedTask?.id ?? snapshot.taskID)
         }
         .padding(20)
         .tfCard(tint: tint)

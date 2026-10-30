@@ -1,7 +1,7 @@
 import SwiftUI
 import TrueFocusKit
 
-/// Today: the outcome that makes the day a win, what's live now, and the plan to attack.
+/// Today: what's live now, and the plan to attack.
 struct TodayView: View {
     @Environment(FocusController.self) private var controller
     @State private var showBrainDump = false
@@ -18,8 +18,9 @@ struct TodayView: View {
                 .listRowInsets(rowInsets(top: 8, bottom: 4))
                 .tfListRow()
 
-            OutcomeField()
-                .listRowInsets(rowInsets(top: 4, bottom: 18))
+            Text("Focus")
+                .tfEyebrowStyle(TF.Palette.signalText)
+                .listRowInsets(rowInsets(top: 4, bottom: 10))
                 .tfListRow()
 
             if controller.needsMorningRitual {
@@ -38,9 +39,12 @@ struct TodayView: View {
                     .tfListRow()
             }
 
-            JugglePanel()
-                .listRowInsets(rowInsets(top: 0, bottom: 14))
-                .tfListRow()
+            // With a live card the juggle sits inside it; on its own only when nothing is live.
+            if !(controller.mode.isActive || controller.isPaused) {
+                JugglePanel()
+                    .listRowInsets(rowInsets(top: 0, bottom: 14))
+                    .tfListRow()
+            }
 
             Section {
                 ForEach(controller.openTasks, id: \.id) { task in
@@ -332,38 +336,6 @@ struct TodayView: View {
     }
 }
 
-// MARK: - Outcome
-
-/// "What makes today a win?" — one line, written big.
-struct OutcomeField: View {
-    @Environment(FocusController.self) private var controller
-    @State private var draft = ""
-    @FocusState private var editing: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("The win").tfEyebrowStyle(TF.Palette.signalText)
-            TextField("What makes today a win?", text: $draft, axis: .vertical)
-                .font(.tfHeadline)
-                .textFieldStyle(.plain)
-                .foregroundStyle(TF.Palette.ink)
-                .focused($editing)
-                .onChange(of: draft) { _, value in
-                    guard value.contains("\n") else { return }
-                    draft = value.replacingOccurrences(of: "\n", with: "")
-                    editing = false
-                }
-                .onChange(of: editing) { _, isEditing in
-                    if !isEditing { controller.setOutcome(draft.trimmingCharacters(in: .whitespacesAndNewlines)) }
-                }
-        }
-        .onAppear { draft = controller.plan?.outcome ?? "" }
-        .onChange(of: controller.plan?.outcome ?? "") { _, value in
-            if !editing { draft = value }
-        }
-    }
-}
-
 // MARK: - Cards
 
 /// Shown first thing in the morning: empty your head, then attack.
@@ -378,7 +350,7 @@ struct MorningCard: View {
                     Text("Empty your head.")
                         .font(.tfTitle)
                         .foregroundStyle(TF.Palette.ink)
-                    Text("Dump everything, keep what matters, pick the win.")
+                    Text("Dump everything on your mind here.")
                         .font(.subheadline)
                         .foregroundStyle(TF.Palette.ink2)
                         .fixedSize(horizontal: false, vertical: true)
