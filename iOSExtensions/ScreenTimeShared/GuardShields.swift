@@ -4,6 +4,10 @@ import Foundation
 import ManagedSettings
 import TrueFocusKit
 import UserNotifications
+import os
+
+/// Screen Time decisions, readable in Console (subsystem com.youngjingoh.truefocus).
+let guardLog = Logger(subsystem: "com.youngjingoh.truefocus", category: "guard")
 
 /// Applies and clears the guard's shields. Idempotent: call `reapply` whenever anything
 /// changes and every store ends up matching `GuardConfig`.
@@ -20,31 +24,51 @@ enum GuardShields {
         var applicationCategories: ShieldSettings.ActivityCategoryPolicy<Application>?
         var webDomains: Set<WebDomainToken>?
         var webDomainCategories: ShieldSettings.ActivityCategoryPolicy<WebDomain>?
+        /// What the two category policies hold (categories and exceptions), to compare.
+        var categoryFingerprint = ""
     }
 
     /// Brings both shield stores in line with the config.
     static func reapply(_ config: GuardConfig, now: Date = Date()) {
         let pass = config.livePassTokens(now: now)
-        write(config.focusShieldActive ? focusShields(config, pass: pass) : Shields(), to: focusStore)
-        write(config.budgetShieldActive ? budgetShields(config, pass: pass) : Shields(), to: budgetStore)
+        write(config.focusShieldActive ? focusShields(config, pass: pass) : Shields(), to: focusStore, named: "focus")
+        write(config.budgetShieldActive ? budgetShields(config, pass: pass) : Shields(), to: budgetStore, named: "budget")
     }
 
-    private static func write(_ shields: Shields, to store: ManagedSettingsStore) {
+    private static func write(_ shields: Shields, to store: ManagedSettingsStore, named name: String) {
         if store.shield.applications != shields.applications {
             store.shield.applications = shields.applications
-        }
-        if store.shield.applicationCategories != shields.applicationCategories {
-            store.shield.applicationCategories = shields.applicationCategories
         }
         if store.shield.webDomains != shields.webDomains {
             store.shield.webDomains = shields.webDomains
         }
-        if store.shield.webDomainCategories != shields.webDomainCategories {
+        // Category policies aren't compared by reading them back: a policy read from the
+        // store need not compare unequal when only its exceptions changed, and then an
+        // app added to Always allowed stayed shielded through its category. Compare what
+        // we wrote last instead.
+        let key = "tf.guard.categories." + name
+        let defaults = SharedStore.shared.defaults
+        if defaults.string(forKey: key) != shields.categoryFingerprint {
+            store.shield.applicationCategories = shields.applicationCategories
             store.shield.webDomainCategories = shields.webDomainCategories
+            defaults.set(shields.categoryFingerprint, forKey: key)
+            guardLog.info("categories rewritten in \(key, privacy: .public)")
         }
     }
 
+    /// A stable description of a set of tokens (they're Codable; their JSON is opaque but stable).
+    private static func fingerprint<T: Encodable>(_ tokens: Set<T>) -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        return tokens.compactMap { (try? encoder.encode($0)).map { String(decoding: $0, as: UTF8.self) } }
+            .sorted().joined(separator: ",")
+    }
+
     /// While working: every scroll and reply app, their categories, and chosen sites.
+    /// Categories shield apps only, never every website in them: apps such as Business Suite
+    /// and Ads Manager run on facebook.com inside the app, iOS put up a bare "Restricted"
+    /// screen over the whole app, and Always allowed (apps only) couldn't lift it. Feed sites
+    /// in the browser stay closed in focus through the browser extension.
     private static func focusShields(_ config: GuardConfig, pass: Set<ApplicationToken>) -> Shields {
         var shields = Shields()
         shields.applications = config.shieldedApps.subtracting(pass).tfNilIfEmpty
@@ -52,8 +76,9 @@ enum GuardShields {
         // shield can offer them a Post or reply pass.
         let categories = config.categories
         if !categories.isEmpty {
-            shields.applicationCategories = .specific(categories, except: config.replyApps.union(pass).union(config.allowedApps))
-            shields.webDomainCategories = .specific(categories, except: [])
+            let except = config.replyApps.union(pass).union(config.allowedApps)
+            shields.applicationCategories = .specific(categories, except: except)
+            shields.categoryFingerprint = "focus-apps|" + fingerprint(categories) + "|" + fingerprint(except)
         }
         shields.webDomains = config.webDomains.tfNilIfEmpty
         return shields
@@ -66,7 +91,9 @@ enum GuardShields {
         shields.applications = config.shieldedApps.subtracting(pass).tfNilIfEmpty
         let categories = config.categories
         if !categories.isEmpty {
-            shields.applicationCategories = .specific(categories, except: config.replyApps.union(pass).union(config.allowedApps))
+            let except = config.replyApps.union(pass).union(config.allowedApps)
+            shields.applicationCategories = .specific(categories, except: except)
+            shields.categoryFingerprint = "budget|" + fingerprint(categories) + "|" + fingerprint(except)
         }
         return shields
     }
