@@ -30,28 +30,19 @@
 
     <section class="group">
       <h2>Feeds</h2>
-      <p class="note rule" id="rule"></p>
+      <div class="rule" id="rule"><span class="rule-dot"></span><span id="ruleText"></span></div>
+      <div class="chips-label">Open for work during tasks</div>
+      <div class="chips">
+        <label class="chip"><input type="checkbox" id="workInstagram" data-platform="Instagram"><span>Instagram</span></label>
+        <label class="chip"><input type="checkbox" id="workFacebook" data-platform="Facebook"><span>Facebook</span></label>
+        <label class="chip"><input type="checkbox" id="workYouTube" data-platform="YouTube"><span>YouTube</span></label>
+        <label class="chip"><input type="checkbox" id="workX" data-platform="X"><span>X</span></label>
+      </div>
       <label class="row">
-        <span class="label">Instagram for work<small>Open during tasks: profiles, posts, search. Reels stay walled.</small></span>
-        <input class="switch" type="checkbox" id="workInstagram" data-platform="Instagram">
-      </label>
-      <label class="row">
-        <span class="label">Facebook for work<small>Open during tasks: pages, posting, Ads Manager.</small></span>
-        <input class="switch" type="checkbox" id="workFacebook" data-platform="Facebook">
-      </label>
-      <label class="row">
-        <span class="label">YouTube for work<small>Open during tasks: watch, search, Studio. Shorts stay walled.</small></span>
-        <input class="switch" type="checkbox" id="workYouTube" data-platform="YouTube">
-      </label>
-      <label class="row">
-        <span class="label">X for work<small>Open during tasks: profiles, posts, search.</small></span>
-        <input class="switch" type="checkbox" id="workX" data-platform="X">
-      </label>
-      <label class="row">
-        <span class="label">Time reminder<small>Off a task, a nudge to get out after a while on a feed.</small></span>
+        <span class="label">Remind me to get out</span>
         <input class="switch" type="checkbox" id="guardEnabled">
       </label>
-      <p class="note" id="managed" hidden>Synced from the TruFocus app: the same rule on your iPhone, Mac and here.</p>
+      <p class="note" id="managed" hidden>Same rule on your iPhone, Mac and here.</p>
     </section>
 
     <section class="group" id="adult">
