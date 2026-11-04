@@ -71,6 +71,9 @@ public struct TFSettings: Codable, Equatable, Sendable {
     public var macDriftGuard: Bool = true
     /// Mac: use the on-device model to judge windows and tabs the rules can't place.
     public var macDriftUsesModel: Bool = true
+    /// Mac: ask where a task happens (its apps and sites) as it starts. Off by default: it
+    /// breaks the start of the task, and the drift guard learns from "Part of the task" instead.
+    public var macAskTaskWorkspace: Bool = false
     public var macBlockedApps: [String] = []
     /// Mac: built-in feed apps (Blocklist.macFeedApps bundle IDs) you've allowed. They open during
     /// focus; the doom-scroll watch still boots you out of a binge.
@@ -123,6 +126,7 @@ public struct TFSettings: Codable, Equatable, Sendable {
         macWatchBrowsers = try c.decodeIfPresent(Bool.self, forKey: .macWatchBrowsers) ?? d.macWatchBrowsers
         macDriftGuard = try c.decodeIfPresent(Bool.self, forKey: .macDriftGuard) ?? d.macDriftGuard
         macDriftUsesModel = try c.decodeIfPresent(Bool.self, forKey: .macDriftUsesModel) ?? d.macDriftUsesModel
+        macAskTaskWorkspace = try c.decodeIfPresent(Bool.self, forKey: .macAskTaskWorkspace) ?? d.macAskTaskWorkspace
         macBlockedApps = try c.decodeIfPresent([String].self, forKey: .macBlockedApps) ?? d.macBlockedApps
         macAllowedFeedApps = try c.decodeIfPresent([String].self, forKey: .macAllowedFeedApps) ?? d.macAllowedFeedApps
         adultFilterEnabled = try c.decodeIfPresent(Bool.self, forKey: .adultFilterEnabled) ?? d.adultFilterEnabled

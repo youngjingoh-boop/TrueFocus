@@ -78,10 +78,12 @@ final class DriftGuard: FocusEffect {
         // Common modes: keep looking while a menu is open or a window is being dragged.
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
-        // Started here on the Mac, with nothing written yet: ask where the task happens, once
-        // per task. Marked as asked before showing, so a skip, a close or a relaunch all stick.
+        // Started here on the Mac, with nothing written yet, and asking is on: ask where the task
+        // happens, once per task. Marked as asked before showing, so a skip, a close or a
+        // relaunch all stick. Off by default: the task starts straight away, and "Part of the
+        // task" on a nudge teaches the guard as you go.
         let startedHere = snapshot.originDevice == TFDevice.name || snapshot.originDevice.isEmpty
-        if startedHere, contract.needsStartQuestion {
+        if startedHere, settings.macAskTaskWorkspace, contract.needsStartQuestion {
             contract.askedAt = now
             save(contract)
             StartContractWindow.shared.show(for: self.contract ?? contract, activate: false)
