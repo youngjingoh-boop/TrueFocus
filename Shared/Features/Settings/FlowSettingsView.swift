@@ -103,14 +103,23 @@ struct FlowSettingsView<Extra: View>: View {
 
     // MARK: Doom-scroll
 
+    /// The one rule for feeds, the same on iPhone, Mac and in the browser.
     private var scrolling: some View {
-        SettingsSection("Doom-scroll guard", footnote: "During focus every limit tightens to a third. Booted out means booted out.") {
-            HStack(spacing: 8) {
-                preset("Gentle", .gentle)
-                preset("Standard", .standard)
-                preset("Ruthless", .ruthless)
+        SettingsSection("Feeds: one rule everywhere",
+                        footnote: "On a task, Instagram, TikTok, Facebook, LinkedIn, YouTube and X close on your iPhone, Mac and browser, Reels and Shorts too. Messages stay open: DMs on the web, a Message button on iPhone. Pause, rest or stop and everything opens, Reels included.") {
+            ToggleRow(title: "Close feeds on a task", isOn: controller.binding(\.shieldDuringFocus))
+            StepperRow(title: "Off a task, remind me after", value: controller.binding(\.scrollBudgetMinutes),
+                       range: 1...120, unit: "min")
+            ToggleRow(title: "Lock me out instead",
+                      subtitle: "At the limit you're booted out for a while, instead of a reminder.",
+                      isOn: controller.binding(\.lockOutAtLimit))
+            if controller.settings.lockOutAtLimit {
+                HStack(spacing: 8) {
+                    preset("Gentle", .gentle)
+                    preset("Standard", .standard)
+                    preset("Ruthless", .ruthless)
+                }
             }
-            ToggleRow(title: "Shield distractions while working", isOn: controller.binding(\.shieldDuringFocus))
         }
     }
 
@@ -143,15 +152,7 @@ struct FlowSettingsView<Extra: View>: View {
     }
 
     private var web: some View {
-        SettingsSection("On the web", footnote: "Applied by the TruFocus browser extension in Safari and Chrome. On a platform open for work, two minutes of scrolling brings a quick check: working or scrolling?") {
-            ToggleRow(title: "Remove Reels, Shorts and TikTok", isOn: controller.binding(\.hideShortForm))
-            ToggleRow(title: "Instagram opens to messages only", isOn: controller.binding(\.instagramMessagesOnly))
-            ToggleRow(title: "LinkedIn for work only",
-                      subtitle: "No feed or video. Messaging, profiles, search, jobs, Sales Navigator and Campaign Manager stay open, even in focus.",
-                      isOn: controller.binding(\.linkedInWorkOnly))
-            ToggleRow(title: "Facebook for work only",
-                      subtitle: "No feed, posts, stories or video. Pages, groups, Messenger, events and sign-ins stay open, even in focus.",
-                      isOn: controller.binding(\.facebookWorkOnly))
+        SettingsSection("Open for work on a task", footnote: "A platform you use for work stays open during tasks, on every device, with a quick check after two minutes of scrolling: working or scrolling? Reels and Shorts stay closed.") {
             ToggleRow(title: "YouTube for work",
                       subtitle: "Watch, search, channels and Studio stay open, even in focus. The home feed, suggested videos and end screens are hidden; Shorts stay gone.",
                       isOn: workPlatform("YouTube"))

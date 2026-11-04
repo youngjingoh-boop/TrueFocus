@@ -123,13 +123,23 @@ struct GuardConfig: Codable {
         GuardTiming.passWindowOver(startedAt: passStartedAt, pass: passMinutes ?? 1, now: now) ? [] : passTokens
     }
 
+    /// Whether this app's shield offers a Message pass: reply apps always; during a task,
+    /// every app you picked, so business messaging never waits.
+    func offersPass(_ token: ApplicationToken) -> Bool {
+        isReplyApp(token) || (focusShieldActive && scrollSelection.applicationTokens.contains(token))
+    }
+
     func isReplyApp(_ token: ApplicationToken) -> Bool {
         replySelection.applicationTokens.contains(token)
     }
 
+    /// Effectively endless when message passes are unlimited (the default).
+    static let unlimitedPasses = 999
+
     /// Passes left today (a TruFocus day: 4 am to 4 am).
     func passesRemaining(settings: TFSettings, now: Date = Date()) -> Int {
-        max(0, settings.respondPassesPerDay - GuardTiming.passesUsed(passesUsed, countedOn: passesDay, now: now))
+        if settings.messagePassesUnlimited { return GuardConfig.unlimitedPasses }
+        return max(0, settings.respondPassesPerDay - GuardTiming.passesUsed(passesUsed, countedOn: passesDay, now: now))
     }
 
     mutating func consumePass(now: Date = Date()) {

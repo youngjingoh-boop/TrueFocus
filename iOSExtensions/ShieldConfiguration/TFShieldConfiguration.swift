@@ -3,6 +3,9 @@ import ManagedSettings
 import ManagedSettingsUI
 import TrueFocusKit
 import UIKit
+import os
+
+private let shieldLog = Logger(subsystem: "com.youngjingoh.truefocus", category: "shield")
 
 /// The screen you see instead of a shielded app. Black, quiet, and it names the task
 /// you're supposed to be on.
@@ -33,15 +36,17 @@ final class TFShieldConfiguration: ShieldConfigurationDataSource {
     // MARK: ShieldConfigurationDataSource
 
     override func configuration(shielding application: Application) -> ShieldConfiguration {
+        shieldLog.info("app shield for \(application.localizedDisplayName ?? "?", privacy: .public)")
         let token = application.token
         let config = GuardStore.load()
-        let offersPass = token.map { config.isReplyApp($0) } ?? false
+        let offersPass = token.map { config.offersPass($0) } ?? false
         return make(appName: application.localizedDisplayName, offersReplyPass: offersPass, config: config)
     }
 
     override func configuration(shielding application: Application, in category: ActivityCategory) -> ShieldConfiguration {
+        shieldLog.info("category shield for \(application.localizedDisplayName ?? "?", privacy: .public) in \(category.localizedDisplayName ?? "?", privacy: .public)")
         // Reply apps are never shielded through a category, so no pass here.
-        make(appName: application.localizedDisplayName, offersReplyPass: false, config: GuardStore.load())
+        return make(appName: application.localizedDisplayName, offersReplyPass: false, config: GuardStore.load())
     }
 
     override func configuration(shielding webDomain: WebDomain) -> ShieldConfiguration {
@@ -88,7 +93,9 @@ final class TFShieldConfiguration: ShieldConfigurationDataSource {
         if offersReplyPass {
             let remaining = config.passesRemaining(settings: settings, now: now)
             if remaining > 0 {
-                let text = "Post or reply · \(settings.respondPassMinutes) min · \(remaining) left"
+                let text = settings.messagePassesUnlimited
+                    ? "Message · \(settings.respondPassMinutes) min"
+                    : "Message · \(settings.respondPassMinutes) min · \(remaining) left"
                 secondary = ShieldConfiguration.Label(text: text, color: Self.onGlass)
             }
         }

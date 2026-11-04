@@ -120,8 +120,9 @@ struct GuardView: View {
             Hairline()
             HStack(alignment: .top, spacing: TF.Space.l) {
                 StatTile(value: "\(snapshot.bootsToday)", label: "Boot-outs")
-                StatTile(value: "\(shield.passesRemaining(settings: settings))", label: "Passes left")
-                StatTile(value: "\(settings.scrollBudgetMinutes)m", label: "Budget")
+                StatTile(value: settings.messagePassesUnlimited ? "∞" : "\(shield.passesRemaining(settings: settings))",
+                         label: "Messages")
+                StatTile(value: "\(settings.scrollBudgetMinutes)m", label: settings.lockOutAtLimit ? "Limit" : "Reminder")
             }
         }
         .padding(TF.Space.xl)
@@ -179,7 +180,10 @@ struct GuardView: View {
             return "Back shortly. Use the time."
         case .down:
             if shield.config.hasSelection {
-                return "\(focus.settings.scrollBudgetMinutes) minutes of scrolling, then a \(focus.settings.scrollCooldownMinutes)-minute lockout. Shields go up the moment you start a task."
+                if focus.settings.lockOutAtLimit {
+                    return "Open until you start a task. \(focus.settings.scrollBudgetMinutes) minutes in your feed apps, then a \(focus.settings.scrollCooldownMinutes)-minute lockout."
+                }
+                return "Open until you start a task, with a reminder after \(focus.settings.scrollBudgetMinutes) minutes in your feed apps."
             }
             return "Pick the apps that eat your day. They'll be shielded while you work."
         case .off:
@@ -250,27 +254,41 @@ struct GuardView: View {
         .familyActivityPicker(isPresented: $pickingReply, selection: $replyDraft)
     }
 
+    /// One rule, the same on iPhone, Mac and in the browser: closed on a task (with a Message
+    /// button), open off a task with a reminder.
     private var budgetSection: some View {
-        GuardSection(title: "Doom-scroll budget",
-                     footnote: "iPhone can't see individual scrolls inside other apps, so the budget is time in them. In Safari, the TruFocus extension counts every swipe.") {
-            GuardToggleRow(title: "Shield during focus",
-                           caption: "Scroll and reply apps are blocked while a task is running.",
+        GuardSection(title: "The rule",
+                     footnote: "The same on your iPhone, Mac and browser. Pause, rest or stop and everything opens. iPhone can't see inside other apps, so off a task it counts time in them.") {
+            GuardToggleRow(title: "Close feeds on a task",
+                           caption: "Your scroll and reply apps are blocked while a task runs. Each one you picked has a Message button.",
                            isOn: focus.binding(\.shieldDuringFocus))
             Hairline()
-            GuardStepper(title: "Boot me out after",
-                         caption: "Minutes of use outside focus. You're warned 2 minutes before.",
-                         value: focus.binding(\.scrollBudgetMinutes), range: 1...60)
+            GuardToggleRow(title: "Message as often as you need",
+                           caption: "No daily limit on Message passes, for business messaging.",
+                           isOn: focus.binding(\.messagePassesUnlimited))
             Hairline()
-            GuardStepper(title: "Lock for",
-                         caption: "iOS needs at least 15 minutes.",
-                         value: focus.binding(\.scrollCooldownMinutes), range: 15...120, step: 5)
-            Hairline()
-            GuardStepper(title: "Post or reply pass",
-                         caption: "How long a reply app opens for. You're warned a minute before it closes.",
+            GuardStepper(title: "Message opens an app for",
+                         caption: "You're told a minute before it closes again.",
                          value: focus.binding(\.respondPassMinutes), range: 1...15)
+            if !focus.settings.messagePassesUnlimited {
+                Hairline()
+                GuardStepper(title: "Passes per day",
+                             value: focus.binding(\.respondPassesPerDay), range: 0...20, unit: "passes")
+            }
             Hairline()
-            GuardStepper(title: "Passes per day",
-                         value: focus.binding(\.respondPassesPerDay), range: 0...20, unit: "passes")
+            GuardStepper(title: "Off a task, remind me after",
+                         caption: "Minutes in your feed apps before a nudge to get out.",
+                         value: focus.binding(\.scrollBudgetMinutes), range: 1...120)
+            Hairline()
+            GuardToggleRow(title: "Lock me out instead",
+                           caption: "At the limit the apps lock for a while, instead of a reminder.",
+                           isOn: focus.binding(\.lockOutAtLimit))
+            if focus.settings.lockOutAtLimit {
+                Hairline()
+                GuardStepper(title: "Lock for",
+                             caption: "iOS needs at least 15 minutes.",
+                             value: focus.binding(\.scrollCooldownMinutes), range: 15...120, step: 5)
+            }
             Hairline()
         }
     }

@@ -35,14 +35,20 @@ public struct TFSettings: Codable, Equatable, Sendable {
     public var doomScroll: DoomScrollConfig = .standard
     /// Shield distracting apps and sites while focus/think is running.
     public var shieldDuringFocus: Bool = true
-    /// iPhone: minutes of use in "scroll apps" before you get booted out.
-    public var scrollBudgetMinutes: Int = 5
+    /// Off a task: minutes in a feed (an app on iPhone or Mac, a site in the browser) before
+    /// a reminder to get out. With `lockOutAtLimit` it's a boot-out instead.
+    public var scrollBudgetMinutes: Int = 15
+    /// Off a task, lock the feeds at the limit (the old boot-out) instead of reminding.
+    public var lockOutAtLimit: Bool = false
     /// iPhone: how long the boot-out lasts. iOS needs at least 15 minutes.
     public var scrollCooldownMinutes: Int = 15
     /// iPhone: minutes a reply app opens for from its shield's "Post or reply" button —
     /// long enough to post or answer DMs. A notice comes a minute before it closes.
     public var respondPassMinutes: Int = 5
     public var respondPassesPerDay: Int = 8
+    /// During a task every blocked app has a Message button, as often as you need it:
+    /// business messaging never waits. Off: `respondPassesPerDay` a day.
+    public var messagePassesUnlimited: Bool = true
     /// Web: Instagram opens straight to your DMs. Feed, reels and explore are gone.
     public var instagramMessagesOnly: Bool = true
     public var hideShortForm: Bool = true
@@ -109,6 +115,8 @@ public struct TFSettings: Codable, Equatable, Sendable {
         scrollCooldownMinutes = try c.decodeIfPresent(Int.self, forKey: .scrollCooldownMinutes) ?? d.scrollCooldownMinutes
         respondPassMinutes = try c.decodeIfPresent(Int.self, forKey: .respondPassMinutes) ?? d.respondPassMinutes
         respondPassesPerDay = try c.decodeIfPresent(Int.self, forKey: .respondPassesPerDay) ?? d.respondPassesPerDay
+        messagePassesUnlimited = try c.decodeIfPresent(Bool.self, forKey: .messagePassesUnlimited) ?? d.messagePassesUnlimited
+        lockOutAtLimit = try c.decodeIfPresent(Bool.self, forKey: .lockOutAtLimit) ?? d.lockOutAtLimit
         instagramMessagesOnly = try c.decodeIfPresent(Bool.self, forKey: .instagramMessagesOnly) ?? d.instagramMessagesOnly
         hideShortForm = try c.decodeIfPresent(Bool.self, forKey: .hideShortForm) ?? d.hideShortForm
         linkedInWorkOnly = try c.decodeIfPresent(Bool.self, forKey: .linkedInWorkOnly) ?? d.linkedInWorkOnly

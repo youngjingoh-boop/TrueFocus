@@ -19,6 +19,12 @@ final class ScrollWatch: FocusEffect {
     private var detector = DoomScrollDetector()
     /// For a feed app you've opened for work: "working or scrolling?" instead of a boot-out.
     private var checkIn = ScrollCheckIn()
+    /// Off a task: time in feed apps, for the "time to get out?" reminder.
+    private var feedTimer = FeedTimer()
+
+    /// Off a task (paused, resting, stopped, nothing started) feed apps are open, with a
+    /// reminder after the time limit; with "Lock me out instead" the doom-scroll boot-out.
+    private var remindsInsteadOfBooting: Bool { !snapshot.shouldShield && !settings.lockOutAtLimit }
     private var snapshot = LiveSnapshot.idle
     private var settings = TFSettings.default
     private var scrollMonitor: Any?
@@ -153,6 +159,7 @@ final class ScrollWatch: FocusEffect {
 
     private func finishStroke(forwardDistance: CGFloat) {
         guard forwardDistance >= Self.minStrokePoints else { return }
+        if remindsInsteadOfBooting { return }
         if isOpenForWork {
             checkIn.stroke(at: Date())
             return
@@ -162,7 +169,13 @@ final class ScrollWatch: FocusEffect {
     }
 
     private func tick() {
-        guard watchedApp != nil else { return }
+        guard let bundleID = watchedApp else { return }
+        if remindsInsteadOfBooting {
+            if let minutes = feedTimer.add(3, to: bundleID, limitMinutes: settings.scrollBudgetMinutes) {
+                remindToGetOut(bundleID, minutes: minutes)
+            }
+            return
+        }
         if isOpenForWork {
             if checkIn.tick(at: Date()) { askWorkingOrScrolling() }
             return
@@ -174,6 +187,26 @@ final class ScrollWatch: FocusEffect {
     private var isOpenForWork: Bool {
         guard let watchedApp else { return false }
         return settings.macAllowedFeedApps.contains(watchedApp)
+    }
+
+    /// "15 minutes in Instagram. Still need it?" — off a task, you choose.
+    private func remindToGetOut(_ bundleID: String, minutes: Int) {
+        let name = Blocklist.macFeedApps[bundleID] ?? "this app"
+        let limit = settings.scrollBudgetMinutes
+        WakeUpOverlay.shared.show(WakeUpContent(
+            eyebrow: "Off a task",
+            title: "\(minutes) minutes in \(name)",
+            message: "Still need it? Time to get out.",
+            taskLabel: snapshot.nextTaskTitle == nil ? nil : "Up next",
+            task: snapshot.nextTaskTitle,
+            primaryTitle: "Close it",
+            primary: { [weak self] in
+                for app in NSRunningApplication.runningApplications(withBundleIdentifier: bundleID) { app.hide() }
+                self?.feedTimer.closed(bundleID, limitMinutes: limit)
+            },
+            snoozeTitle: "5 more min",
+            snooze: { [weak self] in self?.feedTimer.snooze(bundleID) }
+        ))
     }
 
     private func askWorkingOrScrolling() {

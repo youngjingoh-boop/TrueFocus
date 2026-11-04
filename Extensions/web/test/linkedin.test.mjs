@@ -4,10 +4,12 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const core = require('../core.js');
+// These tests describe the rules on a task: Reels walled, feeds closed, messages open.
+const ON_TASK = { onTask: true };
 
 const NOW = Date.UTC(2026, 9, 19, 9, 0, 0);
 const eff = (overrides = {}, settings = null) =>
-  Object.assign(core.effective(settings ? { settings } : null, null, NOW, null), overrides);
+  Object.assign(core.effective(settings ? { settings } : null, null, NOW, null), ON_TASK, overrides);
 
 test('work-only LinkedIn: the home feed opens Messaging', () => {
   for (const url of ['https://www.linkedin.com/', 'https://www.linkedin.com/feed/', 'https://linkedin.com/feed']) {

@@ -468,16 +468,24 @@
     var tone = settings && (settings.tone === 'calm' || settings.tone === 'direct' || settings.tone === 'savage')
       ? settings.tone : 'direct';
     var strict = isStrict(snapshot, nowMs);
+    function setting(name) {
+      return settings && typeof settings[name] === 'boolean' ? settings[name] : !!p[name];
+    }
+    // One rule everywhere: on a task, Reels and feeds are closed and messages stay open;
+    // off a task (paused, resting, stopped) everything opens, Reels included, with a
+    // reminder after a while. The four rules below hold only while `onTask`.
     return {
       appManaged: appManaged,
       tone: tone,
-      hideShortForm: settings && typeof settings.hideShortForm === 'boolean' ? settings.hideShortForm : !!p.hideShortForm,
-      instagramMessagesOnly: settings && typeof settings.instagramMessagesOnly === 'boolean'
-        ? settings.instagramMessagesOnly : !!p.instagramMessagesOnly,
-      linkedInWorkOnly: settings && typeof settings.linkedInWorkOnly === 'boolean'
-        ? settings.linkedInWorkOnly : !!p.linkedInWorkOnly,
-      facebookWorkOnly: settings && typeof settings.facebookWorkOnly === 'boolean'
-        ? settings.facebookWorkOnly : !!p.facebookWorkOnly,
+      onTask: strict,
+      hideShortForm: setting('hideShortForm'),
+      instagramMessagesOnly: setting('instagramMessagesOnly'),
+      linkedInWorkOnly: setting('linkedInWorkOnly'),
+      facebookWorkOnly: setting('facebookWorkOnly'),
+      // Off a task: minutes on a feed before a reminder, or a boot-out with lockOutAtLimit.
+      remindAfterMinutes: settings && typeof settings.scrollBudgetMinutes === 'number'
+        ? Math.min(Math.max(settings.scrollBudgetMinutes, 1), 120) : (p.remindAfterMinutes || 15),
+      lockOutAtLimit: settings && typeof settings.lockOutAtLimit === 'boolean' ? settings.lockOutAtLimit : false,
       workPlatforms: workPlatformsFrom(settings && Array.isArray(settings.workPlatforms) ? settings.workPlatforms : p.workPlatforms),
       allowedSites: (settings && Array.isArray(settings.allowedSites) ? settings.allowedSites : [])
         .map(normalizedSite).filter(Boolean),
@@ -554,6 +562,32 @@
   Object.defineProperty(ScrollCheckIn.prototype, 'minutes', {
     get: function () { return Math.round(this.threshold / 60); }
   });
+
+  /**
+   * Off a task: time spent on a feed site today, and when to remind you to get out.
+   * `record` is { day, sites: { name: { seconds, nextAt } } }; returns the updated record and
+   * whether to remind now. "5 more min" moves nextAt on by five minutes.
+   */
+  function feedTime(record, siteName, dayKeyNow, addSeconds, remindAfterMinutes) {
+    var next = record && record.day === dayKeyNow ? JSON.parse(JSON.stringify(record)) : { day: dayKeyNow, sites: {} };
+    var entry = next.sites[siteName] || { seconds: 0, nextAt: remindAfterMinutes * 60 };
+    entry.seconds += addSeconds;
+    var remind = entry.seconds >= entry.nextAt;
+    next.sites[siteName] = entry;
+    return { record: next, remind: remind, minutes: Math.round(entry.seconds / 60) };
+  }
+
+  function snoozeFeedTime(record, siteName, minutes) {
+    var next = JSON.parse(JSON.stringify(record || { sites: {} }));
+    var entry = next.sites && next.sites[siteName];
+    if (entry) { entry.nextAt = entry.seconds + minutes * 60; }
+    return next;
+  }
+
+  function feedReminderCopy(siteName, minutes) {
+    return { title: minutes + ' minutes on ' + (siteName || 'this feed'), body: 'Still need it? Time to get out.',
+      working: '5 more min', back: 'Close it' };
+  }
 
   /** What the check-in card says. */
   function checkInCopy(siteName, task, minutes) {
@@ -660,7 +694,7 @@
     if (!site) { return { kind: 'other', host: host }; }
     var base = { site: site.name, host: host, path: path };
     if (isSafePath(site, path)) { return Object.assign({ kind: 'safe' }, base); }
-    if (eff && eff.hideShortForm && isShortFormVisit(site, u, ctx && ctx.from)) { return Object.assign({ kind: 'shortform' }, base); }
+    if (eff && eff.onTask && eff.hideShortForm && isShortFormVisit(site, u, ctx && ctx.from)) { return Object.assign({ kind: 'shortform' }, base); }
     // A platform you use for work: the whole site stays open — unguarded, even in focus —
     // with only its home feed hidden. Short-form was walled above. It comes before the
     // stricter modes below, which would close what you opened it for.
@@ -668,17 +702,17 @@
       return Object.assign({ kind: 'safe', work: true, feedless: workFeedless(site.name, path) }, base);
     }
     // Messages-only Instagram: the home feed and the story viewer land you in your DMs.
-    if (eff && eff.instagramMessagesOnly && site.name === 'Instagram' &&
+    if (eff && eff.onTask && eff.instagramMessagesOnly && site.name === 'Instagram' &&
         (path === '/' || path === '' || path === '/stories' || path.indexOf('/stories/') === 0)) {
       return Object.assign({ kind: 'respond', redirect: respondURL(u, site) }, base);
     }
     // Work-only LinkedIn: the home feed lands you in Messaging; the rest of LinkedIn is safe above.
-    if (eff && eff.linkedInWorkOnly && site.name === 'LinkedIn' && isLinkedInFeed(path)) {
+    if (eff && eff.onTask && eff.linkedInWorkOnly && site.name === 'LinkedIn' && isLinkedInFeed(path)) {
       return Object.assign({ kind: 'respond', redirect: respondURL(u, site) }, base);
     }
     // Work-only Facebook: no feed, video or stories; pages, groups, Marketplace, events and
     // everything else stay open — unguarded, even in focus — with their posts hidden.
-    if (eff && eff.facebookWorkOnly && site.name === 'Facebook') {
+    if (eff && eff.onTask && eff.facebookWorkOnly && site.name === 'Facebook') {
       if (isFacebookVideo(path)) { return Object.assign({ kind: 'shortform' }, base); }
       if (isFacebookFeed(path)) { return Object.assign({ kind: 'respond', redirect: respondURL(u, site) }, base); }
       // Search results share the feed's markup; keep them so you can find a page or group.
@@ -926,6 +960,9 @@
     CHECKIN: CHECKIN,
     ScrollCheckIn: ScrollCheckIn,
     checkInCopy: checkInCopy,
+    feedTime: feedTime,
+    snoozeFeedTime: snoozeFeedTime,
+    feedReminderCopy: feedReminderCopy,
     isFacebookFeed: isFacebookFeed,
     isFacebookVideo: isFacebookVideo,
     normalizedSite: normalizedSite,

@@ -9,9 +9,11 @@ import { ROOT } from './generate-rules.mjs';
 
 const require = createRequire(import.meta.url);
 const core = require('../core.js');
+// These tests describe the rules on a task: Reels walled, feeds closed, messages open.
+const ON_TASK = { onTask: true };
 
 const NOW = Date.UTC(2026, 9, 19, 9, 0, 0);
-const eff = (overrides = {}) => Object.assign(core.effective(null, null, NOW, null), overrides);
+const eff = (overrides = {}) => Object.assign(core.effective(null, null, NOW, null), ON_TASK, overrides);
 const kind = (url, e, cooldowns = {}) => core.classify(url, e, cooldowns, NOW).kind;
 const open = (k) => k === 'safe' || k === 'other';
 
