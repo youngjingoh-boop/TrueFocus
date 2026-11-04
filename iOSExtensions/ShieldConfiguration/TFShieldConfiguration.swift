@@ -39,7 +39,7 @@ final class TFShieldConfiguration: ShieldConfigurationDataSource {
         shieldLog.info("app shield for \(application.localizedDisplayName ?? "?", privacy: .public)")
         let token = application.token
         let config = GuardStore.load()
-        let offersPass = token.map { config.isReplyApp($0) } ?? false
+        let offersPass = token.map { config.offersPass($0) } ?? false
         return make(appName: application.localizedDisplayName, offersReplyPass: offersPass, config: config)
     }
 
@@ -93,7 +93,9 @@ final class TFShieldConfiguration: ShieldConfigurationDataSource {
         if offersReplyPass {
             let remaining = config.passesRemaining(settings: settings, now: now)
             if remaining > 0 {
-                let text = "Post or reply · \(settings.respondPassMinutes) min · \(remaining) left"
+                let text = settings.messagePassesUnlimited
+                    ? "Message · \(settings.respondPassMinutes) min"
+                    : "Message · \(settings.respondPassMinutes) min · \(remaining) left"
                 secondary = ShieldConfiguration.Label(text: text, color: Self.onGlass)
             }
         }

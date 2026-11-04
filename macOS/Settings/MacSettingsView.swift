@@ -97,9 +97,9 @@ private struct GuardTab: View {
 
             DriftGuardSection()
 
-            Section("Doom-scroll watch") {
-                Toggle("Boot me out of feed apps when I doom-scroll", isOn: controller.binding(\.macWatchNativeScrolling))
-                Text("While a feed app like Instagram or TikTok is in front, TruFocus counts scroll gestures — how many and how far. It never reads the screen, what you type, or anything in other apps. Websites are covered by the browser extension.")
+            Section("Feed apps off a task") {
+                Toggle("Remind me to get out of feed apps", isOn: controller.binding(\.macWatchNativeScrolling))
+                Text("Off a task, after the time you set under Flow, a reminder asks whether you still need the app (or, with Lock me out instead, you're booted out of a binge). While a feed app is in front TruFocus only counts time and scroll gestures. It never reads the screen, what you type, or anything in other apps.")
                     .font(.callout)
                     .foregroundStyle(TF.Palette.ink2)
             }

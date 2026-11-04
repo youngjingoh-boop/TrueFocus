@@ -39,6 +39,9 @@
   var detectorKey = '';
   var guardOn = false;
   var checkinOn = false;
+  // Off a task, on a feed: count the time and remind after a while (instead of a boot-out).
+  var feedTimerOn = false;
+  var FEED_TIME_KEY = 'tfFeedTime';
   var CHECKIN_KEY = 'tfCheckin';
   var checkin = loadCheckin();
   var leaving = false;
@@ -58,8 +61,9 @@
 
   function recompute() {
     eff = Core.effective(state, prefs, now(), adultOff);
-    root.classList.toggle('tf-hide-shorts', !!eff.hideShortForm);
-    root.classList.toggle('tf-ig-dm-only', !!eff.instagramMessagesOnly && /(^|\.)instagram\.com$/.test(location.hostname) &&
+    // Reels, Shorts and the messages-only Instagram only hide on a task.
+    root.classList.toggle('tf-hide-shorts', !!eff.onTask && !!eff.hideShortForm);
+    root.classList.toggle('tf-ig-dm-only', !!eff.onTask && !!eff.instagramMessagesOnly && /(^|\.)instagram\.com$/.test(location.hostname) &&
       eff.workPlatforms.indexOf('Instagram') === -1);
     evaluateRoute();
   }
@@ -135,13 +139,20 @@
     checkinOn = verdict.kind === 'safe' && !!verdict.work && !!eff.guardEnabled;
     if (checkinOn && checkin.asking) showCheckIn();
     if (!checkinOn) hideCheckIn();
+    feedTimerOn = false;
     switch (verdict.kind) {
       case 'adult': return leave(api.runtime.getURL('wall.html'));
       case 'shortform': return leave(blockedURL('shortform', verdict.site));
       case 'respond': return leave(verdict.redirect);
       case 'cooldown': return leave(blockedURL('cooldown', verdict.site, { from: location.href }));
       case 'strict': return leave(blockedURL('focus', verdict.site, { from: location.href }));
-      case 'feed': return startGuard();
+      case 'feed':
+        // Off a task the feed is open; with "Lock me out instead" the doom-scroll guard
+        // still boots you out, otherwise a reminder comes after the time limit.
+        if (eff.lockOutAtLimit) { feedTimerOn = false; return startGuard(); }
+        stopGuard();
+        feedTimerOn = !!eff.guardEnabled;
+        return;
       default: return stopGuard();
     }
   }
@@ -309,6 +320,17 @@
   setInterval(function () {
     if (!guardOn || !detector || leaving || document.visibilityState !== 'visible') return;
     handle(detector.tick(now() / 1000));
+  }, TICK_MS);
+
+  // Off-task feed time, shared by every tab of the site through storage.
+  setInterval(function () {
+    if (!feedTimerOn || leaving || !currentSite || document.visibilityState !== 'visible') return;
+    var site = currentSite;
+    api.storage.local.get(FEED_TIME_KEY).then(function (data) {
+      var step = Core.feedTime(data && data[FEED_TIME_KEY], site, Core.dayKey(now()), TICK_MS / 1000, eff.remindAfterMinutes);
+      api.storage.local.set({ [FEED_TIME_KEY]: step.record });
+      if (step.remind) showFeedReminder(site, step.minutes);
+    }).catch(function () {});
   }, TICK_MS);
 
   setInterval(function () {
@@ -489,6 +511,41 @@
     el.querySelector('.body').textContent = copy.body;
     el.querySelector('[data-act="working"]').textContent = copy.working;
     el.querySelector('[data-act="back"]').textContent = copy.back;
+    if (!el.classList.contains('on')) requestAnimationFrame(function () { el.classList.add('on'); });
+  }
+
+  /** "15 minutes on Instagram. Still need it?" Off a task, no lockout: you choose. */
+  function showFeedReminder(site, minutes) {
+    var shadow = mount('tf-feedreminder', CHECKIN_CSS);
+    var el = shadow.querySelector('.toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'toast';
+      el.setAttribute('role', 'alertdialog');
+      el.innerHTML = '<span class="dot"></span><div class="text"><div class="title"></div><div class="body"></div></div>' +
+        '<div class="actions"><button type="button" class="quiet" data-act="more"></button>' +
+        '<button type="button" data-act="close"></button></div>';
+      el.querySelector('[data-act="more"]').addEventListener('click', function () {
+        api.storage.local.get(FEED_TIME_KEY).then(function (data) {
+          return api.storage.local.set({ [FEED_TIME_KEY]: Core.snoozeFeedTime(data && data[FEED_TIME_KEY], el.dataset.site, 5) });
+        }).catch(function () {});
+        el.classList.remove('on');
+      });
+      el.querySelector('[data-act="close"]').addEventListener('click', function () {
+        el.classList.remove('on');
+        pauseMedia();
+        send({ type: 'closeTab' }).then(function (r) {
+          if (!r || !r.ok) history.length > 1 ? history.back() : location.replace('about:blank');
+        });
+      });
+      shadow.appendChild(el);
+    }
+    el.dataset.site = site;
+    var copy = Core.feedReminderCopy(site, minutes);
+    el.querySelector('.title').textContent = copy.title;
+    el.querySelector('.body').textContent = copy.body;
+    el.querySelector('[data-act="more"]').textContent = copy.working;
+    el.querySelector('[data-act="close"]').textContent = copy.back;
     if (!el.classList.contains('on')) requestAnimationFrame(function () { el.classList.add('on'); });
   }
 

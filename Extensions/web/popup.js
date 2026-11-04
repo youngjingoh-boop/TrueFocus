@@ -85,20 +85,16 @@
 
     // Guard toggles. App settings win; then the controls show the app's values, locked.
     var managed = eff.appManaged;
-    setSwitch('hideShortForm', eff.hideShortForm, managed);
-    setSwitch('instagramMessagesOnly', eff.instagramMessagesOnly, managed);
-    setSwitch('linkedInWorkOnly', eff.linkedInWorkOnly, managed);
-    setSwitch('facebookWorkOnly', eff.facebookWorkOnly, managed);
+    // The one rule, in words: what's closed right now and what isn't.
+    $('rule').textContent = eff.onTask
+      ? 'On a task: Instagram, TikTok, Facebook, LinkedIn, YouTube and X are closed, Reels and Shorts too. Messages stay open.'
+      : 'Off a task: everything is open, Reels included.' +
+        (eff.lockOutAtLimit ? ' Scroll too long and you\u2019re booted out.' : ' A reminder after ' + eff.remindAfterMinutes + ' minutes on a feed.');
     // "For work" switches go through the app when it's running, so they never lock.
     Core.WORK_PLATFORMS.forEach(function (name) {
       setSwitch('work' + name, eff.workPlatforms.indexOf(name) !== -1, false);
     });
     setSwitch('guardEnabled', eff.guardEnabled, false);
-    var preset = Core.presetName(eff.doomScroll);
-    Array.prototype.forEach.call($('sensitivity').querySelectorAll('button'), function (b) {
-      b.setAttribute('aria-checked', String(b.getAttribute('data-value') === preset));
-      b.disabled = managed;
-    });
     $('managed').hidden = !managed;
 
     renderJuggle(snapshot, connected, now);
@@ -192,7 +188,7 @@
     send({ type: 'prefs', prefs: change });
   }
 
-  ['hideShortForm', 'instagramMessagesOnly', 'linkedInWorkOnly', 'facebookWorkOnly', 'guardEnabled'].forEach(function (id) {
+  ['guardEnabled'].forEach(function (id) {
     $(id).addEventListener('change', function (e) {
       var change = {};
       change[id] = e.target.checked;
@@ -204,12 +200,6 @@
     $('work' + name).addEventListener('change', function (e) {
       send({ type: 'work', platform: name, open: e.target.checked });
     });
-  });
-
-  $('sensitivity').addEventListener('click', function (e) {
-    var button = e.target.closest('button[data-value]');
-    if (!button || button.disabled) return;
-    savePrefs({ sensitivity: button.getAttribute('data-value') });
   });
 
   $('adultAction').addEventListener('click', function () {

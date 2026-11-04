@@ -32,14 +32,16 @@ Sync runs through the TruFocus server, end-to-end encrypted: the key stays on yo
 
 ## Cutting out distractions
 
+One rule on every device: **on a task**, feeds and Reels are closed and messages stay open; **off a task** (paused, resting, stopped) everything opens, Reels included, with a reminder after a while.
+
 | | iPhone | Mac |
 | --- | --- | --- |
 | **During focus** | Apps you pick (Instagram, YouTube, TikTok, X…) are shielded by Screen Time. | Apps you pick are hidden the moment they come forward. |
-| **Doom-scroll guard** | Screen Time usage budget: after *N* minutes in your scroll apps you're booted out for a cooldown. | Native feed apps: scroll strokes are counted; skim, binge or linger and you're booted out with a full-screen wake-up. |
+| **Off a task** | Open. After *N* minutes in your feed apps, a reminder to get out (or, with *Lock me out instead*, a cooldown). | Feed apps open; after *N* minutes in one, a reminder (or a doom-scroll boot-out with *Lock me out instead*). |
 | **Drifting off the task** | — | When a task starts, say where it happens (apps, sites). Something else in front for a minute and a half — a clinic site in the middle of marketing research — and a small card asks if you're heading back. On-device AI settles what the rules can't place. Names and titles only; no screenshots. |
 | **Browser** | Safari extension: scroll strokes counted on feed sites; Reels, Shorts and TikTok removed; Instagram opens to your DMs only. | Same extension in Safari, Chrome, Arc, Brave, Edge. |
 | **Use it for work** | Leave the app out of your scroll apps; in Safari, turn on YouTube, Instagram or X **for work**. | Turn a feed app off under Guard ▸ Feed apps, or turn the site on **for work**: the whole site opens, even in focus, with its feeds hidden (Shorts and Reels stay gone). |
-| **Still need to reply** | Shield button **Reply · 2 min** on apps you mark as messaging apps (limited passes per day). | Instagram web stays usable for DMs, minus the feed. |
+| **Still need to reply** | Every app you picked has a **Message** button on its shield during a task, as often as you need. | Instagram, Facebook, LinkedIn and TikTok web stay usable for messages during a task. |
 | **Apps you need** | *Always allowed* keeps an app open even when its category is shielded (a booking app filed under Social, say). Locked out with no passes left? **Unlock now** in Guard ends the cooldown and counts as a boot-out. | — |
 | **Notifications** | Use a system Focus with the TruFocus filter; with *Share Across Devices*, turning it on from the Mac silences and shields the iPhone too. | Optional Shortcuts hook flips the Focus when a session starts. |
 | **Adult sites** | On by default: Screen Time web-content filter + the extension's blocklist. Turning it off takes a 24-hour cool-off. | The extension's blocklist, plus a guide to macOS's built-in filter. |

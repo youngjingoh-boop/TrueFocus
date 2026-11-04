@@ -38,7 +38,10 @@ test('an allowed site keeps its Shorts shelves', async () => {
   const page = loadContent('https://www.youtube.com/', { tfState: state });
   await page.settle();
   assert.ok(!page.classes().includes('tf-hide-shorts'));
-  const other = loadContent('https://www.youtube.com/', { tfState: { settings: { hideShortForm: true } } });
+  // On a task, a site that isn't allowed hides them.
+  const other = loadContent('https://www.youtube.com/', {
+    tfState: { settings: { hideShortForm: true }, snapshot: { mode: 'focus', modeStartedAt: Date.now() / 1000 } },
+  });
   await other.settle();
   assert.ok(other.classes().includes('tf-hide-shorts'));
 });

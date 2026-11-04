@@ -108,7 +108,8 @@ async function applyRulesets() {
   const eff = Core.effective(all.state, all.prefs, Date.now(), all.adultOff);
   const want = {};
   ADULT_RULESETS.forEach((id) => { want[id] = eff.adult.active; });
-  SHORTFORM_RULESETS.forEach((id) => { want[id] = eff.hideShortForm; });
+  // Reels and Shorts are walled at the network level only on a task.
+  SHORTFORM_RULESETS.forEach((id) => { want[id] = eff.onTask && eff.hideShortForm; });
 
   const dnr = api.declarativeNetRequest;
   if (!dnr || !dnr.updateEnabledRulesets) return eff;

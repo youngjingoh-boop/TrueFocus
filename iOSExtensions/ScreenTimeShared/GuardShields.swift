@@ -260,9 +260,17 @@ enum GuardMonitoring {
 
 /// The reactions to Screen Time events, shared so the app can run them too.
 enum GuardReactions {
-    /// The scroll budget is spent: shield, record the boot-out, start the cooldown.
+    /// The time limit is up, off a task. By default a reminder, then the count starts again
+    /// for the next one; with "Lock me out instead": shield, record the boot-out, cool down.
     static func budgetReached(now: Date = Date()) {
         let settings = SharedStore.shared.settings
+        guard settings.lockOutAtLimit else {
+            let minutes = settings.scrollBudgetMinutes
+            GuardNotice.post(Copy.Line(title: "\(minutes) minutes in your feed apps",
+                                       body: "Still need them? Time to get out."), id: "tf.guard.timeUp")
+            GuardMonitoring.restartBudget(GuardStore.load(), settings: settings, from: now)
+            return
+        }
         let until = GuardMonitoring.startCooldown(minutes: settings.scrollCooldownMinutes, from: now)
         let config = GuardStore.update { config in
             config.budgetShieldActive = true
@@ -303,8 +311,9 @@ enum GuardReactions {
     /// A couple of minutes before the budget shields: a heads-up, so it isn't a surprise.
     static func budgetWarning() {
         let config = GuardStore.load()
-        // Nothing to warn about while a boot-out or a focus shield is already up.
-        guard !config.budgetShieldActive, !config.focusShieldActive else { return }
+        // Nothing to warn about while a boot-out or a focus shield is already up, or when the
+        // limit only brings a reminder.
+        guard !config.budgetShieldActive, !config.focusShieldActive, SharedStore.shared.settings.lockOutAtLimit else { return }
         let store = SharedStore.shared
         let minutes = store.settings.scrollBudgetMinutes
         guard let warn = GuardTiming.budgetWarningMinute(budget: minutes) else { return }
@@ -394,7 +403,7 @@ enum GuardReactions {
     static func openReplyPass(for token: ApplicationToken, now: Date = Date()) -> ReplyPass? {
         let settings = SharedStore.shared.settings
         let before = GuardStore.load()
-        guard before.isReplyApp(token), before.passesRemaining(settings: settings, now: now) > 0 else { return nil }
+        guard before.offersPass(token), before.passesRemaining(settings: settings, now: now) > 0 else { return nil }
         let minutes = max(1, settings.respondPassMinutes)
         var config = before
         // One pass at a time: a new pass replaces the previous one.

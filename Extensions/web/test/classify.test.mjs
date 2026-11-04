@@ -4,12 +4,14 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const core = require('../core.js');
+// These tests describe the rules on a task: Reels walled, feeds closed, messages open.
+const ON_TASK = { onTask: true };
 
 const NOW = Date.UTC(2026, 9, 17, 9, 0, 0);
 const sec = (ms) => ms / 1000;
 
 function eff(overrides = {}, state = null, prefs = null, adultOff = null) {
-  return Object.assign(core.effective(state, prefs, NOW, adultOff), overrides);
+  return Object.assign(core.effective(state, prefs, NOW, adultOff), ON_TASK, overrides);
 }
 
 test('short-form paths are walled', () => {

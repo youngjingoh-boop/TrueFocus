@@ -29,52 +29,29 @@
     </section>
 
     <section class="group">
-      <h2>Guard</h2>
+      <h2>Feeds</h2>
+      <p class="note rule" id="rule"></p>
       <label class="row">
-        <span class="label">Hide Reels &amp; Shorts<small>Reels, Shorts and TikTok disappear.</small></span>
-        <input class="switch" type="checkbox" id="hideShortForm">
-      </label>
-      <label class="row">
-        <span class="label">Instagram: messages only<small>Opens straight to your DMs.</small></span>
-        <input class="switch" type="checkbox" id="instagramMessagesOnly">
-      </label>
-      <label class="row">
-        <span class="label">LinkedIn: work only<small>No feed or video. Messaging, profiles, search and Sales Navigator stay open.</small></span>
-        <input class="switch" type="checkbox" id="linkedInWorkOnly">
-      </label>
-      <label class="row">
-        <span class="label">Facebook: work only<small>No feed, posts, stories or video. Pages, groups, Messenger and sign-ins stay open.</small></span>
-        <input class="switch" type="checkbox" id="facebookWorkOnly">
-      </label>
-      <label class="row">
-        <span class="label">YouTube: for work<small>Watch, search and Studio stay open. Home feed, suggestions and end screens are hidden.</small></span>
-        <input class="switch" type="checkbox" id="workYouTube" data-platform="YouTube">
-      </label>
-      <label class="row">
-        <span class="label">Instagram: for work<small>Profiles, posts and DMs stay open. The home feed is hidden.</small></span>
+        <span class="label">Instagram for work<small>Open during tasks: profiles, posts, search. Reels stay walled.</small></span>
         <input class="switch" type="checkbox" id="workInstagram" data-platform="Instagram">
       </label>
       <label class="row">
-        <span class="label">X: for work<small>Profiles, posts, search and messages stay open. The timeline is hidden.</small></span>
-        <input class="switch" type="checkbox" id="workX" data-platform="X">
-      </label>
-      <label class="row">
-        <span class="label">Facebook: for work<small>Pages, posting, Ads Manager and Messenger stay open. Only the News Feed is hidden.</small></span>
+        <span class="label">Facebook for work<small>Open during tasks: pages, posting, Ads Manager.</small></span>
         <input class="switch" type="checkbox" id="workFacebook" data-platform="Facebook">
       </label>
       <label class="row">
-        <span class="label">Doom-scroll guard<small>Boots you out of endless feeds.</small></span>
+        <span class="label">YouTube for work<small>Open during tasks: watch, search, Studio. Shorts stay walled.</small></span>
+        <input class="switch" type="checkbox" id="workYouTube" data-platform="YouTube">
+      </label>
+      <label class="row">
+        <span class="label">X for work<small>Open during tasks: profiles, posts, search.</small></span>
+        <input class="switch" type="checkbox" id="workX" data-platform="X">
+      </label>
+      <label class="row">
+        <span class="label">Time reminder<small>Off a task, a nudge to get out after a while on a feed.</small></span>
         <input class="switch" type="checkbox" id="guardEnabled">
       </label>
-      <div class="row">
-        <span class="label">Sensitivity</span>
-        <div class="seg" id="sensitivity" role="radiogroup" aria-label="Sensitivity">
-          <button type="button" role="radio" data-value="gentle">Gentle</button>
-          <button type="button" role="radio" data-value="standard">Standard</button>
-          <button type="button" role="radio" data-value="ruthless">Ruthless</button>
-        </div>
-      </div>
-      <p class="note" id="managed" hidden>Synced from the TruFocus app. The “for work” switches work from here; change the rest in TruFocus ▸ Settings ▸ Flow ▸ On the web.</p>
+      <p class="note" id="managed" hidden>Synced from the TruFocus app: the same rule on your iPhone, Mac and here.</p>
     </section>
 
     <section class="group" id="adult">

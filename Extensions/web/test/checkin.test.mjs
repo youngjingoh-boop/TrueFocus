@@ -4,9 +4,11 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 const core = require('../core.js');
+// These tests describe the rules on a task: Reels walled, feeds closed, messages open.
+const ON_TASK = { onTask: true };
 
 const NOW = Date.UTC(2026, 9, 23, 9, 0, 0);
-const eff = (overrides = {}) => Object.assign(core.effective(null, null, NOW, null), overrides);
+const eff = (overrides = {}) => Object.assign(core.effective(null, null, NOW, null), ON_TASK, overrides);
 const verdict = (url, e) => core.classify(url, e, {}, NOW);
 
 /** Strokes every `every` s for `seconds`, ticking every second. Returns when it asked. */

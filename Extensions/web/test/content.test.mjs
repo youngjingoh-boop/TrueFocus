@@ -5,10 +5,14 @@ import assert from 'node:assert/strict';
 import { loadContent } from './content-harness.mjs';
 
 const sum = (xs) => xs.reduce((a, b) => a + b, 0);
+// A task running now: the in-task rules (messages-only Instagram, work-only Facebook) apply.
+const onTask = (settings = {}) => ({ settings, snapshot: { mode: 'focus', modeStartedAt: Date.now() / 1000 } });
+// Off a task the doom-scroll guard counts strokes only with "Lock me out instead".
+const lockingOut = { settings: { lockOutAtLimit: true } };
 
 test('a wheel scroll is one stroke, not also a scroll-position stroke', async () => {
   // Instagram profile, messages-only off: a feed with the guard on.
-  const page = loadContent('https://www.instagram.com/someone/', { tfPrefs: { instagramMessagesOnly: false } });
+  const page = loadContent('https://www.instagram.com/someone/', { tfPrefs: { instagramMessagesOnly: false }, tfState: lockingOut });
   await page.settle();
   // A trackpad fling: 12 wheel events of 100px, the page scrolling along with them.
   let top = 0;
@@ -24,14 +28,14 @@ test('a wheel scroll is one stroke, not also a scroll-position stroke', async ()
 });
 
 test('scrolling an inner container with no gesture we saw still counts', async () => {
-  const page = loadContent('https://www.instagram.com/someone/', { tfPrefs: { instagramMessagesOnly: false } });
+  const page = loadContent('https://www.instagram.com/someone/', { tfPrefs: { instagramMessagesOnly: false }, tfState: lockingOut });
   await page.settle();
   for (let top = 0; top <= 1600; top += 100) { page.scrollTo(top); page.advance(50); }
   assert.equal(sum(page.strokes), 2);
 });
 
 test('Instagram home in the SPA lands in the inbox once, and the inbox stays put', async () => {
-  const page = loadContent('https://www.instagram.com/direct/inbox/');
+  const page = loadContent('https://www.instagram.com/direct/inbox/', { tfState: onTask() });
   await page.settle();
   assert.deepEqual(page.replaced, []);
   page.navigate('/');
@@ -40,7 +44,7 @@ test('Instagram home in the SPA lands in the inbox once, and the inbox stays put
 });
 
 test('work-only Facebook hides posts on pages, never in Messenger or search', async () => {
-  const page = loadContent('https://www.facebook.com/messages/t/1');
+  const page = loadContent('https://www.facebook.com/messages/t/1', { tfState: onTask() });
   await page.settle();
   assert.ok(!page.classes().includes('tf-fb-feedless'));
   page.navigate('/acmebakery');
