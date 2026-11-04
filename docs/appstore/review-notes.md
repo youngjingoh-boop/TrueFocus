@@ -9,7 +9,7 @@ each statement rests on.
 
 ## 1. Paste into App Store Connect ▸ App Review Information ▸ Notes
 
-The Notes field allows 4,000 characters. This block uses 3,912.
+The Notes field allows 4,000 characters. This block uses 3,983.
 
 ```
 TruFocus is a self-control focus app for adults. No account or login exists — every feature works on first launch. Please test on a physical iPhone: Screen Time APIs do not run in the Simulator.
@@ -17,26 +17,32 @@ TruFocus is a self-control focus app for adults. No account or login exists — 
 WHY FAMILY CONTROLS
 TruFocus uses FamilyControls with INDIVIDUAL authorization (requestAuthorization(for: .individual)) so the device owner can restrict their own distracting apps. There is no parental mode, no child account and no Family Sharing. Screen Time data (opaque tokens from FamilyActivityPicker, DeviceActivity threshold events) stays on the device in the App Group and is never transmitted. The user can revoke access at any time in Settings > Screen Time.
 
+THE RULE
+On a task, the apps the user picks are shielded, with a Message button so they can still answer messages. Off a task (paused, resting, stopped), nothing is shielded; after a set time in a picked app, a reminder appears. "Lock me out instead" is opt-in.
+
 HOW TO TEST (about 10 minutes)
-1. Launch. Allow notifications when asked. On Today, tap "Start the day", type a few lines (e.g. "email Sam, write report"), tap through to the list and the win, then "Attack". A task is now running with a clock.
+1. Launch. Allow notifications when asked. On Today, tap "Dump everything on your mind here.", type a few lines (e.g. "email Sam" and "write report"), tap "Make it a list", then continue and tap "Attack". A task now runs with a clock counting up.
 2. Guard tab > "Allow Screen Time access" > approve with Face ID/passcode.
 3. Guard > Scroll apps > pick Apple TV and News (or any app you can open). Done.
-4. Shield: with the task still running, open News. A TruFocus shield names the task and how long you've been on it. "Back to work" closes it.
-5. Reply pass: Guard > Reply apps > pick Podcasts. Open Podcasts while the task runs: the shield shows "Reply · 2 min (8 left)". Tap it and Podcasts opens for 2 minutes of use.
-6. Scroll budget: in Focus, tap Pause (shields drop while paused). Guard > "Boot me out after" > 1 minute. Use News for a little over a minute. A "Budget spent" shield appears and stays for the 15-minute lockout (iOS minimum). DeviceActivity can take a minute or two to fire.
-7. Adult filter: it is on by default once Screen Time access is granted. In Safari, open a well-known adult domain: Screen Time's "restricted" page appears instead. In Guard > Adult filter, "Turn off…" starts a 24-hour cool-off ("Turns off <date>") that can be cancelled with "Keep it on". Revoking Screen Time access in iOS Settings removes it immediately.
-8. Safari extension: Settings > Apps > Safari > Extensions > TruFocus > on, All Websites > Allow. Then in Safari: youtube.com/shorts and instagram.com/reels open a TruFocus page instead of short-form video. On reddit.com, swipe the feed quickly ~25 times within a minute: a warning toast, then a full-screen boot-out.
-9. Lock the phone while a task runs: a Live Activity with Done / Stuck / Pause. Settings (slider icon on Today) > Sound > Focus music "Drive", then lock: music continues (UIBackgroundModes audio, mixes with other apps).
-10. Sync (optional, off by default): nothing is uploaded until you tap "Turn on sync" or "Enter a code" in Settings > Sync. To link a Mac: "Turn on sync" > "Link a device" shows a 6-digit code; on the other device, "Enter a code". Both show the same 4-digit number; tap "They match" on the first. "Turn off here" and "Delete server copy…" are there too.
+4. Shield: with the task running, open News. A TruFocus shield names the task and how long you've been on it. "Back to work" closes it.
+5. Message pass: on the same shield, tap "Message · 5 min". News opens for 5 minutes, then the shield returns.
+6. Off a task: in Focus, tap Rest (or Stop). The shields drop and News opens. Guard > "Off a task, remind me after" > 1 minute. Use News for a little over a minute: a notification reminds you to get out. With "Lock me out instead" on, a lockout shield appears for at least 15 minutes (iOS minimum) instead. DeviceActivity can take a minute or two to fire.
+7. Adult filter: it is on by default once Screen Time access is granted. In Safari, open a well-known adult domain: Screen Time's "restricted" page appears instead. In Guard > Adult filter, "Turn off…" starts a 24-hour cool-off that can be cancelled with "Keep it on". Revoking Screen Time access in iOS Settings removes it immediately.
+8. Safari extension: Settings > Apps > Safari > Extensions > TruFocus > on, All Websites > Allow. Start a task, then in Safari: youtube.com/shorts and instagram.com/reels open a TruFocus page instead of short-form video; instagram.com/direct stays open.
+9. Lock the phone while a task runs: a Live Activity with Done / Stuck / Pause. Settings > Sound > Focus music, pick a track, then lock: music continues (UIBackgroundModes audio, mixes with other apps).
+10. Sync (optional, off by default): nothing is uploaded until you tap "Turn on sync" or "Enter a code" in Settings > Sync. Linking uses a 6-digit code and a 4-digit match number shown on both devices.
 
 THE SAFARI EXTENSION
-Bundled with the app. It removes short-form video (Reels, Shorts, TikTok except messages), opens Instagram to messages, hides the LinkedIn and Facebook feeds, counts scroll strokes on 14 feed sites to stop doom-scrolling, applies SafeSearch and blocks adult sites. It decides everything on the device and sends no browsing data off it. It needs access to all websites because the adult-site block and SafeSearch redirects must apply to any domain.
+Bundled with the app. During a task it closes short-form video (Reels, Shorts, TikTok except messages) and social feeds while keeping messages open; off a task it reminds the user after a set time on a feed. It applies SafeSearch and blocks adult sites. It decides everything on the device and sends no browsing data off it. It needs access to all websites because the adult-site block and SafeSearch redirects must apply to any domain.
 
 DATA
 No ads, analytics, tracking or third-party SDKs. Sync is off until the user turns it on; then tasks, notes and the timeline sync between their own devices through our Supabase server, end-to-end encrypted (AES-GCM; the key is never sent to the server). Settings > Sync can turn it off or delete the server copy.
 
 TONE
 Tones in Settings > Voice: Calm, Direct (default), Savage. Savage is opt-in, labelled "Strong language", uses profanity, and is declared in the age rating. "Your own words" lets users write their own nudges.
+
+CONTACT
+youngjingoh@gmail.com
 ```
 
 > **Before you paste:** the default tone is Direct (`TFSettings.tone = .direct`, R1 resolved), so a
@@ -62,14 +68,14 @@ On Mac: launch from Applications; TruFocus lives in the menu bar. Start a task (
 
 - **Purpose: self-control for the device owner.** The user picks their own distracting apps in
   `FamilyActivityPicker`. TruFocus shields them while a focus or think segment runs
-  (`ManagedSettingsStore(named: .focus)`), enforces a daily usage budget outside work through a
-  `DeviceActivityEvent` threshold that shields the apps for a cooldown (`.scrollBudget`), and applies
+  (`ManagedSettingsStore(named: .focus)`), uses a `DeviceActivityEvent` threshold outside work to post a
+  reminder (or, with *Lock me out instead*, to shield the apps for a cooldown, `.scrollBudget`), and applies
   the Screen Time adult-website filter (`.adultFilter`, `webContent.blockedByFilter = .auto(...)`).
 - **Authorization: `.individual` only** (`ScreenTimeGuard.requestAuthorization`). There's no
   `.child` and no Family Sharing flow.
 - **Extensions:** a Device Activity monitor (budget, cooldown, reply pass, filter cool-off), a
-  Shield Configuration (a custom shield naming the current task) and a Shield Action (a "Reply ·
-  2 min" pass, `respondPassesPerDay` = 8 by default).
+  Shield Configuration (a custom shield naming the current task) and a Shield Action (a "Message ·
+  5 min" pass, unlimited by default, `messagePassesUnlimited`).
 - **No data leaves the device**: see `privacy.md` §1.4 and §4.
 - **The user stays in control.** iOS Settings ▸ Screen Time can revoke access at any time. The 24-hour
   cool-off on turning the adult filter off is an in-app speed bump that can be cancelled. It isn't a
