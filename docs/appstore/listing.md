@@ -28,11 +28,12 @@ below include spaces and punctuation, and were measured.
 | | Text | Chars |
 | --- | --- | --- |
 | **Name** | `TruFocus: ADHD Hyperfocus` | 25 |
-| **Subtitle** | `New-world focus for ADHD` | 24 |
+| **Subtitle** | `Focus timer & app blocker` | 25 |
 
-This is the product brief's naming decision: the brand line ("New-world focus for ADHD brains",
-`docs/brand/README.md`) shortened to fit. The brief itself isn't in the repo, so the two strings
-here are the record of it.
+The name is the product brief's decision. The subtitle changed from the brand line ("New-world
+focus for ADHD") to the two things people search for, a focus timer and an app blocker, because the
+brand line repeated "ADHD" and "focus" from the name and added no search weight. The website hero
+("Designed to sustain your hyperfocus.") opens the promotional text and the description instead.
 
 Notes on the pair:
 
@@ -73,82 +74,84 @@ With Universal Purchase, use the iPhone name and subtitle for both.
 
 ## 2. iPhone
 
-### Promotional text (limit 170): 148 chars
+Built on the website hero (`website/index.html`): "Designed to sustain your hyperfocus." and "Your
+to-dos stay on screen. Social feeds are blocked. The timer is designed to keep your focus going."
+The copy describes the one rule for feeds (#33): closed on a task, messages always open, open off a
+task with a reminder.
+
+### Promotional text (limit 170): 149 chars
 
 ```
-One task on screen. The feeds out of reach. Nudges that get blunter the longer you drift. Start the day with a blank page, end it with a scoreboard.
+Designed to sustain your hyperfocus. Your to-dos stay on screen, social feeds close while you work, and messages stay open. Rest as long as you need.
 ```
 
-### Description (limit 4000): 3,977 chars
+### Description (limit 4000): 3,527 chars
 
 ```
-Momentum, not minutes.
+Designed to sustain your hyperfocus.
 
-TruFocus keeps one task in front of you, takes the feeds away while you work, and pulls you back when you drift. It isn't a pomodoro timer. You attack a task until it's done, cross it off, take a short rest sized to the work, and the next task starts on its own.
+Your to-dos stay on screen. Social feeds are blocked. The timer is designed to keep your focus going.
 
-THE DAY
-• Empty your head. A blank page every morning. Type everything.
-• Keep what matters. The brain dump becomes a task list, sorted by Apple Intelligence on your iPhone when it's available, or by a built-in parser when it isn't. Untick the noise.
-• Pick the win. One line: what makes today count.
-• Attack. One task on screen, a thin clock counting up, and four moves: Stuck, Waiting, Done, Switch. Pause stops the clock and drops the shields; Resume carries on from the same second.
-• Rest, then go. A breathing ring counts down a micro-rest: seconds for an email, a few minutes for a long build. Overrun it and the nudges escalate.
-• Shut it down. A scoreboard of momentum, chain, focus time and boot-outs, plus one line of reflection. Unfinished tasks roll to tomorrow.
+TruFocus is made for brains that can lock onto a task for hours, or lose it to one swipe. It keeps your task in front of you, takes the feeds away while you work, and gives them back when you stop. No countdown cuts you off mid-flow: the clock counts up, and you keep going until it's done.
 
-JUGGLE WITHOUT LOSING THE THREAD
-Keep several tasks in play and switch with one tap. Each one keeps a "where I left off" note, so switching back costs nothing. Waiting on someone? Park the task and move to the next.
+DUMP IT, THEN DO IT
+• Dump everything on your mind. One box, no order, no rules.
+• Make it a list. Every line becomes a task, exactly as you wrote it. Keep the dump in Notes too, so you can read it back days later.
+• Attack. One task on screen, a clock counting up, and the moves you actually need: Done, Stuck, Waiting on it, Switch task.
+• Juggle. Keep a few tasks in play in one Focus box. Each one remembers where you left off, so switching back costs nothing.
 
-CUT THE FEED
-With your permission, TruFocus uses Apple's Screen Time framework on this iPhone.
-• While you work, the apps you pick are shielded. The shield names your task and how long you've been on it.
-• Outside focus, those apps run on a daily scroll budget, 5 minutes by default. Spend it and you're locked out for a cooldown.
-• Apps you mark for replies get a short Reply pass on the shield: two minutes to answer messages, a few times a day.
-• An adult-content filter covers Safari and in-app browsers and is on by default. Turning it off takes a 24-hour cool-off, so it's never an impulse decision.
+ONE RULE FOR FEEDS
+The same rule on your iPhone, your Mac and your browser.
+• On a task, the feed apps you pick are closed: Instagram, TikTok, YouTube, whatever pulls you in. The shield names your task and how long you've been on it.
+• Messages stay open. Tap Message on the shield for a few minutes in the app, as often as you need. Made for people who run their business from their DMs.
+• Off a task, everything opens again. Stay on a feed too long and TruFocus reminds you to get out. Want a hard stop instead? Turn on Lock me out.
+• Always allowed: a booking, banking or work app is never shielded, even when its category is.
 
-SAFARI WITHOUT THE SCROLL
-The included Safari extension removes Reels and Shorts, closes TikTok except messages, opens Instagram straight to your DMs, and keeps LinkedIn and Facebook to work: messages, pages and ad tools stay open, the feed doesn't. On feed sites it counts your swipes. Skim, binge or linger, and it boots you out.
+REST AND STOP
+Pause holds the clock. Rest has no timer: break music plays until you're ready to resume. Stop ends the task for now and opens the feeds, with a reminder keeping an eye on the time.
 
 ON YOUR LOCK SCREEN
-A Live Activity and the Dynamic Island show the task and a live clock, with Done, Stuck and Pause buttons that work without unlocking. There are widgets for the Home Screen and Lock Screen and controls for Control Center and the Action Button, and Siri understands "Done in TruFocus".
-
-YOUR TONE
-Choose how hard the nudges hit: Calm, Direct (the default) or Savage, which uses strong language, so it's opt-in. Or put any nudge in your own words, with {task} for the task's name.
+A Live Activity and the Dynamic Island show your task and its clock, with Done, Stuck and Pause buttons that work without unlocking. Widgets, Control Center controls and Siri ("Done in TruFocus") too.
 
 SOUND
-Optional studio cues for done, rest and back-to-it, a calm river under rests, and three original focus tracks that keep playing when the screen locks. Apple Music subscribers can play a focus playlist instead.
+Original TruFocus music, from driving focus tracks to Calm focus, plus break music for rests and soft cues for done and back-to-it. It keeps playing when the screen locks. Apple Music subscribers can play their own focus playlist.
 
 NOTES
-Fast notes with headings, bullets and checklists, right beside your day.
+Headings, bullets, numbered lists, checklists, quotes and indents, with the formatting you already know, right beside your day.
+
+YOUR VOICE
+Choose how hard the nudges hit: Calm, Direct (the default) or Savage, which uses strong language and is opt-in. Or write every nudge in your own words.
+
+SAFARI, TOO
+The included Safari extension follows the same rule. On a task, Reels and Shorts are closed and messages stay open. Use Instagram, Facebook, YouTube or X for work, for research, pages or ads, with the feed hidden and a quick "working or scrolling?" check after two minutes. An adult-content filter takes 24 hours to turn off, so it's never an impulse decision.
 
 IPHONE AND MAC
-End-to-end encrypted sync, off until you turn it on. Link your devices once with a six-digit code and check that both screens show the same four-digit number. No account, no sign-up. Start a task on the Mac and it appears on your iPhone's Lock Screen. Your tasks, notes and timeline are sealed with a key that never leaves your devices. No ads, no analytics, no tracking.
+Optional end-to-end encrypted sync, off until you turn it on. Link your devices with a six-digit code, then check both screens show the same four-digit number. No account, no sign-up. No ads, no analytics, no tracking.
 
 HONEST LIMITS
-iOS doesn't let any app see inside another app, so on iPhone, native apps are guarded by time, not by counting scrolls. Reels can't be removed from inside the Instagram app. Shield the app, and reply from instagram.com in Safari instead. Everything TruFocus switches on can be undone in iOS Settings. It's your device.
+iOS doesn't let any app see inside another app, so on iPhone, native apps are guarded by time, not by what's on screen. Everything TruFocus switches on can be undone in iOS Settings. It's your device.
 
 TruFocus is a focus tool made with ADHD brains in mind. It doesn't diagnose or treat ADHD or anything else.
 
-Requires iOS 26 or later. The shields and the filter need Screen Time access, which you approve with Face ID or your passcode.
+Requires iOS 26 or later. Shields need Screen Time access, which you approve with Face ID or your passcode.
 ```
 
-### Keywords (limit 100): 96 chars
+### Keywords (limit 100): 98 chars
 
 ```
-deep work,productivity,doomscroll,distraction,blocker,social media,planner,todo,timer,brain dump
+to do list,planner,productivity,doomscroll,distraction,social media,app limit,brain dump,deep work
 ```
 
 The keywords leave out words already in the name or subtitle (trufocus, adhd, hyperfocus, focus,
-new, world), because Apple indexes those anyway. "Blocker" moved in from the old name, and "detox"
-and "habit" made room for it. They also leave out third-party
-trademarks (Instagram, TikTok, YouTube, Reels, Shorts) and Apple's "Screen Time", which guideline
-2.3.7 forbids in keywords. "ADHD" is in the name as the audience; the keywords add no other health or
-medical terms, because the app makes no clinical claim. Four characters are spare: "lock" needs
-five with its comma, so it fits only if something else goes. "detox" (5) and "discipline" (10) are
-the strongest swaps.
+timer, app, blocker), because Apple indexes those anyway. They also leave out third-party trademarks
+(Instagram, TikTok, YouTube, Reels, Shorts) and Apple's "Screen Time", which guideline 2.3.7 forbids
+in keywords. "ADHD" is in the name as the audience; the keywords add no health or medical terms,
+because the app makes no clinical claim. Two characters are spare.
 
 ### What's New in 1.0
 
 ```
-The first release. Empty your head, pick the win, attack one task at a time. Screen Time shields, a daily scroll budget, an adult-content filter with a 24-hour cool-off, and a Safari extension that takes the feed out of Instagram, YouTube, Facebook and LinkedIn. Lock Screen Live Activity, widgets, and end-to-end encrypted sync with the Mac app.
+The first release. Dump everything on your mind, make it a list, and attack one task at a time. One rule for feeds on iPhone, Mac and Safari: closed on a task, messages always open, a reminder when you linger off one. Rest with break music, Stop when you're done, notes with real formatting, Lock Screen Live Activity, and end-to-end encrypted sync with the Mac app.
 ```
 
 (App Store Connect doesn't show "What's New" for a first version. Keep this for the 1.0 release
@@ -168,11 +171,12 @@ Health & Fitness is another possible secondary category, but it pulls the app to
 
 | Field | Value |
 | --- | --- |
-| Support URL (required) | `https://[WEBSITE]/support` |
-| Marketing URL (optional) | `https://[WEBSITE]` |
-| Privacy Policy URL (required) | `https://[WEBSITE]/privacy` (host the policy in `privacy.md` §3 there) |
-| Copyright | `© 2026 [LEGAL NAME OF SELLER]` |
-| Price | `[DECIDE]`. The code has no in-app purchase or subscription. |
+| Support URL (required) | `https://trufocus.vercel.app/support/` |
+| Marketing URL (optional) | `https://trufocus.vercel.app/` |
+| Privacy Policy URL (required) | `https://trufocus.vercel.app/privacy/` (the policy in `privacy.md` §3) |
+| Copyright | `© 2026 Youngjin Koh` |
+| Support email | `youngjingoh@gmail.com` |
+| Price | Free, unless you decide otherwise. The code has no in-app purchase or subscription. |
 | Sign-in required for review | **No.** There are no accounts. |
 
 ---
@@ -290,8 +294,10 @@ URLs: the same as the iPhone app.
 
 | Claim in the copy | Where it's backed |
 | --- | --- |
-| Scroll budget 5 min by default, cooldown ≥ 15 min | `TFSettings.scrollBudgetMinutes = 5`, `scrollCooldownMinutes = 15`, clamped `15...240` |
-| Reply pass of 2 minutes, a few times a day | `respondPassMinutes = 2`, `respondPassesPerDay = 8` |
+| Off a task, a reminder after 15 min by default; Lock me out is opt-in | `TFSettings.scrollBudgetMinutes = 15`, `lockOutAtLimit = false`; `GuardShields.budgetReached` posts a reminder unless `lockOutAtLimit` |
+| Message pass for a few minutes, as often as you need | `respondPassMinutes = 5`, `messagePassesUnlimited = true`; `GuardConfig.offersPass` offers it on every picked app during a task |
+| Rest has no timer, with break music; Stop | `FocusScreen` Rest and Stop controls; `tf_music_rest.m4a` (#31) |
+| Brain dump keeps every line; dump saved to Notes | `BrainDumpView` "Make it a list", "Also keep it in Notes" (#26, #32) |
 | Adult filter on by default, 24-hour cool-off | `adultFilterEnabled = true`, `adultFilterCoolOffHours = 24` |
 | Filter covers Safari and in-app browsers | `AdultFilter.apply`: `webContent.blockedByFilter = .auto(...)` |
 | Apple Intelligence used on-device | `TaskExtractor` → `FoundationModels.LanguageModelSession` with fallback `BrainDump` |
