@@ -65,8 +65,10 @@
       timer.hidden = false;
       timer.textContent = left >= 0 ? Core.clock(left) : '+' + Core.clock(-left);
     } else if (paused) {
-      timer.hidden = false;
-      timer.textContent = Core.clock(snapshot.taskFocusBefore || 0);
+      // A paused task shows its time once there's something to show.
+      var held = snapshot.taskFocusBefore || 0;
+      timer.hidden = held < 60;
+      timer.textContent = Core.clock(held);
     } else if (snapshot && mode === 'think') {
       var started = Core.dateMs(snapshot.modeStartedAt);
       timer.hidden = started === null;
@@ -86,10 +88,10 @@
     // Guard toggles. App settings win; then the controls show the app's values, locked.
     var managed = eff.appManaged;
     // The one rule, in words: what's closed right now and what isn't.
-    $('rule').textContent = eff.onTask
-      ? 'On a task: Instagram, TikTok, Facebook, LinkedIn, YouTube and X are closed, Reels and Shorts too. Messages stay open.'
-      : 'Off a task: everything is open, Reels included.' +
-        (eff.lockOutAtLimit ? ' Scroll too long and you\u2019re booted out.' : ' A reminder after ' + eff.remindAfterMinutes + ' minutes on a feed.');
+    $('rule').classList.toggle('on', !!eff.onTask);
+    $('ruleText').textContent = eff.onTask
+      ? 'On a task: feeds and Reels closed, messages open'
+      : 'Off a task: all open · ' + (eff.lockOutAtLimit ? 'boot-out after ' : 'reminder after ') + eff.remindAfterMinutes + ' min';
     // "For work" switches go through the app when it's running, so they never lock.
     Core.WORK_PLATFORMS.forEach(function (name) {
       setSwitch('work' + name, eff.workPlatforms.indexOf(name) !== -1, false);
@@ -105,7 +107,7 @@
 
     renderAdult(eff.adult, state && state.settings, now);
 
-    $('foot').textContent = eff.strict ? 'Feeds are closed while you focus.' : 'Short-form is gone. Feeds are on a timer.';
+    $('foot').textContent = eff.onTask ? 'Feeds open again when you pause, rest or stop.' : 'Feeds close when your next task starts.';
   }
 
   function renderJuggle(snapshot, connected, now) {
