@@ -146,10 +146,11 @@ private struct DriftGuardSection: View {
     var body: some View {
         Section("Drift guard") {
             Toggle("Nudge me when I drift off the task", isOn: controller.binding(\.macDriftGuard))
-            Text("When a task starts, say where it happens — its apps and sites. If something else holds the front for a minute or two (longer in the first five minutes), a small card asks if you want to head back. Mail and chat get about four minutes unless you add them to the task; calls and time away from the Mac never count. The browser extension adds the site and tab title.")
+            Text("If something unrelated holds the front for a minute or two (longer in the first five minutes), a small card asks if you want to head back. Tap Part of the task and TruFocus remembers that app or site for the task. Mail and chat get about four minutes; calls and time away from the Mac never count. The browser extension adds the site and tab title.")
                 .font(.callout)
                 .foregroundStyle(TF.Palette.ink2)
             if controller.settings.macDriftGuard {
+                Toggle("Ask where each task happens when it starts", isOn: controller.binding(\.macAskTaskWorkspace))
                 Toggle("Let on-device AI judge what the rules can't place", isOn: controller.binding(\.macDriftUsesModel))
                     .disabled(!DriftJudge.shared.isAvailable)
                 Text(DriftJudge.shared.isAvailable
