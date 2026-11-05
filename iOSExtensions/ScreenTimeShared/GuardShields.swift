@@ -156,9 +156,16 @@ enum GuardMonitoring {
         )
     }
 
-    /// The budget, plus a warning a couple of minutes before it runs out.
+    /// With "Lock me out": the budget, plus a warning a couple of minutes before it runs out.
+    /// Otherwise a reminder every `budget` minutes of use, all on this one monitor.
     static func budgetEvents(_ config: GuardConfig, settings: TFSettings) -> [DeviceActivityEvent.Name: DeviceActivityEvent] {
         let budget = max(1, settings.scrollBudgetMinutes)
+        guard settings.lockOutAtLimit else {
+            let minutes = GuardTiming.reminderMinutes(budget: budget)
+            return Dictionary(uniqueKeysWithValues: minutes.enumerated().map { index, minute in
+                (DeviceActivityEvent.Name.feedReminder(index + 1), usageEvent(config, minutes: minute))
+            })
+        }
         var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [.budgetReached: usageEvent(config, minutes: budget)]
         if let warn = GuardTiming.budgetWarningMinute(budget: budget) {
             events[.budgetWarning] = usageEvent(config, minutes: warn)
@@ -171,6 +178,12 @@ enum GuardMonitoring {
         guard config.hasSelection else {
             center.stopMonitoring([.scrollBudget, .budgetRestart, .cooldown])
             return
+        }
+        // Reminders need no fresh budget; one left running from before kept firing. A monitor
+        // started mid-day reports every reminder already passed at once: hold them for now.
+        if !settings.lockOutAtLimit {
+            center.stopMonitoring([.budgetRestart])
+            SharedStore.shared.defaults.set(Date(), forKey: GuardReactions.lastReminderKey)
         }
         do {
             try center.startMonitoring(.scrollBudget, during: dailySchedule,
@@ -260,15 +273,32 @@ enum GuardMonitoring {
 
 /// The reactions to Screen Time events, shared so the app can run them too.
 enum GuardReactions {
-    /// The time limit is up, off a task. By default a reminder, then the count starts again
-    /// for the next one; with "Lock me out instead": shield, record the boot-out, cool down.
+    static let lastReminderKey = "tf.guard.lastReminderAt"
+
+    /// Another `budget` minutes in the feed apps, off a task: "time to get out". The next
+    /// one is already counting on the daily monitor. Skipped on a task (the feeds are closed;
+    /// that's Message-pass time) and when it comes sooner than the clock allows.
+    static func feedReminder(now: Date = Date()) {
+        let store = SharedStore.shared
+        let settings = store.settings
+        let config = GuardStore.load()
+        guard !settings.lockOutAtLimit, !config.focusShieldActive, !config.budgetShieldActive else { return }
+        let last = store.defaults.object(forKey: lastReminderKey) as? Date
+        guard GuardTiming.reminderDue(lastAt: last, budget: settings.scrollBudgetMinutes, now: now) else {
+            guardLog.info("feed reminder skipped: too soon after the last one")
+            return
+        }
+        store.defaults.set(now, forKey: lastReminderKey)
+        GuardNotice.post(Copy.Line(title: "\(settings.scrollBudgetMinutes) minutes in your feed apps",
+                                   body: "Still need them? Time to get out."), id: "tf.guard.timeUp")
+    }
+
+    /// The time limit is up, off a task. By default a reminder; with "Lock me out instead":
+    /// shield, record the boot-out, cool down.
     static func budgetReached(now: Date = Date()) {
         let settings = SharedStore.shared.settings
         guard settings.lockOutAtLimit else {
-            let minutes = settings.scrollBudgetMinutes
-            GuardNotice.post(Copy.Line(title: "\(minutes) minutes in your feed apps",
-                                       body: "Still need them? Time to get out."), id: "tf.guard.timeUp")
-            GuardMonitoring.restartBudget(GuardStore.load(), settings: settings, from: now)
+            feedReminder(now: now)
             return
         }
         let until = GuardMonitoring.startCooldown(minutes: settings.scrollCooldownMinutes, from: now)

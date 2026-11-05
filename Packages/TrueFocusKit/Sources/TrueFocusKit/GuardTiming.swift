@@ -13,6 +13,25 @@ public enum GuardTiming {
         }
     }
 
+    /// Minutes of feed use at which "time to get out" reminders fire, off a task: every
+    /// `budget` minutes, all counted by the one daily monitor. Restarting a monitor for the
+    /// next reminder doesn't work: iOS measures a new monitor against the whole day's use,
+    /// reports the threshold at once, and the reminder fired every couple of seconds.
+    /// At most `limit` reminders, none past 12 hours of use.
+    public static func reminderMinutes(budget: Int, limit: Int = 12) -> [Int] {
+        let step = max(1, budget)
+        let count = max(1, min(limit, 720 / step))
+        return (1...count).map { $0 * step }
+    }
+
+    /// Whether a feed reminder may be shown, given when the last one was. Reminders are
+    /// `budget` minutes of use apart, so never closer in clock time; anything sooner is iOS
+    /// reporting thresholds already passed (a monitor restarted mid-day reports them all).
+    public static func reminderDue(lastAt last: Date?, budget: Int, now: Date) -> Bool {
+        guard let last else { return true }
+        return now.timeIntervalSince(last) >= Double(max(1, budget)) * 60 - 5
+    }
+
     /// Minute of use at which a pass warns that it's about to close.
     public static func passWarningMinute(pass: Int) -> Int? {
         pass >= 2 ? pass - 1 : nil

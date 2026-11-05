@@ -32,6 +32,9 @@ extension DeviceActivityName {
 
 extension DeviceActivityEvent.Name {
     static let budgetReached = Self("tf.budgetReached")
+    /// The n-th "time to get out" reminder off a task, without "Lock me out": n × the limit.
+    static func feedReminder(_ n: Int) -> Self { Self("tf.feedReminder.\(n)") }
+    var isFeedReminder: Bool { rawValue.hasPrefix("tf.feedReminder.") }
     static let replyPassUsed = Self("tf.replyPassUsed")
     /// A couple of minutes before `budgetReached`: "Still scrolling? 2 minutes left."
     static let budgetWarning = Self("tf.budgetWarning")
@@ -157,8 +160,9 @@ struct GuardConfig: Codable {
         encoder.outputFormatting = .sortedKeys
         let scroll = (try? encoder.encode(scrollSelection)) ?? Data()
         let reply = (try? encoder.encode(replySelection)) ?? Data()
-        // "v2": the budget gained a warning event, so monitors started before it restart once.
-        return "v2|\(settings.scrollBudgetMinutes)|\(GuardConfig.stableHash(scroll))|\(GuardConfig.stableHash(reply))"
+        // "v3": reminders moved onto the daily monitor, so monitors started before it restart once.
+        // The events differ with "Lock me out", so it's part of the signature.
+        return "v3|\(settings.scrollBudgetMinutes)|\(settings.lockOutAtLimit)|\(GuardConfig.stableHash(scroll))|\(GuardConfig.stableHash(reply))"
     }
 
     /// FNV-1a. `hashValue` is seeded per launch, so it can't be persisted.

@@ -42,7 +42,9 @@ final class TFMonitor: DeviceActivityMonitor {
         case .replyPassWarning:
             GuardReactions.replyPassWarning()
         default:
-            break
+            if event.isFeedReminder {
+                GuardReactions.feedReminder()
+            }
         }
     }
 }

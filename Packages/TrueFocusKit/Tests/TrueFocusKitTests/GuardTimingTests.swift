@@ -112,4 +112,19 @@ final class GuardTimingTests: XCTestCase {
         XCTAssertEqual(GuardTiming.scheduleEnd(whole), whole)
         XCTAssertEqual(london.component(.second, from: end), 1)
     }
+
+    func testRemindersEveryBudgetOnOneMonitor() {
+        XCTAssertEqual(GuardTiming.reminderMinutes(budget: 2), [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24])
+        XCTAssertEqual(GuardTiming.reminderMinutes(budget: 120), [120, 240, 360, 480, 600, 720])
+        XCTAssertEqual(GuardTiming.reminderMinutes(budget: 0).first, 1)
+    }
+
+    func testReminderNeverSoonerThanTheClockAllows() {
+        let last = Date(timeIntervalSince1970: 1_000_000)
+        XCTAssertTrue(GuardTiming.reminderDue(lastAt: nil, budget: 2, now: last))
+        // iOS re-reporting a passed threshold seconds later: the 2-second loop.
+        XCTAssertFalse(GuardTiming.reminderDue(lastAt: last, budget: 2, now: last.addingTimeInterval(2)))
+        XCTAssertFalse(GuardTiming.reminderDue(lastAt: last, budget: 2, now: last.addingTimeInterval(90)))
+        XCTAssertTrue(GuardTiming.reminderDue(lastAt: last, budget: 2, now: last.addingTimeInterval(120)))
+    }
 }
