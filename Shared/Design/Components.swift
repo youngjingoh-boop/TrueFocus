@@ -1,3 +1,4 @@
+import QuartzCore
 import SwiftUI
 import TrueFocusKit
 #if os(iOS)
@@ -88,16 +89,14 @@ struct DayProgressBar: View {
 
 /// A live dot with the mode's color. Pulses while working.
 ///
-/// The ring is drawn from the clock (TimelineView), not a `repeatForever` animation: one
-/// started with `withAnimation` in `onAppear` also captures every other change made in
-/// that update (row text, list backgrounds, the tab highlight) and replays it forever,
-/// which made the Mac window flicker every 1.6 seconds.
+/// The ring is a Core Animation pulse (`LayerPulse`). A `withAnimation` `repeatForever`
+/// started in `onAppear` also captured every other change in that update and replayed it
+/// forever (the Mac window flickered every 1.6 seconds); a 30 fps `TimelineView` re-laid
+/// out the whole window every frame, all day.
 struct ModeDot: View {
     var mode: FlowMode
     var size: CGFloat = 8
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private static let period: TimeInterval = 1.6
 
     var body: some View {
         let pulsing = mode.isWorking && !reduceMotion
@@ -106,16 +105,10 @@ struct ModeDot: View {
             .frame(width: size, height: size)
             .overlay {
                 if pulsing {
-                    TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
-                        let phase = context.date.timeIntervalSinceReferenceDate
-                            .truncatingRemainder(dividingBy: Self.period) / Self.period
-                        // Ease-out: fast out of the dot, slow fade at the edge.
-                        let eased = 1 - pow(1 - phase, 3)
-                        Circle()
-                            .stroke(TF.tint(for: mode).opacity(0.5), lineWidth: 1)
-                            .scaleEffect(1 + 1.4 * eased)
-                            .opacity(0.8 * (1 - eased))
-                    }
+                    // Ease-out: fast out of the dot, slow fade at the edge.
+                    LayerPulse(color: TF.tint(for: mode).opacity(0.5), style: .ring(lineWidth: 1),
+                               fromScale: 1, toScale: 2.4, fromOpacity: 0.8, toOpacity: 0,
+                               duration: 1.6, timing: CAMediaTimingFunction(controlPoints: 0.33, 1, 0.68, 1))
                 }
             }
             .accessibilityHidden(true)

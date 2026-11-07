@@ -608,25 +608,24 @@ private struct BreadcrumbField: View {
     }
 }
 
-/// A slow, soft pulse in the middle of the rest ring: breathe with it.
+/// A slow, soft pulse in the middle of the rest ring: breathe with it. Core Animation runs
+/// it (`LayerPulse`): a rest has no timer, and a SwiftUI `repeatForever` re-rendered the
+/// screen every frame for as long as it lasted.
 private struct BreathingDot: View {
     var tint: Color
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var expanded = false
 
     var body: some View {
-        Circle()
-            .fill(tint.opacity(0.10))
-            .frame(width: 200, height: 200)
-            .scaleEffect(expanded || reduceMotion ? 1 : 0.72)
-            // Scoped to this circle: a repeatForever in `withAnimation` would also loop
-            // whatever else changed in the same update.
-            .animation(reduceMotion ? nil : .easeInOut(duration: 4).repeatForever(autoreverses: true), value: expanded)
-            .onAppear {
-                guard !reduceMotion else { return }
-                expanded = true
+        Group {
+            if reduceMotion {
+                Circle().fill(tint.opacity(0.10))
+            } else {
+                LayerPulse(color: tint.opacity(0.10), style: .fill, fromScale: 0.72, toScale: 1,
+                           duration: 4, autoreverses: true)
             }
-            .accessibilityHidden(true)
+        }
+        .frame(width: 200, height: 200)
+        .accessibilityHidden(true)
     }
 }
 
