@@ -25,6 +25,8 @@ final class NoteEditorEngine {
     var hasMarkedText: () -> Bool = { false }
     /// Redraws regions the text system doesn't know changed (the empty last line's marker).
     var redraw: () -> Void = {}
+    /// Forgets the text view's undo steps, which no longer fit once the whole text is replaced.
+    var clearUndo: () -> Void = {}
     var onChange: (String) -> Void = { _ in }
 
     /// The markup last handed to `onChange` (or loaded).
@@ -36,6 +38,8 @@ final class NoteEditorEngine {
     private var pendingNewItem: (location: Int, kind: NoteBlockKind, indent: Int)?
     private var pendingShortcut: (location: Int, text: String, kind: NoteBlockKind)?
     private var isInternalEdit = false
+    /// Bold switched with nothing selected: applies to what's typed next at this caret.
+    private var boldForTyping: (caret: Int, isOn: Bool)?
 
     // TextKit forbids layout while the text storage is mid-edit (between beginEditing and
     // endEditing): it throws, and the app quits. Setting the text view's typing attributes or
@@ -63,6 +67,7 @@ final class NoteEditorEngine {
         pendingEdited = nil
         pendingNewItem = nil
         pendingShortcut = nil
+        boldForTyping = nil
         selectionDidChange()
         redraw()
     }
@@ -109,7 +114,26 @@ final class NoteEditorEngine {
         }
         guard !hasMarkedText() else { return }
         let paragraph = paragraphRange(at: selectedRange().location)
-        setTypingAttributes(NoteFormatter.attributes(for: kind(ofParagraph: paragraph), indent: indent(ofParagraph: paragraph)))
+        let kind = kind(ofParagraph: paragraph)
+        var attributes = NoteFormatter.attributes(for: kind, indent: indent(ofParagraph: paragraph))
+        if kind != .title, typingIsBold(in: paragraph) {
+            attributes.merge(NoteFormatter.boldAttributes(for: kind)) { _, bold in bold }
+        }
+        setTypingAttributes(attributes)
+    }
+
+    /// Typing carries on in the weight of the text before the caret, or follows the Bold button.
+    private func typingIsBold(in paragraph: NSRange) -> Bool {
+        let caret = selectedRange().location
+        if let choice = boldForTyping {
+            if choice.caret == caret { return choice.isOn }
+            boldForTyping = nil
+        }
+        guard paragraph.length > 0 else { return false }
+        let content = contentLength(paragraph)
+        guard content > 0 else { return false }
+        let index = caret > paragraph.location ? min(caret, paragraph.location + content) - 1 : paragraph.location
+        return storage.attribute(.tfNoteBold, at: index, effectiveRange: nil) != nil
     }
 
     private func requestRedraw() {
@@ -186,9 +210,7 @@ final class NoteEditorEngine {
             layoutManager.extraLineIndent = level
             requestRedraw()
         } else {
-            editing {
-                storage.setAttributes(NoteFormatter.attributes(for: resolved, indent: level), range: paragraph)
-            }
+            editing { restyle(paragraph, as: resolved, indent: level) }
         }
         if caretIsIn(paragraph) { refreshTypingAttributes() }
         if notify { notifyChanged() }
@@ -202,10 +224,22 @@ final class NoteEditorEngine {
         repeat {
             let paragraph = paragraphRange(at: cursor)
             if paragraph.length == 0 { break }
-            storage.setAttributes(NoteFormatter.attributes(for: kind(ofParagraph: paragraph),
-                                                           indent: indent(ofParagraph: paragraph)), range: paragraph)
+            restyle(paragraph, as: kind(ofParagraph: paragraph), indent: indent(ofParagraph: paragraph))
             cursor = NSMaxRange(paragraph)
         } while cursor < end
+    }
+
+    /// Applies a paragraph's style, keeping its bold runs. The title has none: it's bold anyway.
+    private func restyle(_ paragraph: NSRange, as kind: NoteBlockKind, indent: Int) {
+        var bold: [NSRange] = []
+        if kind != .title {
+            storage.enumerateAttribute(.tfNoteBold, in: paragraph) { value, range, _ in
+                if value != nil { bold.append(range) }
+            }
+        }
+        storage.setAttributes(NoteFormatter.attributes(for: kind, indent: indent), range: paragraph)
+        let attributes = NoteFormatter.boldAttributes(for: kind)
+        for range in bold { storage.addAttributes(attributes, range: range) }
     }
 
     /// The first line is always the title; the line after it never is.
@@ -385,6 +419,51 @@ final class NoteEditorEngine {
         notifyChanged()
     }
 
+    /// The Bold button: the selected text, or with nothing selected, what's typed next. Selected
+    /// text already all bold goes back to regular. The title is always bold, so it's left out.
+    func toggleBold() {
+        let selection = selectedRange()
+        if selection.length == 0 {
+            let paragraph = paragraphRange(at: selection.location)
+            guard kind(ofParagraph: paragraph) != .title else { return }
+            boldForTyping = (selection.location, !typingIsBold(in: paragraph))
+            refreshTypingAttributes()
+            return
+        }
+        let ranges = paragraphs(in: selection).filter { $0.location > 0 && $0.length > 0 }.compactMap { paragraph -> NSRange? in
+            let content = NSRange(location: paragraph.location, length: contentLength(paragraph))
+            let overlap = NSIntersectionRange(content, selection)
+            return overlap.length > 0 ? overlap : nil
+        }
+        guard !ranges.isEmpty else { return }
+        var allBold = true
+        for range in ranges {
+            storage.enumerateAttribute(.tfNoteBold, in: range) { value, _, _ in
+                if value == nil { allBold = false }
+            }
+        }
+        editing {
+            for range in ranges {
+                if allBold {
+                    storage.removeAttribute(.tfNoteBold, range: range)
+                } else {
+                    storage.addAttribute(.tfNoteBold, value: true, range: range)
+                }
+                let paragraph = paragraphRange(at: range.location)
+                restyle(paragraph, as: kind(ofParagraph: paragraph), indent: indent(ofParagraph: paragraph))
+            }
+        }
+        refreshTypingAttributes()
+        notifyChanged()
+    }
+
+    /// Puts an earlier version of the note on screen (the Before button).
+    func restore(_ markup: String) {
+        load(markup)
+        clearUndo()
+        setSelectedRange(NSRange(location: storage.length, length: 0))
+    }
+
     /// A paragraph style from the Aa menu for the selected lines. Choosing the style they all
     /// already have turns them back into body text, like Apple Notes.
     func applyStyle(_ style: NoteBlockKind) {
@@ -491,6 +570,8 @@ final class NoteEditorHandle {
 
     func toggleChecklist() { engine?.toggleChecklistForSelection() }
     func toggleDone() { engine?.toggleDoneForSelection() }
+    func toggleBold() { engine?.toggleBold() }
+    func restore(_ markup: String) { engine?.restore(markup) }
     func applyStyle(_ style: NoteBlockKind) { engine?.applyStyle(style) }
     func indent() { engine?.changeIndent(by: 1) }
     func outdent() { engine?.changeIndent(by: -1) }

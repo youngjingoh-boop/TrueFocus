@@ -143,7 +143,7 @@ extension FocusTask {
     var syncPayload: TaskPayload {
         TaskPayload(title: title, isDone: isDone, doneAt: doneAt, createdAt: createdAt, order: order,
                     focusSeconds: focusSeconds, breadcrumb: breadcrumb, inPlay: inPlay, inPlayAt: inPlayAt,
-                    waitingSince: waitingSince)
+                    waitingSince: waitingSince, priority: priority == 0 ? nil : priority, plannedFor: plannedFor)
     }
 
     func apply(_ value: TaskPayload) {
@@ -157,6 +157,8 @@ extension FocusTask {
         inPlay = value.inPlay
         inPlayAt = value.inPlayAt
         waitingSince = value.waitingSince
+        priority = value.priority ?? 0
+        plannedFor = value.plannedFor
     }
 }
 
@@ -196,7 +198,7 @@ extension DayPlan {
 
 extension Note {
     var syncPayload: NotePayload {
-        NotePayload(body: body, createdAt: createdAt, updatedAt: updatedAt, isPinned: isPinned)
+        NotePayload(body: body, createdAt: createdAt, updatedAt: updatedAt, isPinned: isPinned, taskID: taskID)
     }
 
     func apply(_ value: NotePayload) {
@@ -204,5 +206,6 @@ extension Note {
         createdAt = value.createdAt
         updatedAt = value.updatedAt
         isPinned = value.isPinned
+        taskID = value.taskID
     }
 }

@@ -25,6 +25,10 @@ final class FocusController {
 
     /// Open tasks, in plan order. Unfinished tasks roll over to the next day.
     private(set) var openTasks: [FocusTask] = []
+    /// The open tasks planned for today. Only these come up next or count toward the day.
+    private(set) var todayTasks: [FocusTask] = []
+    /// The first written line of each task's memo, by task. A memo with nothing in it isn't here.
+    private(set) var memoPreviews: [UUID: String] = [:]
     /// Tasks crossed off today, in the order they were finished.
     private(set) var doneToday: [FocusTask] = []
     private(set) var segmentsToday: [FlowSegment] = []
@@ -56,6 +60,7 @@ final class FocusController {
         settings = SharedStore.shared.settings
         systemFocusOn = SharedStore.shared.defaults.bool(forKey: Self.focusFilterKey)
         refresh()
+        convertPlanDividers()
         observeRemoteChanges()
         // Once a minute: live momentum decay, and boot-outs the browser extension recorded.
         statsTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
@@ -98,7 +103,7 @@ final class FocusController {
         if let pinned = ready(pinnedNextID) { return pinned }
         if mode == .rest, let upcoming = ready(current?.taskID) { return upcoming }
         if let juggled = nextJuggled(after: nowTask) { return juggled }
-        return openTasks.first { $0.id != nowID && $0.waitingSince == nil }
+        return todayTasks.first { $0.id != nowID && $0.waitingSince == nil }
     }
 
     /// The task you paused on: the day's last segment ended with Pause and nothing has run
@@ -129,7 +134,7 @@ final class FocusController {
     var longestWaiting: FocusTask? {
         guard nextTask == nil else { return nil }
         let nowID = nowTask?.id
-        return openTasks
+        return todayTasks
             .filter { $0.id != nowID && $0.waitingSince != nil }
             .min { ($0.waitingSince ?? .distantFuture) < ($1.waitingSince ?? .distantFuture) }
     }
@@ -145,7 +150,7 @@ final class FocusController {
     var canJuggleMore: Bool { inPlayTasks.count < juggleLimit }
 
     /// Open tasks that could join the juggle.
-    var juggleCandidates: [FocusTask] { openTasks.filter { !$0.inPlay } }
+    var juggleCandidates: [FocusTask] { todayTasks.filter { !$0.inPlay } }
 
     /// The juggled task to move to after `task`: next slot round, skipping waiting ones.
     private func nextJuggled(after task: FocusTask?) -> FocusTask? {
@@ -201,28 +206,49 @@ final class FocusController {
 
     // MARK: Plan editing
 
+    /// Adds a task to the end of a bucket.
     @discardableResult
-    func addTask(_ title: String, after anchor: FocusTask? = nil) -> FocusTask {
-        let clean = title.trimmingCharacters(in: .whitespacesAndNewlines)
+    func addTask(_ title: String, in bucket: PlanBucket = .today) -> FocusTask {
+        insertTask(title, order: (openTasks.last?.order ?? 0) + 1,
+                   plannedFor: PlanSchedule.plannedFor(bucket, now: Date()))
+    }
+
+    /// Adds a task right above or below another one, on the same day.
+    @discardableResult
+    func addTask(_ title: String, next anchor: FocusTask, side: PlanInsertion.Side) -> FocusTask {
+        guard anchor.isLive, !anchor.isDone else { return addTask(title) }
+        let bucket = self.bucket(of: anchor)
+        let line = openTasks.filter { self.bucket(of: $0) == bucket }
+        let index = line.firstIndex { $0.id == anchor.id }
         let order: Double
-        if let anchor, let index = openTasks.firstIndex(where: { $0.id == anchor.id }) {
-            let nextOrder = index + 1 < openTasks.count ? openTasks[index + 1].order : anchor.order + 2
-            order = (anchor.order + nextOrder) / 2
-        } else {
-            order = (openTasks.last?.order ?? 0) + 1
+        switch side {
+        case .below:
+            let next = index.flatMap { $0 + 1 < line.count ? line[$0 + 1].order : nil } ?? anchor.order + 2
+            order = (anchor.order + next) / 2
+        case .above:
+            let previous = index.flatMap { $0 > 0 ? line[$0 - 1].order : nil } ?? anchor.order - 2
+            order = (previous + anchor.order) / 2
         }
-        let task = FocusTask(title: clean, order: order)
+        return insertTask(title, order: order, plannedFor: anchor.plannedFor)
+    }
+
+    private func insertTask(_ title: String, order: Double, plannedFor: Date?) -> FocusTask {
+        let task = FocusTask(title: title.trimmingCharacters(in: .whitespacesAndNewlines), order: order)
+        task.plannedFor = plannedFor
         context.insert(task)
         commit()
         return task
     }
 
-    func addTasks(_ titles: [String]) {
+    func addTasks(_ titles: [String], in bucket: PlanBucket = .today) {
         var order = (openTasks.last?.order ?? 0) + 1
+        let planned = PlanSchedule.plannedFor(bucket, now: Date())
         for title in titles {
             let clean = title.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !clean.isEmpty else { continue }
-            context.insert(FocusTask(title: clean, order: order))
+            let task = FocusTask(title: clean, order: order)
+            task.plannedFor = planned
+            context.insert(task)
             order += 1
         }
         commit()
@@ -247,15 +273,95 @@ final class FocusController {
         commit()
     }
 
-    /// Reorders open tasks (List `onMove` semantics).
-    func moveOpenTasks(fromOffsets source: IndexSet, toOffset destination: Int) {
-        var reordered = openTasks
-        let moving = source.sorted().map { reordered[$0] }
-        for index in source.sorted(by: >) { reordered.remove(at: index) }
-        let removedBefore = source.filter { $0 < destination }.count
-        reordered.insert(contentsOf: moving, at: max(0, min(reordered.count, destination - removedBefore)))
-        for (index, task) in reordered.enumerated() { task.order = Double(index + 1) }
+    func bucket(of task: FocusTask) -> PlanBucket {
+        PlanSchedule.bucket(plannedFor: task.plannedFor, now: Date())
+    }
+
+    /// The plan as the Today screen lists it.
+    var planRows: [PlanLayout.Row] {
+        PlanLayout.rows(openTasks.map { (id: $0.id, bucket: bucket(of: $0)) })
+    }
+
+    /// Reorders the plan (List `onMove` semantics, over `planRows`). A task dragged across a
+    /// heading moves to that day; the task you're on stays on today.
+    func movePlanRows(fromOffsets source: IndexSet, toOffset destination: Int) {
+        let plan = PlanLayout.move(planRows, fromOffsets: source, toOffset: destination)
+        let nowID = nowTask?.id
+        let tasks = Dictionary(openTasks.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        for (index, entry) in plan.enumerated() {
+            guard let task = tasks[entry.id] else { continue }
+            task.order = Double(index + 1)
+            if entry.bucket != bucket(of: task), task.id != nowID { place(task, in: entry.bucket) }
+        }
         commit()
+    }
+
+    /// Moves a task to another day, at the end of that bucket.
+    func move(_ task: FocusTask, to bucket: PlanBucket) {
+        guard task.isLive, !task.isDone, self.bucket(of: task) != bucket else { return }
+        place(task, in: bucket)
+        task.order = (openTasks.last?.order ?? 0) + 1
+        commit()
+    }
+
+    /// Off today, a task leaves the juggle and is no longer what comes next.
+    private func place(_ task: FocusTask, in bucket: PlanBucket) {
+        task.plannedFor = PlanSchedule.plannedFor(bucket, now: Date())
+        guard bucket != .today else { return }
+        task.inPlay = false
+        task.inPlayAt = nil
+        task.waitingSince = nil
+        if pinnedNextID == task.id { pinnedNextID = nil }
+    }
+
+    func setPriority(_ priority: TaskPriority, for task: FocusTask) {
+        guard task.isLive, task.taskPriority != priority else { return }
+        task.taskPriority = priority
+        commit()
+    }
+
+    /// Turns dividers typed as tasks ("----- TOMORROW -----") into real days, once: the dividers
+    /// are gone afterward, here and, through sync, on your other devices.
+    private func convertPlanDividers() {
+        let converted = PlanSchedule.convertDividers(openTasks.map { (id: $0.id, title: $0.title) }, now: Date())
+        guard !converted.dividers.isEmpty else { return }
+        let nowID = nowTask?.id
+        for task in openTasks where task.id != nowID && task.plannedFor == nil {
+            if let planned = converted.plannedFor[task.id] { task.plannedFor = planned }
+        }
+        for task in openTasks where converted.dividers.contains(task.id) && task.id != nowID {
+            context.delete(task)
+        }
+        commit()
+    }
+
+    // MARK: Memos
+
+    /// The task's memo, started with its title as the first line if it hasn't one yet.
+    func memo(for task: FocusTask) -> Note {
+        if let existing = existingMemo(for: task.id) { return existing }
+        let note = Note(body: task.title + "\n")
+        note.taskID = task.id
+        context.insert(note)
+        try? context.save()
+        return note
+    }
+
+    /// Closing a memo: one that never got past its title is removed, then rows catch up.
+    func memoClosed(_ note: Note) {
+        if note.isLive, note.taskID != nil, NoteDocument(markup: note.body).body == nil {
+            context.delete(note)
+            try? context.save()
+        }
+        refresh()
+    }
+
+    private func existingMemo(for taskID: UUID) -> Note? {
+        let id: UUID? = taskID
+        var descriptor = FetchDescriptor<Note>(predicate: #Predicate { $0.taskID == id },
+                                               sortBy: [SortDescriptor(\.createdAt)])
+        descriptor.fetchLimit = 1
+        return try? context.fetch(descriptor).first
     }
 
     /// Moves a task to the top of the plan so it's next.
@@ -264,6 +370,7 @@ final class FocusController {
         let first = openTasks.first { $0.id != nowTask?.id }?.order ?? 1
         task.order = first - 1
         task.waitingSince = nil
+        task.plannedFor = nil
         pinnedNextID = task.id
         commit()
     }
@@ -274,6 +381,7 @@ final class FocusController {
         if task.isDone {
             task.isDone = false
             task.doneAt = nil
+            task.plannedFor = nil
             task.order = (openTasks.last?.order ?? 0) + 1
             commit()
         } else if task.id == nowTask?.id {
@@ -297,6 +405,7 @@ final class FocusController {
         guard task.isLive else { return }
         task.inPlay = inPlay
         task.inPlayAt = inPlay ? Date() : nil
+        if inPlay { task.plannedFor = nil }
         if inPlay { trimInPlay(keeping: task) } else { task.waitingSince = nil }
         commit()
     }
@@ -340,7 +449,7 @@ final class FocusController {
         }
         // Do Next first, as everywhere else; then the juggle; then the plan.
         let pinned = pinnedNextID.flatMap { self.task(id: $0) }.flatMap { $0.id != task.id && !$0.isDone && $0.waitingSince == nil ? $0 : nil }
-        if let next = pinned ?? nextJuggled(after: task) ?? openTasks.first(where: { $0.id != task.id && $0.waitingSince == nil }) {
+        if let next = pinned ?? nextJuggled(after: task) ?? todayTasks.first(where: { $0.id != task.id && $0.waitingSince == nil }) {
             start(next)
         } else {
             if let current { close(current, at: Date(), outcome: .switched) }
@@ -384,8 +493,9 @@ final class FocusController {
             task.isDone = false
             task.doneAt = nil
         }
-        // Back on it, so no longer waiting.
+        // Back on it, so no longer waiting. Whatever day it was planned for, it's today now.
         task.waitingSince = nil
+        task.plannedFor = nil
         if pinnedNextID == task.id { pinnedNextID = nil }
         open(.focus, task: task, at: now)
         if !task.inPlay {
@@ -415,7 +525,7 @@ final class FocusController {
         // Where the rest leads, worked out while this task still holds its juggle slot.
         let pinned = pinnedNextID.flatMap { self.task(id: $0) }.flatMap { $0.id != task.id && !$0.isDone && $0.waitingSince == nil ? $0 : nil }
         let upcoming = pinned ?? nextJuggled(after: task)
-            ?? openTasks.first { $0.id != task.id && $0.waitingSince == nil }
+            ?? todayTasks.first { $0.id != task.id && $0.waitingSince == nil }
         close(current, at: now, outcome: .completed)
         task.isDone = true
         task.doneAt = now
@@ -659,6 +769,17 @@ final class FocusController {
         refresh()
     }
 
+    private func currentMemoPreviews() -> [UUID: String] {
+        let descriptor = FetchDescriptor<Note>(predicate: #Predicate { $0.taskID != nil })
+        let notes = (try? context.fetch(descriptor)) ?? []
+        var previews: [UUID: String] = [:]
+        for note in notes {
+            guard let id = note.taskID, let body = note.document.body else { continue }
+            previews[id] = body
+        }
+        return previews
+    }
+
     private func fetchTask(id: UUID) -> FocusTask? {
         var descriptor = FetchDescriptor<FocusTask>(predicate: #Predicate { $0.id == id })
         descriptor.fetchLimit = 1
@@ -670,6 +791,8 @@ final class FocusController {
         let start = dayStart
         let tasks = (try? context.fetch(FetchDescriptor<FocusTask>(sortBy: [SortDescriptor(\.order)]))) ?? []
         openTasks = tasks.filter { !$0.isDone }
+        todayTasks = openTasks.filter { bucket(of: $0) == .today }
+        memoPreviews = currentMemoPreviews()
         doneToday = tasks
             .filter { $0.isDone && ($0.doneAt ?? .distantPast) >= start }
             .sorted { ($0.doneAt ?? .distantPast) < ($1.doneAt ?? .distantPast) }
@@ -793,7 +916,7 @@ final class FocusController {
                               waitingSince: $0.waitingSince)
         }
         snap.doneToday = doneToday.count
-        snap.plannedToday = doneToday.count + openTasks.count
+        snap.plannedToday = doneToday.count + todayTasks.count
         let openFocus = (current?.mode == .focus) ? (current?.duration(now: now) ?? 0) : 0
         snap.focusSecondsToday = max(0, dayStats.focusSeconds - openFocus)
         snap.chain = dayStats.chain
@@ -845,4 +968,12 @@ final class FocusController {
         guard settings.autoContinue, current.device == TFDevice.name, Date() >= end else { return }
         backToIt()
     }
+}
+
+/// Where a new line is being typed on the plan: right above or below a task.
+struct PlanInsertion: Equatable {
+    enum Side { case above, below }
+
+    var anchor: UUID
+    var side: Side
 }

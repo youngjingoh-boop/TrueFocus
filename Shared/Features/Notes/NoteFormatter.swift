@@ -16,6 +16,8 @@ extension NSAttributedString.Key {
     static let tfNoteBlock = NSAttributedString.Key("TrueFocusNoteBlock")
     /// The paragraph's indent level (an Int, 0 to `NoteLine.maxIndent`).
     static let tfNoteIndent = NSAttributedString.Key("TrueFocusNoteIndent")
+    /// This run is bold (`NoteInline`). Marks the run itself, so restyling a paragraph keeps it.
+    static let tfNoteBold = NSAttributedString.Key("TrueFocusNoteBold")
 }
 
 extension Notification.Name {
@@ -192,6 +194,19 @@ enum NoteFormatter {
         return attributes
     }
 
+    /// What a bold run adds to its paragraph's attributes. The font stays at the paragraph's size.
+    static func boldAttributes(for kind: NoteBlockKind) -> [NSAttributedString.Key: Any] {
+        let font: NotePlatformFont
+        switch kind {
+        case .title: font = titleFont
+        case .heading: font = headingFont
+        case .subheading: font = .systemFont(ofSize: subheadingFont.pointSize, weight: .bold)
+        case .mono: font = .monospacedSystemFont(ofSize: monoFont.pointSize, weight: .bold)
+        case .text, .bullet, .dashed, .numbered, .quote, .todo, .done: font = .systemFont(ofSize: bodyFont.pointSize, weight: .bold)
+        }
+        return [.tfNoteBold: true, .font: font]
+    }
+
     static func kind(from attributes: [NSAttributedString.Key: Any]) -> NoteBlockKind? {
         (attributes[.tfNoteBlock] as? String).flatMap(NoteBlockKind.init(rawValue:))
     }
@@ -215,8 +230,14 @@ enum NoteFormatter {
                 trailing = (kind, line.indent)
                 continue
             }
-            let text = isLast ? line.text : line.text + "\n"
-            result.append(NSAttributedString(string: text, attributes: attributes(for: kind, indent: line.indent)))
+            let plain = attributes(for: kind, indent: line.indent)
+            // The title is bold already, and its text is taken as it stands.
+            let spans = kind == .title ? [NoteInline.Span(line.text)] : NoteInline.spans(in: line.text)
+            for span in spans {
+                let style = span.isBold ? plain.merging(boldAttributes(for: kind)) { _, bold in bold } : plain
+                result.append(NSAttributedString(string: span.text, attributes: style))
+            }
+            if !isLast { result.append(NSAttributedString(string: "\n", attributes: plain)) }
         }
         return (result, trailing)
     }
@@ -237,10 +258,14 @@ enum NoteFormatter {
             guard paragraph.length > 0 else { break }
             let terminated = isParagraphTerminator(string.character(at: NSMaxRange(paragraph) - 1))
             let content = NSRange(location: paragraph.location, length: paragraph.length - (terminated ? 1 : 0))
-            let lineText = string.substring(with: content)
             if lines.isEmpty {
-                lines.append(NoteLine(.title, lineText))
+                lines.append(NoteLine(.title, string.substring(with: content)))
             } else {
+                var spans: [NoteInline.Span] = []
+                text.enumerateAttribute(.tfNoteBold, in: content) { value, range, _ in
+                    spans.append(NoteInline.Span(string.substring(with: range), bold: value != nil))
+                }
+                let lineText = NoteInline.markup(from: spans)
                 let attributes = text.attributes(at: paragraph.location, effectiveRange: nil)
                 let found = kind(from: attributes) ?? .text
                 lines.append(NoteLine((found == .title ? .text : found).lineKind, lineText, indent: indent(from: attributes)))

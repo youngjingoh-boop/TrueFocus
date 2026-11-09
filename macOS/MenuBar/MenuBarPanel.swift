@@ -460,7 +460,7 @@ private struct UpNextList: View {
     private static let collapsedCount = 3
 
     var body: some View {
-        let all = controller.openTasks.filter { $0.id != controller.nowTask?.id && !$0.inPlay }
+        let all = controller.todayTasks.filter { $0.id != controller.nowTask?.id && !$0.inPlay }
         if !all.isEmpty {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Up next").tfEyebrowStyle()

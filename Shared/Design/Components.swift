@@ -11,6 +11,8 @@ import UIKit
 struct CheckCircle: View {
     var isOn: Bool
     var tint: Color = TF.Palette.signal
+    /// The empty circle's colour, when it should stand out (a task's priority).
+    var ring: Color? = nil
     var size: CGFloat = 22
     /// What's being checked, for VoiceOver ("Reply to Sam").
     var label: String? = nil
@@ -24,7 +26,7 @@ struct CheckCircle: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .strokeBorder(isOn ? tint : TF.Palette.ink3, lineWidth: 1.5)
+                    .strokeBorder(isOn ? tint : (ring ?? TF.Palette.ink3), lineWidth: ring == nil ? 1.5 : 2)
                 Circle()
                     .fill(tint)
                     .scaleEffect(isOn ? 1 : 0.2)

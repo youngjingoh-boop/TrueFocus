@@ -54,6 +54,7 @@ public struct NoteLine: Equatable, Sendable {
 ///     - [ ] open checklist item
 ///     - [x] crossed-off item
 ///     \t- an indented bullet (one tab per level)
+///     **bold** inside any line (see `NoteInline`)
 ///
 /// The first line is always the title, like Apple Notes.
 public struct NoteDocument: Equatable, Sendable {
@@ -152,22 +153,27 @@ public struct NoteDocument: Equatable, Sendable {
 
     /// The title, or a fallback built from the first non-empty line.
     public var title: String {
-        let first = lines.first?.text.trimmingCharacters(in: .whitespaces) ?? ""
+        let first = NoteInline.plain(lines.first?.text ?? "").trimmingCharacters(in: .whitespaces)
         if !first.isEmpty { return first }
-        return lines.dropFirst().first { !$0.text.trimmingCharacters(in: .whitespaces).isEmpty }?.text ?? "New Note"
+        return lines.dropFirst().first { !$0.text.trimmingCharacters(in: .whitespaces).isEmpty }.map { NoteInline.plain($0.text) } ?? "New Note"
     }
 
     /// Second line of a list cell: the first meaningful line after the title.
     public var preview: String {
+        body ?? "No additional text"
+    }
+
+    /// The first meaningful line after the title, if there is one.
+    public var body: String? {
         lines.dropFirst()
-            .map { $0.text.trimmingCharacters(in: .whitespaces) }
-            .first { !$0.isEmpty } ?? "No additional text"
+            .map { NoteInline.plain($0.text).trimmingCharacters(in: .whitespaces) }
+            .first { !$0.isEmpty }
     }
 
     public var openChecklistItems: [String] {
         lines.compactMap { line in
             guard case .checklist(false) = line.kind else { return nil }
-            let text = line.text.trimmingCharacters(in: .whitespaces)
+            let text = NoteInline.plain(line.text).trimmingCharacters(in: .whitespaces)
             return text.isEmpty ? nil : text
         }
     }

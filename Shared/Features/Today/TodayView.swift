@@ -8,7 +8,12 @@ struct TodayView: View {
     @State private var showReview = false
     @State private var showSettings = false
     @State private var showDone = true
-    @State private var newTaskFocused = false
+    /// The bucket whose "New task" line has the cursor.
+    @State private var newTaskFocus: PlanBucket?
+    /// Where a new line is open between tasks.
+    @State private var insertion: PlanInsertion?
+    /// The memo showing, opened from a task.
+    @State private var openMemo: Note?
     /// iPhone: the task whose More actions are showing (swipe › More).
     @State private var actionsFor: FocusTask?
 
@@ -33,7 +38,7 @@ struct TodayView: View {
                 NowCard()
                     .listRowInsets(rowInsets(top: 0, bottom: 18))
                     .tfListRow()
-            } else if controller.doneToday.count > 0 && controller.openTasks.isEmpty {
+            } else if controller.doneToday.count > 0 && controller.todayTasks.isEmpty {
                 ClearedCard { showReview = true }
                     .listRowInsets(rowInsets(top: 0, bottom: 18))
                     .tfListRow()
@@ -47,57 +52,23 @@ struct TodayView: View {
             }
 
             Section {
-                ForEach(controller.openTasks, id: \.id) { task in
-                    TaskRow(task: task, dense: isDense) { _ in newTaskFocused = true }
+                ForEach(controller.planRows, id: \.self) { row in
+                    planRow(row)
                         .listRowInsets(rowInsets(top: 0, bottom: 0))
                         .tfListRow()
-                        #if os(iOS)
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            Button {
-                                controller.start(task)
-                                controller.isFocusScreenPresented = true
-                            } label: {
-                                Label("Focus", systemImage: "bolt.fill")
-                            }
-                            .tint(TF.Palette.signal)
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                controller.delete(task)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                            Button {
-                                actionsFor = task
-                            } label: {
-                                Label("More", systemImage: "ellipsis.circle")
-                            }
-                            .tint(TF.Palette.ink2)
-                            Button {
-                                if task.inPlay { controller.drop(task) } else { controller.juggle(task) }
-                            } label: {
-                                Label(task.inPlay ? "Drop" : "Juggle", systemImage: "square.stack.3d.up")
-                            }
-                            .tint(TF.Palette.think)
-                        }
-                        #endif
                 }
                 .onMove { source, destination in
-                    controller.moveOpenTasks(fromOffsets: source, toOffset: destination)
+                    controller.movePlanRows(fromOffsets: source, toOffset: destination)
                 }
-
-                NewTaskRow(isFocused: $newTaskFocused, dense: isDense)
-                    .listRowInsets(rowInsets(top: 0, bottom: 0))
-                    .tfListRow()
             } header: {
-                sectionHeader("Plan", trailing: planCount)
+                sectionHeader("Today", trailing: planCount)
             }
 
             if !controller.doneToday.isEmpty {
                 Section {
                     if showDone {
                         ForEach(controller.doneToday.reversed(), id: \.id) { task in
-                            TaskRow(task: task, dense: isDense)
+                            TaskRow(task: task, dense: isDense, onMemo: showMemo)
                                 .listRowInsets(rowInsets(top: 0, bottom: 0))
                                 .tfListRow()
                         }
@@ -130,6 +101,10 @@ struct TodayView: View {
             BrainDumpView()
                 .environment(controller)
         }
+        .sheet(item: $openMemo) { note in
+            TaskMemoView(note: note)
+                .environment(controller)
+        }
         #if os(iOS)
         .confirmationDialog(liveActionsFor?.title ?? "Task",
                             isPresented: Binding(get: { liveActionsFor != nil }, set: { if !$0 { actionsFor = nil } }),
@@ -138,6 +113,21 @@ struct TodayView: View {
             Button("Focus on This") {
                 controller.start(task)
                 controller.isFocusScreenPresented = true
+            }
+            Button(controller.memoPreviews[task.id] == nil ? "Add Memo" : "Open Memo") { showMemo(task) }
+            Button("Add Task Above") { insertion = PlanInsertion(anchor: task.id, side: .above) }
+            Button("Add Task Below") { insertion = PlanInsertion(anchor: task.id, side: .below) }
+            ForEach([TaskPriority.top, .important, .none], id: \.self) { level in
+                if task.taskPriority != level, level != .none || task.taskPriority != .none {
+                    Button(level == .none ? "Clear Priority" : "Mark \(level.label)") { controller.setPriority(level, for: task) }
+                }
+            }
+            if controller.nowTask?.id != task.id {
+                ForEach(PlanBucket.allCases, id: \.self) { bucket in
+                    if controller.bucket(of: task) != bucket {
+                        Button("Move to \(bucket.label)") { controller.move(task, to: bucket) }
+                    }
+                }
             }
             if task.inPlay {
                 Button("Drop from Juggle") { controller.drop(task) }
@@ -168,6 +158,90 @@ struct TodayView: View {
         actionsFor.flatMap { $0.isLive ? $0 : nil }
     }
 
+    private func showMemo(_ task: FocusTask) {
+        guard task.isLive else { return }
+        openMemo = controller.memo(for: task)
+    }
+
+    // MARK: The plan
+
+    @ViewBuilder
+    private func planRow(_ row: PlanLayout.Row) -> some View {
+        switch row {
+        case .task(let id):
+            if let task = controller.task(id: id) {
+                TaskRow(task: task, dense: isDense, insertion: $insertion, onMemo: showMemo)
+                    #if os(iOS)
+                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                        Button {
+                            controller.start(task)
+                            controller.isFocusScreenPresented = true
+                        } label: {
+                            Label("Focus", systemImage: "bolt.fill")
+                        }
+                        .tint(TF.Palette.signal)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            controller.delete(task)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        Button {
+                            actionsFor = task
+                        } label: {
+                            Label("More", systemImage: "ellipsis.circle")
+                        }
+                        .tint(TF.Palette.ink2)
+                        Button {
+                            if task.inPlay { controller.drop(task) } else { controller.juggle(task) }
+                        } label: {
+                            Label(task.inPlay ? "Drop" : "Juggle", systemImage: "square.stack.3d.up")
+                        }
+                        .tint(TF.Palette.think)
+                    }
+                    #endif
+            }
+        case .heading(let bucket):
+            bucketHeading(bucket)
+                .moveDisabled(true)
+        case .newTask(let bucket):
+            NewTaskRow(bucket: bucket,
+                       isFocused: Binding(get: { newTaskFocus == bucket },
+                                          set: { focused in
+                                              if focused { newTaskFocus = bucket } else if newTaskFocus == bucket { newTaskFocus = nil }
+                                          }),
+                       dense: isDense)
+                .moveDisabled(true)
+        }
+    }
+
+    /// Where a later day starts on the plan. Dragging a task under it moves the task to that day.
+    private func bucketHeading(_ bucket: PlanBucket) -> some View {
+        let count = controller.openTasks.filter { controller.bucket(of: $0) == bucket }.count
+        return VStack(alignment: .leading, spacing: 8) {
+            Rectangle()
+                .fill(TF.Palette.hairline)
+                .frame(height: 1)
+            HStack(spacing: 6) {
+                Image(systemName: bucket == .tomorrow ? "sunrise" : "tray")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(TF.Palette.ink2)
+                Text(bucket.label).tfEyebrowStyle(TF.Palette.ink2)
+                Spacer()
+                if count > 0 {
+                    Text("\(count)")
+                        .font(.tfCaption)
+                        .foregroundStyle(TF.Palette.ink3)
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
+        }
+        .padding(.top, 16)
+        .padding(.bottom, 4)
+    }
+
     // MARK: Pieces
 
     private var header: some View {
@@ -183,7 +257,7 @@ struct TodayView: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityAddTraits(.isHeader)
                 DayProgressBar(done: controller.doneToday.count,
-                               total: controller.doneToday.count + controller.openTasks.count)
+                               total: controller.doneToday.count + controller.todayTasks.count)
                     .frame(width: 120)
                     .padding(.top, 2)
             }
@@ -241,7 +315,7 @@ struct TodayView: View {
     }
 
     private var planCount: String {
-        let total = controller.openTasks.count + controller.doneToday.count
+        let total = controller.todayTasks.count + controller.doneToday.count
         guard total > 0 else { return "" }
         let focused = TFFormat.short(controller.snapshot.focusToday(now: Date()))
         return "\(controller.doneToday.count) of \(total) · \(focused)"
@@ -282,7 +356,7 @@ struct TodayView: View {
     #if os(iOS)
     @ViewBuilder
     private var attackBar: some View {
-        if !controller.mode.isActive, let next = controller.nextTask, !newTaskFocused {
+        if !controller.mode.isActive, let next = controller.nextTask, newTaskFocus == nil, insertion == nil {
             Button {
                 TFHaptics.success()
                 controller.start(next)
