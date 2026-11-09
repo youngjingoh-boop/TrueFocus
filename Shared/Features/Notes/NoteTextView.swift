@@ -28,7 +28,10 @@ struct NoteTextView: UIViewRepresentable {
         coordinator.load(markup, noteID: noteID)
         handle.engine = coordinator.engine
         if autofocus {
-            Task { @MainActor in textView.becomeFirstResponder() }
+            Task { @MainActor in
+                textView.becomeFirstResponder()
+                textView.selectedRange = NSRange(location: textView.textStorage.length, length: 0)
+            }
         }
         return textView
     }
@@ -106,6 +109,7 @@ final class NoteTextCoordinator: NSObject, UITextViewDelegate, UIGestureRecogniz
             textView.setNeedsDisplay()
             for subview in textView.subviews { subview.setNeedsDisplay() }
         }
+        engine.clearUndo = { [weak textView] in textView?.undoManager?.removeAllActions() }
         engine.onChange = { [weak self] markup in self?.onChange(markup) }
     }
 
@@ -122,6 +126,8 @@ final class NoteTextCoordinator: NSObject, UITextViewDelegate, UIGestureRecogniz
         let format = UIBarButtonItem(image: UIImage(systemName: "textformat"), menu: makeFormatMenu())
         bar.items = [
             format,
+            UIBarButtonItem(image: UIImage(systemName: "bold"), style: .plain,
+                            target: self, action: #selector(toggleBold)),
             UIBarButtonItem(image: UIImage(systemName: "checklist"), style: .plain,
                             target: self, action: #selector(toggleChecklist)),
             UIBarButtonItem(image: UIImage(systemName: "decrease.indent"), style: .plain,
@@ -162,6 +168,7 @@ final class NoteTextCoordinator: NSObject, UITextViewDelegate, UIGestureRecogniz
         return UIMenu(children: [styles, lists, size])
     }
 
+    @objc private func toggleBold() { engine.toggleBold() }
     @objc private func toggleChecklist() { engine.toggleChecklistForSelection() }
     @objc private func toggleDone() { engine.toggleDoneForSelection() }
     @objc private func indent() { engine.changeIndent(by: 1) }
@@ -228,6 +235,7 @@ struct NoteTextView: NSViewRepresentable {
             Task { @MainActor [weak coordinator] in
                 guard let textView = coordinator?.textView else { return }
                 textView.window?.makeFirstResponder(textView)
+                textView.setSelectedRange(NSRange(location: textView.textStorage?.length ?? 0, length: 0))
             }
         }
         return scrollView
@@ -347,6 +355,7 @@ final class NoteTextCoordinator: NSObject, NSTextViewDelegate {
             guard let textView else { return }
             textView.setNeedsDisplay(textView.bounds)
         }
+        engine.clearUndo = { [weak textView] in textView?.undoManager?.removeAllActions() }
         engine.onChange = { [weak self] markup in self?.onChange(markup) }
     }
 

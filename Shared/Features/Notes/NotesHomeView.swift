@@ -261,6 +261,7 @@ struct NotesHomeView: View {
         #if os(macOS)
         if selection == note.id { selection = nil }
         #endif
+        NoteHistoryStore.remove(noteID: note.id)
         withAnimation(TF.Motion.snappy) {
             modelContext.delete(note)
         }

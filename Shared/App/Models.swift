@@ -26,6 +26,10 @@ final class FocusTask {
     var inPlayAt: Date?
     /// Juggling: set while you're waiting on someone or something for this task.
     var waitingSince: Date?
+    /// How much it matters (`TaskPriority`).
+    var priority: Int = 0
+    /// The day it's planned for (`PlanSchedule`). Nil is today.
+    var plannedFor: Date?
 
     init(title: String, order: Double) {
         self.id = UUID()
@@ -38,6 +42,11 @@ final class FocusTask {
 extension FocusTask {
     /// Still in the store. A deleted task must not be read or written again.
     var isLive: Bool { !isDeleted && modelContext != nil }
+
+    var taskPriority: TaskPriority {
+        get { TaskPriority(stored: priority) }
+        set { priority = newValue.rawValue }
+    }
 }
 
 /// One contiguous block of a single mode. The day is a timeline of these.
@@ -108,6 +117,8 @@ final class Note {
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
     var isPinned: Bool = false
+    /// The task this note is the memo of, if any.
+    var taskID: UUID?
 
     init(body: String = "") {
         self.id = UUID()

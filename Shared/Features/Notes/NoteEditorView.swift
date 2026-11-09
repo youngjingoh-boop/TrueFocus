@@ -18,6 +18,10 @@ struct NoteEditorView: View {
     @State private var toast: String?
     @State private var toastTask: Task<Void, Never>?
     @State private var isGone = false
+    /// Earlier versions, for the Before button.
+    @State private var history = NoteHistory()
+    /// The version on screen when you've gone back; nil on the latest text.
+    @State private var browsing: Int?
 
     var body: some View {
         Group {
@@ -25,7 +29,7 @@ struct NoteEditorView: View {
                 TF.Palette.paper
             } else {
                 NoteTextView(noteID: note.id, markup: note.body, handle: handle,
-                             autofocus: note.body.isEmpty) { markup in
+                             autofocus: note.body.isEmpty || isUnwrittenMemo) { markup in
                     scheduleSave(markup)
                 }
             }
@@ -36,12 +40,22 @@ struct NoteEditorView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        .onAppear(perform: loadHistory)
         .onDisappear(perform: flush)
+        // A change from another device is a version too.
+        .onChange(of: note.isLive ? note.body : nil) { _, body in
+            if let body, browsing == nil, !isGone { record(body) }
+        }
         // Leaving the app (Home, the app switcher, a call) saves at once: a swipe-quit right
         // after typing shouldn't lose the last words to the save delay.
         .onChange(of: scenePhase) { _, phase in
             if phase != .active { saveNow() }
         }
+    }
+
+    /// A task memo with only the task's title in it: ready for typing as soon as it opens.
+    private var isUnwrittenMemo: Bool {
+        note.taskID != nil && NoteDocument(markup: note.body).body == nil
     }
 
     private var openItems: [String] {
@@ -53,6 +67,23 @@ struct NoteEditorView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItemGroup(placement: .primaryAction) {
+            // Words, not icons: a clock doesn't say "bring back what I just deleted".
+            Button("Before", action: goBefore)
+                .disabled(earlierVersion == nil)
+                .help("Go back to what this note said before")
+            if browsing != nil {
+                Button("After", action: goAfter)
+                    .help("Forward again, toward the latest text")
+            }
+            #if os(macOS)
+            Button {
+                handle.toggleBold()
+            } label: {
+                Label("Bold", systemImage: "bold")
+            }
+            .keyboardShortcut("b", modifiers: [.command])
+            .help("Bold (⌘B)")
+            #endif
             if !openItems.isEmpty {
                 Button(action: sendToToday) {
                     Label("Send to Today", systemImage: "sun.max")
@@ -99,6 +130,9 @@ struct NoteEditorView: View {
     /// Apple Notes' Aa menu, with its keyboard shortcuts.
     @ViewBuilder
     private var formatMenu: some View {
+        Section {
+            Button("Bold", systemImage: "bold") { handle.toggleBold() }
+        }
         Section {
             Button("Heading") { handle.applyStyle(.heading) }.keyboardShortcut("h", modifiers: [.command, .shift])
             Button("Subheading") { handle.applyStyle(.subheading) }.keyboardShortcut("j", modifiers: [.command, .shift])
@@ -178,6 +212,63 @@ struct NoteEditorView: View {
         note.body = markup
         note.updatedAt = Date()
         try? modelContext.save()
+        record(markup)
+    }
+
+    // MARK: Before
+
+    private func loadHistory() {
+        history = NoteHistoryStore.load(noteID: note.id)
+        if note.isLive, !note.body.isEmpty { record(note.body) }
+    }
+
+    /// Keeps a version. Typing over a version you went back to starts a new latest one, so the
+    /// text you went back from stays in the history too.
+    private func record(_ markup: String) {
+        if let index = browsing {
+            if history.versions.indices.contains(index), history.versions[index].markup == markup { return }
+            browsing = nil
+            history.record(markup, at: Date(), sealing: true)
+        } else {
+            history.record(markup, at: Date())
+        }
+        NoteHistoryStore.save(history, noteID: note.id)
+    }
+
+    /// The version the Before button goes to.
+    private var earlierVersion: Int? {
+        let here = browsing ?? history.versions.count - 1
+        return here > 0 ? here - 1 : nil
+    }
+
+    private func goBefore() {
+        saveNow()
+        guard let target = earlierVersion else { return }
+        show(version: target)
+        TFHaptics.tap()
+    }
+
+    private func goAfter() {
+        guard let index = browsing, index + 1 < history.versions.count else { return }
+        saveNow()
+        // Typing just now may have made a new latest version.
+        guard let here = browsing else { return }
+        show(version: here + 1)
+        TFHaptics.tap()
+    }
+
+    private func show(version index: Int) {
+        guard note.isLive else { return }
+        let version = history.versions[index]
+        let isLatest = index == history.versions.count - 1
+        browsing = isLatest ? nil : index
+        saveTask?.cancel()
+        pendingMarkup = nil
+        handle.restore(version.markup)
+        note.body = version.markup
+        note.updatedAt = Date()
+        try? modelContext.save()
+        showToast(isLatest ? "Latest text" : "As of \(version.at.formatted(date: .abbreviated, time: .shortened))")
     }
 
     private func flush() {
@@ -219,6 +310,7 @@ struct NoteEditorView: View {
         isGone = true
         let context = modelContext
         let doomed = note
+        NoteHistoryStore.remove(noteID: note.id)
         if let onDelete {
             onDelete()
         } else {

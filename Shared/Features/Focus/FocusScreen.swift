@@ -684,7 +684,7 @@ struct TaskSwitcher: View {
                 VStack(alignment: .leading, spacing: 0) {
                     let nowID = controller.nowTask?.id
                     let held = controller.inPlayTasks.filter { $0.id != nowID }
-                    let rest = controller.openTasks.filter { $0.id != nowID && !$0.inPlay }
+                    let rest = controller.todayTasks.filter { $0.id != nowID && !$0.inPlay }
                     if !held.isEmpty {
                         Text("Juggling").tfEyebrowStyle().padding(.bottom, 4)
                         ForEach(held, id: \.id) { row($0) }

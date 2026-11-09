@@ -22,10 +22,14 @@ public struct TaskPayload: Codable, Equatable, Sendable {
     public var inPlayAt: Date?
     /// Juggling: waiting on someone for this task. Absent in payloads from older builds.
     public var waitingSince: Date?
+    /// `TaskPriority`, when it has one. Absent in payloads from older builds.
+    public var priority: Int?
+    /// `PlanSchedule`: nil is today. Absent in payloads from older builds.
+    public var plannedFor: Date?
 
     public init(title: String, isDone: Bool, doneAt: Date?, createdAt: Date, order: Double,
                 focusSeconds: Double, breadcrumb: String, inPlay: Bool, inPlayAt: Date?,
-                waitingSince: Date? = nil) {
+                waitingSince: Date? = nil, priority: Int? = nil, plannedFor: Date? = nil) {
         self.title = title
         self.isDone = isDone
         self.doneAt = doneAt
@@ -36,6 +40,8 @@ public struct TaskPayload: Codable, Equatable, Sendable {
         self.inPlay = inPlay
         self.inPlayAt = inPlayAt
         self.waitingSince = waitingSince
+        self.priority = priority
+        self.plannedFor = plannedFor
     }
 }
 
@@ -85,12 +91,15 @@ public struct NotePayload: Codable, Equatable, Sendable {
     public var createdAt: Date
     public var updatedAt: Date
     public var isPinned: Bool
+    /// The task this note is the memo of. Absent in payloads from older builds.
+    public var taskID: UUID?
 
-    public init(body: String, createdAt: Date, updatedAt: Date, isPinned: Bool) {
+    public init(body: String, createdAt: Date, updatedAt: Date, isPinned: Bool, taskID: UUID? = nil) {
         self.body = body
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.isPinned = isPinned
+        self.taskID = taskID
     }
 }
 

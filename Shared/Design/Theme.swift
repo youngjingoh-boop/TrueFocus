@@ -31,6 +31,8 @@ enum TF {
         static let think = Color(tfHex: 0x7C7CFF)
         static let rest = Color(tfHex: 0x34C98E)
         static let alarm = Color(tfHex: 0xFF3B30)
+        /// Marks an important task; top priority uses `alarm`.
+        static let important = Color.tfDynamic(light: 0xB7791F, dark: 0xF2B84B)
         /// Text and glyphs on an Ember (or think/rest) fill. Dark reads better than white on Ember.
         static let onSignal = Color(tfHex: 0x050506)
 
