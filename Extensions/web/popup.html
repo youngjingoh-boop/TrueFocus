@@ -28,6 +28,34 @@
       <ul class="juggle" id="juggleList"></ul>
     </section>
 
+    <section class="group" id="site" hidden>
+      <h2>This site</h2>
+      <div class="site-card">
+        <div class="site-host" id="siteHost"></div>
+        <p class="site-line" id="siteLine"></p>
+        <div class="site-actions" id="siteActions">
+          <button class="quiet site-allow" type="button" id="siteAllow">Always allow</button>
+          <button class="quiet site-block" type="button" id="siteBlock">Block on tasks</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="group">
+      <details class="sites" id="sites">
+        <summary><span>Your sites</span><span class="count" id="sitesCount"></span></summary>
+        <ul class="site-list" id="siteList"></ul>
+        <form class="site-form" id="siteForm" novalidate>
+          <input id="siteEntry" type="text" placeholder="Add a site, like notion.so" aria-label="Site to add"
+                 autocomplete="off" autocapitalize="off" spellcheck="false">
+          <div class="site-form-actions">
+            <button class="quiet" type="submit" value="allow" id="siteAddAllow">Allow</button>
+            <button class="quiet" type="submit" value="block" id="siteAddBlock">Block</button>
+          </div>
+        </form>
+      </details>
+      <p class="note problem" id="siteProblem" role="status" hidden></p>
+    </section>
+
     <section class="group">
       <h2>Feeds</h2>
       <div class="rule" id="rule"><span class="rule-dot"></span><span id="ruleText"></span></div>

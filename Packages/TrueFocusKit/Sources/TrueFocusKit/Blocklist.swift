@@ -1,5 +1,10 @@
 import Foundation
 
+/// What you've decided about a website: always allowed, closed on a task, or left to the rules.
+public enum SiteRule: String, Sendable {
+    case allow, block, none
+}
+
 /// What TrueFocus blocks, in one place.
 ///
 /// Keep `Extensions/web/core.js` and `macOS/Resources/PermanentShield/adult-domains.txt`
@@ -149,6 +154,11 @@ public enum Blocklist {
     public static func isAllowed(host: String, allowedSites: [String]) -> Bool {
         let h = host.lowercased()
         return allowedSites.contains { site in h == site || h.hasSuffix("." + site) }
+    }
+
+    /// The host is one you close on a task, and no "always allowed" entry overrides it.
+    public static func isBlocked(host: String, blockedSites: [String], allowedSites: [String] = []) -> Bool {
+        isAllowed(host: host, allowedSites: blockedSites) && !isAllowed(host: host, allowedSites: allowedSites)
     }
 
     /// Native Mac apps (iPad apps on Apple silicon included) that are feeds.

@@ -93,6 +93,7 @@ function refreshState() {
     }
     await api.storage.local.set({ [KEY.state]: next });
     await applyRulesets();
+    await closeBlockedTabs();
     return next;
   })().finally(() => { inflight = null; });
   return inflight;
@@ -127,7 +128,7 @@ async function applyRulesets() {
     if (want[id] && isOn !== true) enable.push(id);
     if (!want[id] && isOn !== false) disable.push(id);
   });
-  await applyAllowedSites(dnr, eff);
+  await applySiteRules(dnr, eff);
   if (!enable.length && !disable.length) return eff;
   try {
     await dnr.updateEnabledRulesets({ enableRulesetIds: enable, disableRulesetIds: disable });
@@ -143,17 +144,40 @@ async function applyRulesets() {
   return eff;
 }
 
-/** "Always allowed" sites pass the short-form wall too (never the adult filter). */
-async function applyAllowedSites(dnr, eff) {
+/** Your own sites: "always allowed" pass the short-form wall (never the adult filter); "blocked" close on a task. */
+async function applySiteRules(dnr, eff) {
   if (!dnr.updateDynamicRules || !dnr.getDynamicRules) return;
   try {
-    const want = Core.allowRules(eff.allowedSites);
+    const want = Core.siteRules(eff);
     const have = await dnr.getDynamicRules();
-    const domains = (rules) => JSON.stringify(rules.map((r) => (r.condition.requestDomains || []).slice().sort()));
-    if (have.length === want.length && domains(have) === domains(want)) return;
+    if (Core.sameSiteRules(have, want)) return;
     await dnr.updateDynamicRules({ removeRuleIds: have.map((r) => r.id), addRules: want });
   } catch (error) {
     /* dynamic rules unsupported here */
+  }
+}
+
+/** Network rules only catch new page loads, so a blocked site already open closes here. */
+async function closeBlockedTabs() {
+  if (!api.tabs || !api.tabs.query || !api.tabs.update) return;
+  const all = await loadAll();
+  const now = Date.now();
+  const eff = Core.effective(all.state, all.prefs, now, all.adultOff);
+  if (!eff.onTask || !eff.blockedSites.length) return;
+  let tabs;
+  try {
+    tabs = await api.tabs.query({});
+  } catch (error) {
+    return;
+  }
+  for (const tab of tabs) {
+    const verdict = Core.classify(tab.url, eff, all.cooldowns, now, null);
+    if (!verdict.custom) continue;
+    try {
+      await api.tabs.update(tab.id, { url: api.runtime.getURL(Core.blockedPagePath(verdict.site).slice(1)) });
+    } catch (error) {
+      /* the tab went away */
+    }
   }
 }
 
@@ -255,6 +279,55 @@ async function setWorkPlatform(platform, open) {
   return { ok: true, via: 'extension' };
 }
 
+// ────────────────────────────────── Your own sites ──────────────────────────────────
+
+const SITE_RULES = new Set(['allow', 'block', 'none']);
+
+/**
+ * Allows or blocks a website from the popup. With the app, this changes its lists, so every
+ * device and its settings agree. Without any app ever connected, the extension keeps its own.
+ */
+async function setSiteRule(rawSite, rule) {
+  const site = Core.normalizedSite(rawSite);
+  if (!site || !SITE_RULES.has(rule)) return { ok: false, error: 'bad site' };
+  try {
+    if (IS_SAFARI) {
+      const reply = await api.runtime.sendNativeMessage(NATIVE_APP, { type: 'site', site, rule });
+      if (!reply || reply.ok === false) throw new Error('native refused');
+    } else {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 2000);
+      try {
+        const res = await fetch(BRIDGE + '/site', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ site, rule }),
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error('bridge ' + res.status);
+      } finally {
+        clearTimeout(timer);
+      }
+      // The app applies it on its main thread; give it a beat before reading it back.
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    await refreshState();
+    return { ok: true, via: 'app', site };
+  } catch (error) {
+    // No app reachable: decided below.
+  }
+  const { state, prefs } = await loadAll();
+  // The app's lists win, so a change kept here wouldn't take. Say so instead of pretending.
+  if (state && state.settings) return { ok: false, error: 'app not reachable' };
+  const current = Core.effective(null, prefs, Date.now(), null);
+  const next = Object.assign({}, Core.DEFAULT_PREFS, prefs || {},
+    Core.withSiteRule(current, site, rule));
+  await api.storage.local.set({ [KEY.prefs]: next });
+  await applyRulesets();
+  await closeBlockedTabs();
+  return { ok: true, via: 'extension', site };
+}
+
 // ──────────────────────────────────── Activity ────────────────────────────────────
 
 let lastActivity = null;
@@ -319,6 +392,8 @@ async function handle(message, sender) {
       return sendCommand(message);
     case 'work':
       return setWorkPlatform(message.platform, !!message.open);
+    case 'site':
+      return setSiteRule(message.site, message.rule);
     case 'closeTab': {
       const tabId = sender && sender.tab && sender.tab.id;
       if (typeof tabId === 'number' && api.tabs && api.tabs.remove) {

@@ -403,4 +403,16 @@ final class DriftTests: XCTestCase {
             XCTAssertTrue(line.body.contains("clinic.co.kr"))
         }
     }
+
+    func testYourOwnSiteListsDecideDrift() {
+        let open = TaskContract(taskID: task, taskTitle: "Teach a client")
+        let linkedIn = ActivitySample(appBundleID: "com.google.Chrome", host: "www.linkedin.com", pageTitle: "Messaging")
+        // A feed site is drift on sight, until you always allow it.
+        XCTAssertEqual(DriftClassifier.classify(linkedIn, contract: open), .offTask)
+        XCTAssertEqual(DriftClassifier.classify(linkedIn, contract: open, allowedSites: ["linkedin.com"]), .neutral)
+        // A site you block is drift, whatever its title says.
+        let news = ActivitySample(appBundleID: "com.google.Chrome", host: "news.example.com", pageTitle: "Headlines")
+        XCTAssertEqual(DriftClassifier.classify(news, contract: open), .unsure)
+        XCTAssertEqual(DriftClassifier.classify(news, contract: open, blockedSites: ["example.com"]), .offTask)
+    }
 }

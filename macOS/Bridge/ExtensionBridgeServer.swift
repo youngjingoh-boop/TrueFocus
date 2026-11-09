@@ -8,6 +8,7 @@ import TrueFocusKit
 ///     GET  http://127.0.0.1:52525/state  → {"snapshot": {...}, "settings": {...}}
 ///     POST http://127.0.0.1:52525/boot   ← {"site": "Instagram", "reason": "binge"}
 ///     POST http://127.0.0.1:52525/command ← {"kind": "switchTo", "taskID": "…"} or {"kind": "wait"}
+///     POST http://127.0.0.1:52525/site   ← {"site": "notion.so", "rule": "allow" | "block" | "none"}
 ///     POST http://127.0.0.1:52525/activity ← {"host": "docs.google.com", "title": "…"} (active tab, while working)
 ///
 /// Only browser-extension origins are answered; ordinary web pages can't read your tasks.
@@ -180,6 +181,19 @@ private final class BridgeConnection: @unchecked Sendable {
             }
             Task { @MainActor in
                 FocusController.shared.updateSettings { $0.setOpenForWork(platform, open) }
+            }
+            send(status: 200, body: Data(#"{"ok":true}"#.utf8), origin: origin)
+        case ("POST", "/site"):
+            // Allow or block a website from the popup: the same lists as Settings in the app.
+            let json = (try? JSONSerialization.jsonObject(with: request.body)) as? [String: Any] ?? [:]
+            guard let rawSite = json["site"] as? String, rawSite.count <= 253,
+                  let site = Blocklist.normalizedSite(rawSite),
+                  let rule = (json["rule"] as? String).flatMap(SiteRule.init(rawValue:)) else {
+                send(status: 400, body: Data(#"{"error":"bad site"}"#.utf8), origin: origin)
+                return
+            }
+            Task { @MainActor in
+                FocusController.shared.updateSettings { $0.setSiteRule(site, rule) }
             }
             send(status: 200, body: Data(#"{"ok":true}"#.utf8), origin: origin)
         case ("POST", "/activity"):

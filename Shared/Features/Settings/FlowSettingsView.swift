@@ -165,7 +165,8 @@ struct FlowSettingsView<Extra: View>: View {
             ToggleRow(title: "Facebook for work",
                       subtitle: "Pages, posting, groups, Ads Manager and Messenger stay open, even in focus. Only the News Feed is hidden.",
                       isOn: workPlatform("Facebook"))
-            AllowedSitesEditor()
+            SiteListEditor(rule: .allow)
+            SiteListEditor(rule: .block)
         }
     }
 }

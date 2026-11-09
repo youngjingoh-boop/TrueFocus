@@ -13,6 +13,7 @@ import TrueFocusKit
 /// - `{type: "activity", host, title}` → (Mac, during focus) the active tab for the drift guard.
 /// - `{type: "work", platform, open}` → opens a feed platform for work, or closes it, then
 ///   replies like `state` (with the new settings, so the page follows at once).
+/// - `{type: "site", site, rule}` → allows or blocks a website, then replies like `state`.
 final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
     /// Posted (Darwin notification) whenever the extension writes to the App Group,
     /// so a running app can pick the change up without waiting to be foregrounded.
@@ -66,6 +67,17 @@ final class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             } else {
                 reply["ok"] = false
                 reply["error"] = "bad platform"
+            }
+        case "site":
+            if let raw = message["site"] as? String, raw.count <= 253, let site = Blocklist.normalizedSite(raw),
+               let rule = (message["rule"] as? String).flatMap(SiteRule.init(rawValue:)) {
+                var settings = store.settings
+                settings.setSiteRule(site, rule)
+                store.settings = settings
+                Self.postSharedChanged()
+            } else {
+                reply["ok"] = false
+                reply["error"] = "bad site"
             }
         case "state":
             break

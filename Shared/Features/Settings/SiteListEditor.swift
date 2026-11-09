@@ -1,31 +1,47 @@
 import SwiftUI
 import TrueFocusKit
 
-/// "Always allowed": sites you use for work that TrueFocus should never block or guard.
-struct AllowedSitesEditor: View {
+/// Your own website lists: "Always allowed" and "Blocked on tasks". Same lists as the browser
+/// extension's popup, which changes them through the app.
+struct SiteListEditor: View {
     @Environment(FocusController.self) private var controller
     @State private var entry = ""
     @State private var problem: String?
     @FocusState private var entryFocused: Bool
 
+    /// `.allow` or `.block`: which list this edits.
+    let rule: SiteRule
+
+    private var title: String { rule == .block ? "Blocked on tasks" : "Always allowed" }
+
+    private var explanation: String {
+        rule == .block
+            ? "Closed in your browser while you're on a task, messages included. Open again when you pause, rest or stop."
+            : "Never blocked, guarded or locked, even in focus. The adult filter still applies."
+    }
+
+    private var sites: [String] {
+        rule == .block ? controller.settings.blockedSites : controller.settings.allowedSites
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Always allowed").font(.body).foregroundStyle(TF.Palette.ink)
-                Text("Never blocked, guarded or locked, even in focus. The adult filter still applies.")
+                Text(title).font(.body).foregroundStyle(TF.Palette.ink)
+                Text(explanation)
                     .font(.footnote)
                     .foregroundStyle(TF.Palette.ink2)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            let sites = controller.settings.allowedSites
+            let sites = sites
             if !sites.isEmpty {
                 VStack(spacing: 0) {
                     ForEach(sites, id: \.self) { site in
                         HStack(spacing: 10) {
-                            Image(systemName: "checkmark.shield")
+                            Image(systemName: rule == .block ? "nosign" : "checkmark.shield")
                                 .font(.system(size: 13, weight: .semibold))
-                                .foregroundStyle(TF.Palette.restText)
+                                .foregroundStyle(rule == .block ? TF.Palette.signalText : TF.Palette.restText)
                                 .frame(width: 22)
                             Text(site)
                                 .font(.body)
@@ -34,7 +50,7 @@ struct AllowedSitesEditor: View {
                             Spacer()
                             Button {
                                 TFHaptics.tap()
-                                remove(site)
+                                controller.updateSettings { $0.setSiteRule(site, .none) }
                             } label: {
                                 Image(systemName: "minus.circle.fill")
                                     .font(.system(size: 17))
@@ -43,7 +59,7 @@ struct AllowedSitesEditor: View {
                                     .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel("Stop allowing \(site)")
+                            .accessibilityLabel(rule == .block ? "Stop blocking \(site)" : "Stop allowing \(site)")
                         }
                         .padding(.leading, 12)
                         if site != sites.last { Hairline().padding(.leading, 44) }
@@ -53,7 +69,7 @@ struct AllowedSitesEditor: View {
             }
 
             HStack(spacing: 8) {
-                TextField("Add a site, like notion.so", text: $entry)
+                TextField(rule == .block ? "Add a site, like reddit.com" : "Add a site, like notion.so", text: $entry)
                     .textFieldStyle(.plain)
                     .font(.body)
                     .focused($entryFocused)
@@ -87,14 +103,8 @@ struct AllowedSitesEditor: View {
             return
         }
         TFHaptics.success()
-        controller.updateSettings { settings in
-            if !settings.allowedSites.contains(site) { settings.allowedSites.append(site) }
-        }
+        controller.updateSettings { $0.setSiteRule(site, rule) }
         entry = ""
         problem = nil
-    }
-
-    private func remove(_ site: String) {
-        controller.updateSettings { $0.allowedSites.removeAll { $0 == site } }
     }
 }
