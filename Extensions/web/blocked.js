@@ -35,9 +35,21 @@
     return 'https://' + host + site.respondPath;
   }
 
+  var reopening = false;
+
+  /** A site you blocked yourself comes back as soon as it's no longer closed. */
+  function reopenIfOpen(eff, now) {
+    var host = reason === 'focus' ? Core.normalizedSite(siteName) : null;
+    if (!state || !host || reopening) return;
+    if (Core.classify('https://' + host + '/', eff, cooldowns, now, null).custom) return;
+    reopening = true;
+    location.replace('https://' + host + '/');
+  }
+
   function render() {
     var now = Date.now();
     var eff = Core.effective(state, prefs, now, adultOff);
+    reopenIfOpen(eff, now);
     var copy = Core.blockedCopy(reason, eff.tone, siteName, eff.task, eff.customReminders);
     setText('eyebrow', copy.eyebrow);
     setText('title', copy.title);

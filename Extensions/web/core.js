@@ -375,6 +375,92 @@
       condition: { requestDomains: sites, resourceTypes: ['main_frame'] } }];
   }
 
+  /** A blocked site's page in the extension, where its network rule sends you. */
+  function blockedPagePath(site) {
+    return '/blocked.html?reason=focus&site=' + encodeURIComponent(site);
+  }
+
+  /**
+   * Network rules for "Blocked on tasks". They tie with the allow rule, and a tie goes to allow,
+   * so an allowed subdomain stays open under a blocked domain; the adult filter (3) outranks both.
+   */
+  function blockRules(blockedSites) {
+    var sites = [];
+    (blockedSites || []).forEach(function (site) {
+      if (typeof site === 'string' && site && sites.indexOf(site) === -1) { sites.push(site); }
+    });
+    return sites.map(function (site, i) {
+      return { id: 2 + i, priority: ALLOW_PRIORITY,
+        action: { type: 'redirect', redirect: { extensionPath: blockedPagePath(site) } },
+        condition: { requestDomains: [site], resourceTypes: ['main_frame'] } };
+    });
+  }
+
+  /** Every dynamic rule right now: allowed always, blocked only on a task. */
+  function siteRules(eff) {
+    return allowRules(eff.allowedSites).concat(eff.onTask ? blockRules(eff.blockedSites) : []);
+  }
+
+  /** Whether the browser already holds these rules, in any order. */
+  function sameSiteRules(a, b) {
+    function key(rule) {
+      var redirect = rule.action && rule.action.redirect ? rule.action.redirect.extensionPath : '';
+      var domains = (rule.condition && rule.condition.requestDomains || []).slice().sort().join(',');
+      return [rule.id, rule.action && rule.action.type, redirect, domains].join('|');
+    }
+    return JSON.stringify(a.map(key).sort()) === JSON.stringify(b.map(key).sort());
+  }
+
+  /** TFSettings.setSiteRule: a site sits on one list, or neither. */
+  function withSiteRule(lists, site, rule) {
+    function without(list) { return (list || []).filter(function (s) { return s !== site; }); }
+    var allowedSites = without(lists && lists.allowedSites);
+    var blockedSites = without(lists && lists.blockedSites);
+    if (rule === 'allow') { allowedSites.push(site); }
+    if (rule === 'block') { blockedSites.push(site); }
+    return { allowedSites: allowedSites, blockedSites: blockedSites };
+  }
+
+  /** The list entry covering a host: the host itself or a parent domain. */
+  function listedSite(host, sites) {
+    var h = String(host || '').toLowerCase();
+    var found = (sites || []).filter(function (site) { return hostMatches(h, site); });
+    return found.length ? found[0] : null;
+  }
+
+  /**
+   * The site a tab is on, for the popup: a web page's host, or the site named by our own
+   * blocked page, so you can allow a site from where it stopped you. Null for anything else.
+   */
+  function pageSite(url, extensionBase) {
+    var text = String(url || '');
+    if (extensionBase && text.indexOf(extensionBase) === 0) {
+      try { return normalizedSite(new URL(text).searchParams.get('site')); } catch (e) { return null; }
+    }
+    return /^https?:\/\//i.test(text) ? normalizedSite(text) : null;
+  }
+
+  /** What's decided about a site, in words. `entry` is the list entry to remove to undo it. */
+  function siteStatus(site, eff) {
+    var elsewhere = 'If it won\u2019t load, the cause is elsewhere, like your network.';
+    if (eff.adult && eff.adult.active && isAdultHost(site)) {
+      return { rule: 'adult', entry: null, line: 'The adult content filter keeps this closed.' };
+    }
+    var allowed = listedSite(site, eff.allowedSites);
+    if (allowed) { return { rule: 'allow', entry: allowed, line: 'TruFocus never blocks this site. ' + elsewhere }; }
+    var blocked = listedSite(site, eff.blockedSites);
+    if (blocked) {
+      return { rule: 'block', entry: blocked,
+        line: eff.onTask ? 'Closed while you\u2019re on a task.' : 'Open now. It closes when your next task starts.' };
+    }
+    var feed = feedSiteForHost(site);
+    if (feed && eff.workPlatforms.indexOf(feed.name) === -1) {
+      return { rule: 'none', entry: null,
+        line: feed.name + (eff.onTask ? '\u2019s feed is closed on a task. Allow it to keep it all open.' : '\u2019s feed closes on your next task.') };
+    }
+    return { rule: 'none', entry: null, line: 'TruFocus isn\u2019t blocking this site. ' + elsewhere };
+  }
+
   function isAdultHost(host) {
     var h = String(host || '').toLowerCase();
     for (var i = 0; i < ADULT_DOMAINS.length; i++) {
@@ -391,6 +477,8 @@
     linkedInWorkOnly: true,
     facebookWorkOnly: true,
     workPlatforms: [],
+    allowedSites: [],
+    blockedSites: [],
     guardEnabled: true,
     sensitivity: 'standard'
   });
@@ -452,6 +540,12 @@
     return started === null || nowMs - started < 12 * 3600 * 1000;
   }
 
+  /** A site list from the app's settings or, without the app, the extension's own prefs. */
+  function siteList(settings, prefs, name) {
+    var list = settings && Array.isArray(settings[name]) ? settings[name] : prefs[name];
+    return (Array.isArray(list) ? list : []).map(normalizedSite).filter(Boolean);
+  }
+
   /**
    * Everything a surface needs to behave: app settings win over local popup prefs.
    * `state` = { snapshot, settings, fetchedAt, source } from storage.local.tfState.
@@ -487,8 +581,8 @@
         ? Math.min(Math.max(settings.scrollBudgetMinutes, 1), 120) : (p.remindAfterMinutes || 15),
       lockOutAtLimit: settings && typeof settings.lockOutAtLimit === 'boolean' ? settings.lockOutAtLimit : false,
       workPlatforms: workPlatformsFrom(settings && Array.isArray(settings.workPlatforms) ? settings.workPlatforms : p.workPlatforms),
-      allowedSites: (settings && Array.isArray(settings.allowedSites) ? settings.allowedSites : [])
-        .map(normalizedSite).filter(Boolean),
+      allowedSites: siteList(settings, p, 'allowedSites'),
+      blockedSites: siteList(settings, p, 'blockedSites'),
       guardEnabled: p.guardEnabled !== false,
       doomScroll: doomScroll,
       strict: strict,
@@ -690,6 +784,9 @@
     if (eff && eff.adult && eff.adult.active && isAdultHost(host)) { return { kind: 'adult', host: host }; }
     // Sites you always allow are never ours to block or guard.
     if (eff && isAllowedHost(host, eff.allowedSites)) { return { kind: 'other', host: host, allowed: true }; }
+    // Sites you block yourself: the whole site closes on a task, messages included.
+    var blockedEntry = eff && eff.onTask ? listedSite(host, eff.blockedSites) : null;
+    if (blockedEntry) { return { kind: 'strict', custom: true, site: blockedEntry, host: host, path: path }; }
     var site = feedSiteForHost(host);
     if (!site) { return { kind: 'other', host: host }; }
     var base = { site: site.name, host: host, path: path };
@@ -968,6 +1065,14 @@
     normalizedSite: normalizedSite,
     isAllowedHost: isAllowedHost,
     allowRules: allowRules,
+    blockRules: blockRules,
+    blockedPagePath: blockedPagePath,
+    siteRules: siteRules,
+    sameSiteRules: sameSiteRules,
+    withSiteRule: withSiteRule,
+    listedSite: listedSite,
+    pageSite: pageSite,
+    siteStatus: siteStatus,
     isShortFormPath: isShortFormPath,
     isShortFormVisit: isShortFormVisit,
     isFeedPath: isFeedPath,

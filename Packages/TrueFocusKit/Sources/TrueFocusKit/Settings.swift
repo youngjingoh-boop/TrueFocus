@@ -64,6 +64,9 @@ public struct TFSettings: Codable, Equatable, Sendable {
     /// Web: sites you always allow (host names like "notion.so"). Never blocked, guarded or
     /// cooled down. The adult filter still applies.
     public var allowedSites: [String] = []
+    /// Web: sites you close while you're on a task (host names), messages and all. Open again
+    /// off a task. If a host is on both lists through a parent domain, allowed wins.
+    public var blockedSites: [String] = []
 
     // Mac
     /// Run Shortcuts named below to flip a macOS Focus (which syncs to iPhone) on and off.
@@ -126,6 +129,7 @@ public struct TFSettings: Codable, Equatable, Sendable {
         facebookWorkOnly = try c.decodeIfPresent(Bool.self, forKey: .facebookWorkOnly) ?? d.facebookWorkOnly
         workPlatforms = try c.decodeIfPresent([String].self, forKey: .workPlatforms) ?? d.workPlatforms
         allowedSites = try c.decodeIfPresent([String].self, forKey: .allowedSites) ?? d.allowedSites
+        blockedSites = try c.decodeIfPresent([String].self, forKey: .blockedSites) ?? d.blockedSites
         macRunFocusShortcuts = try c.decodeIfPresent(Bool.self, forKey: .macRunFocusShortcuts) ?? d.macRunFocusShortcuts
         macFocusOnShortcut = try c.decodeIfPresent(String.self, forKey: .macFocusOnShortcut) ?? d.macFocusOnShortcut
         macFocusOffShortcut = try c.decodeIfPresent(String.self, forKey: .macFocusOffShortcut) ?? d.macFocusOffShortcut
@@ -153,6 +157,17 @@ public struct TFSettings: Codable, Equatable, Sendable {
         guard open else { return }
         macAllowedFeedApps.append(contentsOf: apps.sorted())
         if Blocklist.workPlatforms.contains(platform) { workPlatforms.append(platform) }
+    }
+
+    /// Puts a site on one list, or neither: a site is never both allowed and blocked.
+    public mutating func setSiteRule(_ site: String, _ rule: SiteRule) {
+        allowedSites.removeAll { $0 == site }
+        blockedSites.removeAll { $0 == site }
+        switch rule {
+        case .allow: allowedSites.append(site)
+        case .block: blockedSites.append(site)
+        case .none: break
+        }
     }
 
     /// Whether a feed platform is open for work: its Mac app is allowed, or its website is in work mode.

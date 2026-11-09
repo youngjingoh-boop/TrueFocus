@@ -216,13 +216,17 @@ public enum DriftClassifier {
 
     /// `workAccess`: feed apps (bundle IDs) and sites (platform names) you've opened up for work.
     /// They aren't drift on sight; they count like any other app or site.
-    public static func classify(_ sample: ActivitySample, contract: TaskContract, workAccess: Set<String> = []) -> DriftVerdict {
+    /// `allowedSites` never count as drift; `blockedSites` always do, unless the task names them.
+    public static func classify(_ sample: ActivitySample, contract: TaskContract, workAccess: Set<String> = [],
+                                allowedSites: [String] = [], blockedSites: [String] = []) -> DriftVerdict {
         let words = contract.topicWords
 
         if let rawHost = sample.host, let host = Blocklist.normalizedSite(rawHost) {
             if contract.sites.contains(where: { Blocklist.normalizedSite($0).map { host == $0 || host.hasSuffix("." + $0) } ?? false }) {
                 return .onTask
             }
+            if Blocklist.isAllowed(host: host, allowedSites: allowedSites) { return .neutral }
+            if Blocklist.isBlocked(host: host, blockedSites: blockedSites) { return .offTask }
             if TopicWords.overlaps(words, with: sample.text) { return .onTask }
             if let feed = Blocklist.feedSite(forHost: host), !workAccess.contains(feed.name) { return .offTask }
             if communicationSites.contains(where: { host == $0 || host.hasSuffix("." + $0) }) { return .unsure }

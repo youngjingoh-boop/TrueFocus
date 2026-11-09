@@ -133,7 +133,8 @@ final class DriftGuard: FocusEffect {
             // drift. The start panel doesn't activate TruFocus, so check it by itself.
             verdict = .neutral
         } else {
-            verdict = DriftClassifier.classify(sample, contract: contract, workAccess: Blocklist.workAccess(settings))
+            verdict = DriftClassifier.classify(sample, contract: contract, workAccess: Blocklist.workAccess(settings),
+                                               allowedSites: settings.allowedSites, blockedSites: settings.blockedSites)
             if verdict == .unsure && settings.macDriftUsesModel {
                 if let judged = DriftJudge.shared.cachedVerdict(for: sample, contract: contract) {
                     verdict = judged

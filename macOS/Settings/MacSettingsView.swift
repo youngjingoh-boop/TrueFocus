@@ -368,6 +368,16 @@ private struct BrowserTab: View {
                 }
             }
 
+            Section {
+                SiteListEditor(rule: .allow)
+                SiteListEditor(rule: .block)
+            } header: {
+                Text("Your sites")
+            } footer: {
+                Text("The same lists as the browser extension. Click its toolbar icon on any site to allow or block it.")
+                    .foregroundStyle(TF.Palette.ink2)
+            }
+
             Section("Chrome, Arc, Brave, Edge") {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("1. Click “Copy Extension Folder” below.")

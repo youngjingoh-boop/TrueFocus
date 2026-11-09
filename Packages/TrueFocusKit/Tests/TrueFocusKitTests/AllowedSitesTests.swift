@@ -60,4 +60,32 @@ final class AllowedSitesTests: XCTestCase {
         let round = try JSONDecoder().decode(TFSettings.self, from: JSONEncoder().encode(s))
         XCTAssertEqual(round.allowedSites, ["notion.so"])
     }
+
+    func testASiteSitsOnOneListOrNeither() {
+        var s = TFSettings()
+        s.setSiteRule("reddit.com", .allow)
+        XCTAssertEqual(s.allowedSites, ["reddit.com"])
+        s.setSiteRule("reddit.com", .block)
+        XCTAssertEqual(s.allowedSites, [])
+        XCTAssertEqual(s.blockedSites, ["reddit.com"])
+        s.setSiteRule("reddit.com", .block)
+        XCTAssertEqual(s.blockedSites, ["reddit.com"])
+        s.setSiteRule("reddit.com", .none)
+        XCTAssertEqual(s.blockedSites, [])
+    }
+
+    func testBlockedSitesSurviveOldSettingsAndARoundTrip() throws {
+        let old = try JSONDecoder().decode(TFSettings.self, from: Data("{}".utf8))
+        XCTAssertEqual(old.blockedSites, [])
+        var s = TFSettings()
+        s.blockedSites = ["reddit.com"]
+        let round = try JSONDecoder().decode(TFSettings.self, from: JSONEncoder().encode(s))
+        XCTAssertEqual(round.blockedSites, ["reddit.com"])
+    }
+
+    func testAnAllowedHostOverridesABlockedParent() {
+        XCTAssertTrue(Blocklist.isBlocked(host: "old.reddit.com", blockedSites: ["reddit.com"]))
+        XCTAssertFalse(Blocklist.isBlocked(host: "docs.reddit.com", blockedSites: ["reddit.com"], allowedSites: ["docs.reddit.com"]))
+        XCTAssertFalse(Blocklist.isBlocked(host: "notreddit.com", blockedSites: ["reddit.com"]))
+    }
 }

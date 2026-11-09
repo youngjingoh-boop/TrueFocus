@@ -11,6 +11,7 @@
   var boots = null;
   var adultOff = null;
   var confirming = false;
+  var tab = null;
 
   function $(id) { return document.getElementById(id); }
 
@@ -105,6 +106,8 @@
     var onIPhone = /iPhone|iPad|iPod/.test(navigator.userAgent || '');
     $('driftNote').hidden = !Core.driftNoteVisible(eff, state && state.settings, connected, onIPhone);
 
+    renderSite(eff);
+    renderSiteList(eff);
     renderAdult(eff.adult, state && state.settings, now);
 
     $('foot').textContent = eff.onTask ? 'Feeds open again when you pause, rest or stop.' : 'Feeds close when your next task starts.';
@@ -146,6 +149,113 @@
       list.appendChild(li);
     });
   }
+
+  // ─── Your own sites ───
+
+  function currentSite() {
+    return tab ? Core.pageSite(tab.url, api.runtime.getURL('')) : null;
+  }
+
+  function renderSite(eff) {
+    var site = currentSite();
+    $('site').hidden = !site;
+    if (!site) return;
+    var status = Core.siteStatus(site, eff);
+    $('siteHost').textContent = site;
+    $('siteLine').textContent = status.line;
+    $('siteActions').hidden = status.rule === 'adult';
+    setRuleButton($('siteAllow'), status.rule === 'allow', 'Always allowed', 'Always allow');
+    setRuleButton($('siteBlock'), status.rule === 'block', 'Blocked on tasks', 'Block on tasks');
+  }
+
+  function setRuleButton(button, on, onText, offText) {
+    button.classList.toggle('on', on);
+    button.setAttribute('aria-pressed', on ? 'true' : 'false');
+    button.textContent = on ? onText : offText;
+  }
+
+  function renderSiteList(eff) {
+    var rows = eff.allowedSites.map(function (site) { return { site: site, rule: 'allow' }; })
+      .concat(eff.blockedSites.map(function (site) { return { site: site, rule: 'block' }; }));
+    $('sitesCount').textContent = rows.length ? String(rows.length) : '';
+    var list = $('siteList');
+    var key = JSON.stringify(rows);
+    if (list.dataset.key === key) return; // the 1 s render loop shouldn't rebuild the list
+    list.dataset.key = key;
+    list.textContent = '';
+    rows.forEach(function (row) {
+      var li = document.createElement('li');
+      var name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = row.site;
+      var tag = document.createElement('span');
+      tag.className = 'tag ' + row.rule;
+      tag.textContent = row.rule === 'allow' ? 'Always allowed' : 'Blocked on tasks';
+      var remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'remove';
+      remove.textContent = '\u00D7';
+      remove.setAttribute('aria-label', (row.rule === 'allow' ? 'Stop allowing ' : 'Stop blocking ') + row.site);
+      remove.addEventListener('click', function () { changeSite(row.site, 'none'); });
+      li.append(name, tag, remove);
+      list.appendChild(li);
+    });
+  }
+
+  function showSiteProblem(text) {
+    $('siteProblem').textContent = text || '';
+    $('siteProblem').hidden = !text;
+  }
+
+  /** Sends a change to the app (through the background) and says so if it couldn't land. */
+  function changeSite(site, rule) {
+    showSiteProblem('');
+    return send({ type: 'site', site: site, rule: rule }).then(function (reply) {
+      if (reply && reply.ok) {
+        reopenBlockedTab(site, rule);
+        return true;
+      }
+      showSiteProblem(reply && reply.error === 'app not reachable'
+        ? 'Open TruFocus on this Mac to change your sites.'
+        : 'That didn\u2019t work. Try something like notion.so.');
+      return false;
+    });
+  }
+
+  /** Allowed from the page that stopped you: go straight to the site. */
+  function reopenBlockedTab(site, rule) {
+    if (rule !== 'allow' || !tab || !api.tabs || !api.tabs.update) return;
+    if (String(tab.url || '').indexOf(api.runtime.getURL('')) !== 0) return;
+    api.tabs.update(tab.id, { url: 'https://' + site + '/' });
+    window.close();
+  }
+
+  function pressRule(rule) {
+    var site = currentSite();
+    if (!site) return;
+    var eff = Core.effective(state, prefs, Date.now(), adultOff);
+    var status = Core.siteStatus(site, eff);
+    // Pressing the one that's on removes the entry behind it, which may be a parent domain.
+    if (status.rule === rule) changeSite(status.entry || site, 'none');
+    else changeSite(site, rule);
+  }
+
+  $('siteAllow').addEventListener('click', function () { pressRule('allow'); });
+  $('siteBlock').addEventListener('click', function () { pressRule('block'); });
+
+  $('siteForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var rule = e.submitter && e.submitter.value === 'block' ? 'block' : 'allow';
+    var site = Core.normalizedSite($('siteEntry').value);
+    if (!site) {
+      showSiteProblem('That doesn\u2019t look like a site. Try something like notion.so.');
+      return;
+    }
+    changeSite(site, rule).then(function (ok) {
+      if (ok) $('siteEntry').value = '';
+    });
+  });
+  $('siteEntry').addEventListener('input', function () { showSiteProblem(''); });
 
   function renderAdult(adult, settings, now) {
     var status = $('adultStatus');
@@ -246,6 +356,14 @@
     adultOff = typeof data[KEY.adultOff] === 'number' ? data[KEY.adultOff] : null;
     render();
   }, render);
+
+  // Host permissions let the popup read the active tab's address; nothing else is kept.
+  if (api.tabs && api.tabs.query) {
+    Promise.resolve(api.tabs.query({ active: true, currentWindow: true })).then(function (tabs) {
+      tab = tabs && tabs[0] ? tabs[0] : null;
+      render();
+    }, function () { /* no tab to speak of */ });
+  }
 
   send({ type: 'refresh' });
   setInterval(render, 1000);
