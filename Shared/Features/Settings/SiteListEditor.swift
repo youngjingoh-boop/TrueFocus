@@ -27,9 +27,9 @@ struct SiteListEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.body).foregroundStyle(TF.Palette.ink)
+                Text(title).font(.tf(.body)).foregroundStyle(TF.Palette.ink)
                 Text(explanation)
-                    .font(.footnote)
+                    .font(.tf(.footnote))
                     .foregroundStyle(TF.Palette.ink2)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -40,11 +40,11 @@ struct SiteListEditor: View {
                     ForEach(sites, id: \.self) { site in
                         HStack(spacing: 10) {
                             Image(systemName: rule == .block ? "nosign" : "checkmark.shield")
-                                .font(.system(size: 13, weight: .semibold))
+                                .font(.system(size: TFZoom.pt(13), weight: .semibold))
                                 .foregroundStyle(rule == .block ? TF.Palette.signalText : TF.Palette.restText)
                                 .frame(width: 22)
                             Text(site)
-                                .font(.body)
+                                .font(.tf(.body))
                                 .foregroundStyle(TF.Palette.ink)
                                 .lineLimit(1)
                             Spacer()
@@ -53,7 +53,7 @@ struct SiteListEditor: View {
                                 controller.updateSettings { $0.setSiteRule(site, .none) }
                             } label: {
                                 Image(systemName: "minus.circle.fill")
-                                    .font(.system(size: 17))
+                                    .font(.system(size: TFZoom.pt(17)))
                                     .foregroundStyle(TF.Palette.ink3)
                                     .frame(width: 44, height: 44)
                                     .contentShape(Rectangle())
@@ -71,7 +71,7 @@ struct SiteListEditor: View {
             HStack(spacing: 8) {
                 TextField(rule == .block ? "Add a site, like reddit.com" : "Add a site, like notion.so", text: $entry)
                     .textFieldStyle(.plain)
-                    .font(.body)
+                    .font(.tf(.body))
                     .focused($entryFocused)
                     .autocorrectionDisabled()
                     #if os(iOS)
@@ -91,7 +91,7 @@ struct SiteListEditor: View {
             }
             if let problem {
                 Text(problem)
-                    .font(.footnote)
+                    .font(.tf(.footnote))
                     .foregroundStyle(TF.Palette.alarm)
             }
         }

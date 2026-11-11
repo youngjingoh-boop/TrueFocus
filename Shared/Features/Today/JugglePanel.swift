@@ -108,12 +108,12 @@ struct JuggleRow: View {
                     glyph.frame(width: 18)
                     VStack(alignment: .leading, spacing: 1) {
                         Text(task.title)
-                            .font(.system(size: 15, weight: isNow ? .semibold : .regular))
+                            .font(.system(size: TFZoom.pt(15), weight: isNow ? .semibold : .regular))
                             .foregroundStyle(onDark ? TF.Palette.nightInk : TF.Palette.ink)
                             .lineLimit(1)
                         if let detail {
                             Text(detail)
-                                .font(.system(size: 12))
+                                .font(.system(size: TFZoom.pt(12)))
                                 .foregroundStyle(onDark ? TF.Palette.nightInk2 : TF.Palette.ink2)
                                 .lineLimit(1)
                         }
@@ -136,7 +136,7 @@ struct JuggleRow: View {
                 actions
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: TFZoom.pt(13), weight: .semibold))
                     .foregroundStyle(onDark ? TF.Palette.nightInk2 : TF.Palette.ink3)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
@@ -158,11 +158,11 @@ struct JuggleRow: View {
             ModeDot(mode: controller.mode, size: 8)
         } else if task.waitingSince != nil {
             Image(systemName: "hourglass")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: TFZoom.pt(12), weight: .semibold))
                 .foregroundStyle(onDark ? TF.Palette.nightInk2 : TF.Palette.ink2)
         } else {
             Image(systemName: "arrow.left.arrow.right")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: TFZoom.pt(11), weight: .semibold))
                 .foregroundStyle(onDark ? TF.Palette.nightInk2 : TF.Palette.ink3)
         }
     }
@@ -223,9 +223,9 @@ struct JuggleAddMenu: View {
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: "plus")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.system(size: TFZoom.pt(11), weight: .bold))
                 Text(label ?? "Add")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: TFZoom.pt(13), weight: .medium))
             }
             .foregroundStyle(onDark ? TF.Palette.nightInk2 : TF.Palette.ink2)
             .frame(minHeight: 44)

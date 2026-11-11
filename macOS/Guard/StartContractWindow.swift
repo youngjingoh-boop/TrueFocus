@@ -97,11 +97,11 @@ private struct StartContractView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("STARTING").tfEyebrowStyle(TF.textTint(for: .focus))
                 Text("Where does “\(TFFormat.truncate(contract.taskTitle, to: 48))” happen?")
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.system(size: TFZoom.pt(18), weight: .semibold))
                     .foregroundStyle(TF.Palette.ink)
                     .fixedSize(horizontal: false, vertical: true)
                 Text("Pick what this task uses. Anything else for more than a minute or two gets a nudge.")
-                    .font(.system(size: 12.5))
+                    .font(.system(size: TFZoom.pt(12.5)))
                     .foregroundStyle(TF.Palette.ink2)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -163,7 +163,7 @@ private struct StartContractView: View {
                     .keyboardShortcut(.defaultAction)
             }
             Text("Only app names, window titles and sites are read, on this Mac, while a task runs. No screenshots or page contents.")
-                .font(.system(size: 11))
+                .font(.system(size: TFZoom.pt(11)))
                 .foregroundStyle(TF.Palette.ink3)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -254,10 +254,10 @@ private struct Chip: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 5) {
-                if on { Image(systemName: "checkmark").font(.system(size: 9, weight: .bold)) }
+                if on { Image(systemName: "checkmark").font(.system(size: TFZoom.pt(9), weight: .bold)) }
                 Text(text).lineLimit(1)
             }
-            .font(.system(size: 12.5, weight: .medium))
+            .font(.system(size: TFZoom.pt(12.5), weight: .medium))
             .foregroundStyle(on ? TF.Palette.onSignal : TF.Palette.ink)
             .padding(.horizontal, 11)
             .padding(.vertical, 6)

@@ -32,6 +32,9 @@ struct MacRootView: View {
                     .zIndex(3)
             }
         }
+        .overlay(alignment: .top) { ZoomBadge() }
+        // Text with no font of its own still follows the zoom.
+        .font(.tf(.body))
         .animation(TF.Motion.soft, value: controller.isFocusScreenPresented)
         .animation(TF.Motion.snappy, value: ui.showQuickAdd)
         // Narrow enough to sit beside your work as a column, like a phone.
@@ -77,7 +80,7 @@ private struct MacTopBar: View {
 
             SettingsLink {
                 Image(systemName: "gearshape")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: TFZoom.pt(14), weight: .medium))
                     .foregroundStyle(TF.Palette.ink2)
                     .frame(width: 30, height: 30)
                     .contentShape(Rectangle())
@@ -114,10 +117,10 @@ private struct MacTopBar: View {
                     Group {
                         if compact {
                             Image(systemName: section.symbol)
-                                .font(.system(size: 13, weight: selected ? .semibold : .medium))
+                                .font(.system(size: TFZoom.pt(13), weight: selected ? .semibold : .medium))
                         } else {
                             Text(section.title)
-                                .font(.system(size: 13, weight: selected ? .semibold : .medium))
+                                .font(.system(size: TFZoom.pt(13), weight: selected ? .semibold : .medium))
                                 .lineLimit(1)
                                 .fixedSize()
                         }
@@ -156,7 +159,7 @@ private struct MacTopBar: View {
                     ModeDot(mode: snapshot.mode)
                     if showsTitle {
                         Text(TFFormat.truncate(snapshot.headline ?? snapshot.mode.label, to: 28))
-                            .font(.system(size: 12.5, weight: .medium))
+                            .font(.system(size: TFZoom.pt(12.5), weight: .medium))
                             .foregroundStyle(TF.Palette.ink)
                             .lineLimit(1)
                     }
@@ -201,11 +204,11 @@ private struct QuickAddOverlay: View {
             VStack(spacing: 10) {
                 HStack(spacing: 14) {
                     Image(systemName: "plus")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.system(size: TFZoom.pt(18), weight: .semibold))
                         .foregroundStyle(TF.Palette.signal)
                     TextField("New task", text: $text)
                         .textFieldStyle(.plain)
-                        .font(.system(size: 22, weight: .medium))
+                        .font(.system(size: TFZoom.pt(22), weight: .medium))
                         .foregroundStyle(TF.Palette.ink)
                         .focused($focused)
                         .onSubmit(add)
@@ -247,4 +250,35 @@ private struct QuickAddOverlay: View {
 enum MacLayout {
     /// The main window's narrowest width.
     static let minWidth: CGFloat = 360
+}
+
+/// Shows the zoom level for a moment after ⌘+ or ⌘−, like a browser.
+private struct ZoomBadge: View {
+    @State private var shown: Int?
+    @State private var hide: Task<Void, Never>?
+
+    var body: some View {
+        Group {
+            if let shown {
+                Text("\(shown)%")
+                    .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(TF.Palette.paper)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 7)
+                    .background(Capsule().fill(TF.Palette.ink.opacity(0.85)))
+                    .padding(.top, 60)
+                    .transition(.opacity)
+                    .allowsHitTesting(false)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .tfZoomChanged)) { _ in
+            withAnimation(TF.Motion.snappy) { shown = TFZoom.shared.percent }
+            hide?.cancel()
+            hide = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1.1))
+                guard !Task.isCancelled else { return }
+                withAnimation(TF.Motion.soft) { shown = nil }
+            }
+        }
+    }
 }

@@ -225,7 +225,7 @@ struct TodayView: View {
                 .frame(height: 1)
             HStack(spacing: 6) {
                 Image(systemName: bucket == .tomorrow ? "sunrise" : "tray")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: TFZoom.pt(11), weight: .semibold))
                     .foregroundStyle(TF.Palette.ink2)
                 Text(bucket.label).tfEyebrowStyle(TF.Palette.ink2)
                 Spacer()
@@ -289,7 +289,7 @@ struct TodayView: View {
                 }
                 .padding(.trailing, -12)
                 .buttonStyle(.plain)
-                .font(.system(size: 17, weight: .medium))
+                .font(.system(size: TFZoom.pt(17), weight: .medium))
                 .foregroundStyle(TF.Palette.ink2)
 
                 momentum
@@ -425,13 +425,13 @@ struct MorningCard: View {
                         .font(.tfTitle)
                         .foregroundStyle(TF.Palette.ink)
                     Text("Dump everything on your mind here.")
-                        .font(.subheadline)
+                        .font(.tf(.subheadline))
                         .foregroundStyle(TF.Palette.ink2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 8)
                 Image(systemName: "arrow.right")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: TFZoom.pt(17), weight: .semibold))
                     .foregroundStyle(TF.Palette.onSignal)
                     .frame(width: 44, height: 44)
                     .background(Circle().fill(TF.Palette.signal))

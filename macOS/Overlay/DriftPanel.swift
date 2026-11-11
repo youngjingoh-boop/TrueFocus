@@ -97,15 +97,15 @@ private struct DriftCard: View {
                     .padding(.top, 5)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: TFZoom.pt(14), weight: .semibold))
                         .foregroundStyle(TF.Palette.ink)
                     Text(message)
-                        .font(.system(size: 13))
+                        .font(.system(size: TFZoom.pt(13)))
                         .foregroundStyle(TF.Palette.ink)
                         .fixedSize(horizontal: false, vertical: true)
                     if let breadcrumb, !breadcrumb.isEmpty {
                         Text("↳ \(breadcrumb)")
-                            .font(.system(size: 12.5))
+                            .font(.system(size: TFZoom.pt(12.5)))
                             .foregroundStyle(TF.Palette.ink2)
                             .lineLimit(2)
                             .fixedSize(horizontal: false, vertical: true)
@@ -114,7 +114,7 @@ private struct DriftCard: View {
                 Spacer(minLength: 8)
                 Button(action: onClose) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(.system(size: TFZoom.pt(10), weight: .bold))
                         .foregroundStyle(TF.Palette.ink2)
                         .frame(width: 22, height: 22)
                         .contentShape(Rectangle())
@@ -156,7 +156,7 @@ private struct CardButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 13, weight: .semibold))
+            .font(.system(size: TFZoom.pt(13), weight: .semibold))
             .foregroundStyle(prominent ? TF.Palette.onSignal : TF.Palette.ink)
             .lineLimit(1)
             .fixedSize()

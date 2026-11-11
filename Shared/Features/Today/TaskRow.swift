@@ -57,7 +57,7 @@ struct TaskRow: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 TextField("Task", text: $draft, axis: .vertical)
-                    .font(.body.weight(liveTint != nil ? .semibold : .regular))
+                    .font(.tf(.body).weight(liveTint != nil ? .semibold : .regular))
                     .textFieldStyle(.plain)
                     .foregroundStyle(titleColor)
                     .strikethrough(task.isDone, color: TF.Palette.ink3)
@@ -83,7 +83,7 @@ struct TaskRow: View {
 
                 if !task.breadcrumb.isEmpty, !task.isDone {
                     Text("↳ \(task.breadcrumb)")
-                        .font(.footnote)
+                        .font(.tf(.footnote))
                         .foregroundStyle(TF.Palette.ink2)
                         .lineLimit(2)
                 }
@@ -91,7 +91,7 @@ struct TaskRow: View {
                     Button { onMemo(task) } label: {
                         Label(memoPreview, systemImage: "note.text")
                             .labelStyle(MemoLineLabelStyle())
-                            .font(.footnote)
+                            .font(.tf(.footnote))
                             .foregroundStyle(TF.Palette.ink2)
                             .lineLimit(1)
                             .contentShape(Rectangle())
@@ -238,7 +238,7 @@ struct TaskRow: View {
                 Image(systemName: "plus")
                 Image(systemName: side == .above ? "arrow.up" : "arrow.down")
             }
-            .font(.system(size: 9, weight: .bold))
+            .font(.system(size: TFZoom.pt(9), weight: .bold))
             .foregroundStyle(TF.Palette.ink2)
             .frame(width: 30, height: 44)
             .contentShape(Rectangle())
@@ -253,7 +253,7 @@ struct TaskRow: View {
             priorityItems
         } label: {
             Image(systemName: task.taskPriority == .none ? "flag" : "flag.fill")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: TFZoom.pt(12), weight: .semibold))
                 .foregroundStyle(priorityColor ?? TF.Palette.ink3)
                 .frame(width: 34, height: 44)
                 .contentShape(Rectangle())
@@ -284,7 +284,7 @@ struct TaskRow: View {
     private var memoButton: some View {
         Button { onMemo(task) } label: {
             Image(systemName: memoPreview == nil ? "note.text.badge.plus" : "note.text")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: TFZoom.pt(13), weight: .semibold))
                 .foregroundStyle(memoPreview == nil ? TF.Palette.ink3 : TF.Palette.ink2)
                 .frame(width: 34, height: 44)
                 .contentShape(Rectangle())
@@ -303,7 +303,7 @@ struct TaskRow: View {
             #endif
         } label: {
             Image(systemName: "bolt.fill")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: TFZoom.pt(13), weight: .semibold))
                 .foregroundStyle(TF.Palette.ink3)
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
@@ -419,7 +419,7 @@ struct InsertTaskField: View {
         HStack(alignment: .top, spacing: 12) {
             NewTaskCircle()
             TextField("New task", text: $text, axis: .vertical)
-                .font(.body)
+                .font(.tf(.body))
                 .textFieldStyle(.plain)
                 .foregroundStyle(TF.Palette.ink)
                 .focused($focused)
@@ -469,7 +469,7 @@ private struct NewTaskCircle: View {
     var body: some View {
         Circle()
             .strokeBorder(TF.Palette.ink3.opacity(0.6), style: StrokeStyle(lineWidth: 1.5, dash: [2.5, 3]))
-            .frame(width: 22, height: 22)
+            .frame(width: TFZoom.pt(22), height: TFZoom.pt(22))
             .padding(.top, 1)
     }
 }
@@ -496,7 +496,7 @@ struct NewTaskRow: View {
         HStack(alignment: .top, spacing: 12) {
             NewTaskCircle()
             TextField(placeholder, text: $text, axis: .vertical)
-                .font(.body)
+                .font(.tf(.body))
                 .textFieldStyle(.plain)
                 .foregroundStyle(TF.Palette.ink)
                 .focused($focused)

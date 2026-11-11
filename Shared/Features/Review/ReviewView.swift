@@ -67,7 +67,7 @@ struct ReviewView: View {
                             HStack(alignment: .firstTextBaseline) {
                                 Image(systemName: "checkmark.circle.fill").foregroundStyle(TF.Palette.signal)
                                 Text(task.title)
-                                    .font(.body)
+                                    .font(.tf(.body))
                                     .foregroundStyle(TF.Palette.ink)
                                 Spacer()
                                 Text(TFFormat.short(task.focusSeconds))
@@ -82,7 +82,7 @@ struct ReviewView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("One line on today").tfEyebrowStyle()
                     TextField("What worked, what leaked?", text: $reflection, axis: .vertical)
-                        .font(.body)
+                        .font(.tf(.body))
                         .textFieldStyle(.plain)
                         .padding(14)
                         .background(RoundedRectangle(cornerRadius: TF.Radius.control).fill(TF.Palette.surface2))
@@ -112,7 +112,7 @@ struct ReviewView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .lastTextBaseline, spacing: 10) {
                 Text("\(stats.momentum)")
-                    .font(.system(size: 72, weight: .thin).monospacedDigit())
+                    .font(.system(size: TFZoom.pt(72), weight: .thin).monospacedDigit())
                     .foregroundStyle(TF.Palette.ink)
                     .contentTransition(.numericText())
                 Text("momentum").tfEyebrowStyle()
@@ -126,7 +126,7 @@ struct ReviewView: View {
             }
             MomentumBar(value: stats.momentum, height: 4)
             Text(verdict(stats))
-                .font(.subheadline)
+                .font(.tf(.subheadline))
                 .foregroundStyle(TF.Palette.ink2)
         }
         .padding(20)
@@ -169,7 +169,7 @@ struct ReviewView: View {
             }
             .buttonStyle(PrimaryButtonStyle())
             Text("Stops the clock and the nudges. Anything unfinished rolls to tomorrow.")
-                .font(.footnote)
+                .font(.tf(.footnote))
                 .foregroundStyle(TF.Palette.ink3)
                 .frame(maxWidth: .infinity)
                 .multilineTextAlignment(.center)

@@ -82,7 +82,8 @@ enum NoteFormatter {
 
     static var textScale: CGFloat {
         let stored = UserDefaults.standard.double(forKey: scaleKey)
-        return stored > 0 ? CGFloat(stored) : 1
+        // On the Mac the page zoom (⌘+ ⌘−) multiplies the note's own text size.
+        return (stored > 0 ? CGFloat(stored) : 1) * TFZoom.pt(1)
     }
 
     /// Steps the text size up or down (0 resets it), and tells open editors.
@@ -91,7 +92,8 @@ enum NoteFormatter {
         if direction == 0 {
             next = 1
         } else {
-            let index = textScales.firstIndex { $0 >= textScale - 0.001 } ?? 1
+            let own = textScale / TFZoom.pt(1)
+            let index = textScales.firstIndex { $0 >= own - 0.001 } ?? 1
             next = textScales[min(max(index + direction, 0), textScales.count - 1)]
         }
         UserDefaults.standard.set(Double(next), forKey: scaleKey)

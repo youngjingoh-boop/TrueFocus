@@ -68,7 +68,7 @@ struct FocusScreen: View {
         HStack {
             Button(action: close) {
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: TFZoom.pt(15), weight: .semibold))
                     .foregroundStyle(TF.Palette.nightInk2)
                     .frame(width: 36, height: 36)
                     .background(Circle().fill(Color.white.opacity(0.06)))
@@ -254,7 +254,7 @@ private struct FocusStage: View {
     var body: some View {
         VStack(spacing: 22) {
             Text(snapshot.taskTitle ?? "")
-                .font(.system(size: 30, weight: .semibold))
+                .font(.system(size: TFZoom.pt(30), weight: .semibold))
                 .foregroundStyle(TF.Palette.nightInk)
                 .multilineTextAlignment(.center)
                 .lineLimit(4)
@@ -289,17 +289,17 @@ private struct ThinkStage: View {
     var body: some View {
         VStack(spacing: 22) {
             Text("Think.")
-                .font(.system(size: 54, weight: .thin))
+                .font(.system(size: TFZoom.pt(54), weight: .thin))
                 .foregroundStyle(TF.Palette.think)
 
             Text(snapshot.taskTitle ?? "")
-                .font(.system(size: 22, weight: .semibold))
+                .font(.system(size: TFZoom.pt(22), weight: .semibold))
                 .foregroundStyle(TF.Palette.nightInk)
                 .multilineTextAlignment(.center)
                 .lineLimit(3)
 
             Text(prompts[promptIndex % prompts.count])
-                .font(.title3)
+                .font(.tf(.title3))
                 .foregroundStyle(TF.Palette.nightInk2)
                 .multilineTextAlignment(.center)
                 .contentTransition(.opacity)
@@ -356,7 +356,7 @@ private struct RestStage: View {
                             .foregroundStyle(TF.Palette.nightInk)
                             .contentTransition(.numericText())
                         Text(overrun < 0 ? "Breathe." : line.title)
-                            .font(.headline)
+                            .font(.tf(.headline))
                             .foregroundStyle(overrun < 0 ? TF.Palette.nightInk2 : tint)
                     }
                 }
@@ -365,7 +365,7 @@ private struct RestStage: View {
                 VStack(spacing: 6) {
                     Text("Next").tfEyebrowStyle(TF.Palette.nightInk2)
                     Text(snapshot.nextTaskTitle ?? "—")
-                        .font(.system(size: 24, weight: .semibold))
+                        .font(.system(size: TFZoom.pt(24), weight: .semibold))
                         .foregroundStyle(TF.Palette.nightInk)
                         .multilineTextAlignment(.center)
                         .lineLimit(3)
@@ -388,7 +388,7 @@ private struct BreakStage: View {
     var body: some View {
         VStack(spacing: 24) {
             Text("Rest.")
-                .font(.system(size: 54, weight: .thin))
+                .font(.system(size: TFZoom.pt(54), weight: .thin))
                 .foregroundStyle(TF.Palette.rest)
 
             ZStack {
@@ -402,7 +402,7 @@ private struct BreakStage: View {
             VStack(spacing: 6) {
                 Text("Back to").tfEyebrowStyle(TF.Palette.nightInk2)
                 Text(snapshot.nextTaskTitle ?? "—")
-                    .font(.system(size: 24, weight: .semibold))
+                    .font(.system(size: TFZoom.pt(24), weight: .semibold))
                     .foregroundStyle(TF.Palette.nightInk)
                     .multilineTextAlignment(.center)
                     .lineLimit(3)
@@ -425,32 +425,32 @@ private struct IdleStage: View {
             } else if let next = controller.nextTask {
                 Text("Up next").tfEyebrowStyle(TF.Palette.nightInk2)
                 Text(next.title)
-                    .font(.system(size: 30, weight: .semibold))
+                    .font(.system(size: TFZoom.pt(30), weight: .semibold))
                     .foregroundStyle(TF.Palette.nightInk)
                     .multilineTextAlignment(.center)
             } else if let waiting = controller.longestWaiting {
                 Text("All waiting").tfEyebrowStyle(TF.Palette.nightInk2)
                 Text(waiting.title)
-                    .font(.system(size: 30, weight: .semibold))
+                    .font(.system(size: TFZoom.pt(30), weight: .semibold))
                     .foregroundStyle(TF.Palette.nightInk)
                     .multilineTextAlignment(.center)
                 Text("Waiting \(TFFormat.short(Date().timeIntervalSince(waiting.waitingSince ?? Date()))). Nudge it or add something new.")
-                    .font(.callout)
+                    .font(.tf(.callout))
                     .foregroundStyle(TF.Palette.nightInk2)
                     .multilineTextAlignment(.center)
             } else if !controller.doneToday.isEmpty {
                 Text("Cleared.")
-                    .font(.system(size: 54, weight: .thin))
+                    .font(.system(size: TFZoom.pt(54), weight: .thin))
                     .foregroundStyle(TF.Palette.rest)
                 Text("\(controller.doneToday.count) done today. That's the day.")
-                    .font(.title3)
+                    .font(.tf(.title3))
                     .foregroundStyle(TF.Palette.nightInk2)
             } else {
                 Text("Nothing planned.")
-                    .font(.system(size: 40, weight: .thin))
+                    .font(.system(size: TFZoom.pt(40), weight: .thin))
                     .foregroundStyle(TF.Palette.nightInk)
                 Text("Add a task on Today, then come back.")
-                    .font(.title3)
+                    .font(.tf(.title3))
                     .foregroundStyle(TF.Palette.nightInk2)
             }
         }
@@ -466,13 +466,13 @@ private struct PausedStage: View {
         VStack(spacing: 18) {
             HStack(spacing: 7) {
                 Image(systemName: "pause.fill")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: TFZoom.pt(10), weight: .bold))
                 Text("Paused").tfEyebrowStyle(TF.Palette.nightInk2)
             }
             .foregroundStyle(TF.Palette.nightInk2)
 
             Text(task.title)
-                .font(.system(size: 30, weight: .semibold))
+                .font(.system(size: TFZoom.pt(30), weight: .semibold))
                 .foregroundStyle(TF.Palette.nightInk)
                 .multilineTextAlignment(.center)
                 .lineLimit(4)
@@ -484,7 +484,7 @@ private struct PausedStage: View {
 
             if !task.breadcrumb.isEmpty {
                 Text("↳ \(task.breadcrumb)")
-                    .font(.callout)
+                    .font(.tf(.callout))
                     .foregroundStyle(TF.Palette.nightInk2)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
@@ -529,7 +529,7 @@ private struct ClockChip: View {
             withAnimation(TF.Motion.snappy) { action() }
         } label: {
             Label(title, systemImage: symbol)
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: TFZoom.pt(14), weight: .semibold))
                 .foregroundStyle(TF.Palette.nightInk)
                 .padding(.horizontal, 18)
                 .frame(minHeight: 36)
@@ -560,11 +560,11 @@ private struct BreadcrumbField: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "arrow.turn.down.right")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: TFZoom.pt(13), weight: .semibold))
                 .foregroundStyle(TF.Palette.nightInk2)
             TextField(placeholder, text: $text)
                 .textFieldStyle(.plain)
-                .font(.body)
+                .font(.tf(.body))
                 .foregroundStyle(TF.Palette.nightInk)
                 .focused($focused)
                 .onSubmit { save() }
@@ -674,7 +674,7 @@ struct TaskSwitcher: View {
                     Text("Leaving “\(leaving.title)” — where were you?").tfEyebrowStyle()
                     TextField("Next step when you come back", text: $crumb)
                         .textFieldStyle(.plain)
-                        .font(.body)
+                        .font(.tf(.body))
                         .padding(12)
                         .background(RoundedRectangle(cornerRadius: TF.Radius.control).fill(TF.Palette.surface2))
                 }
@@ -722,14 +722,14 @@ struct TaskSwitcher: View {
         } label: {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: task.waitingSince != nil ? "hourglass" : task.inPlay ? "square.stack.3d.up.fill" : "circle")
-                    .font(.system(size: 15))
+                    .font(.system(size: TFZoom.pt(15)))
                     .foregroundStyle(task.inPlay ? TF.Palette.think : TF.Palette.ink3)
                     .frame(width: 22)
                     .padding(.top, 2)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(task.title).font(.body).foregroundStyle(TF.Palette.ink)
+                    Text(task.title).font(.tf(.body)).foregroundStyle(TF.Palette.ink)
                     if !task.breadcrumb.isEmpty {
-                        Text("↳ \(task.breadcrumb)").font(.footnote).foregroundStyle(TF.Palette.ink2)
+                        Text("↳ \(task.breadcrumb)").font(.tf(.footnote)).foregroundStyle(TF.Palette.ink2)
                     }
                 }
                 Spacer()
