@@ -396,7 +396,7 @@ struct TodayView: View {
         #else
         FlowSettingsView()
             .environment(controller)
-            .frame(minWidth: 460, minHeight: 520)
+            .frame(minWidth: 360, idealWidth: 460, minHeight: 420, idealHeight: 520)
         #endif
     }
 

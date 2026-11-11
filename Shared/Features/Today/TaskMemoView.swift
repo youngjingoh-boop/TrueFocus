@@ -18,7 +18,7 @@ struct TaskMemoView: View {
                 }
         }
         #if os(macOS)
-        .frame(minWidth: 640, idealWidth: 760, minHeight: 520, idealHeight: 700)
+        .frame(minWidth: 360, idealWidth: 760, minHeight: 420, idealHeight: 700)
         #endif
         .onDisappear {
             // After the editor has saved its last words: a memo with nothing in it goes away.

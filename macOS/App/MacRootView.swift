@@ -34,7 +34,8 @@ struct MacRootView: View {
         }
         .animation(TF.Motion.soft, value: controller.isFocusScreenPresented)
         .animation(TF.Motion.snappy, value: ui.showQuickAdd)
-        .frame(minWidth: 760, minHeight: 560)
+        // Narrow enough to sit beside your work as a column, like a phone.
+        .frame(minWidth: MacLayout.minWidth, minHeight: 440)
         .tfPage()
         .onAppear { WindowOpener.shared.openWindow = openWindow }
         .onOpenURL { url in MacURLRouter.handle(url) }
@@ -65,16 +66,14 @@ private struct MacTopBar: View {
             // Room for the traffic lights of the hidden title bar.
             Color.clear.frame(width: 64, height: 1)
 
-            Spacer(minLength: 12)
-
-            // The tabs always show their full names; the now pill gives way first.
-            segmented
-                .fixedSize()
-                .layoutPriority(1)
-
-            Spacer(minLength: 12)
-
-            nowPill
+            // Wide: full tab names and the whole now pill. Narrower, the pill drops its title,
+            // then the tabs become icons, then the pill goes (the Today page shows it anyway).
+            ViewThatFits(in: .horizontal) {
+                bar(compactTabs: false, pill: .full)
+                bar(compactTabs: false, pill: .timeOnly)
+                bar(compactTabs: true, pill: .timeOnly)
+                bar(compactTabs: true, pill: .none)
+            }
 
             SettingsLink {
                 Image(systemName: "gearshape")
@@ -90,19 +89,41 @@ private struct MacTopBar: View {
         .frame(height: 52)
     }
 
-    private var segmented: some View {
+    private enum PillStyle { case full, timeOnly, none }
+
+    private func bar(compactTabs: Bool, pill: PillStyle) -> some View {
+        HStack(spacing: 12) {
+            Spacer(minLength: 0)
+            segmented(compact: compactTabs)
+                .fixedSize()
+            Spacer(minLength: 0)
+            if pill != .none {
+                nowPill(showsTitle: pill == .full)
+                    .fixedSize()
+            }
+        }
+    }
+
+    private func segmented(compact: Bool) -> some View {
         HStack(spacing: 2) {
             ForEach(MacSection.allCases) { section in
                 let selected = ui.section == section
                 Button {
                     withAnimation(TF.Motion.snappy) { ui.section = section }
                 } label: {
-                    Text(section.title)
-                        .font(.system(size: 13, weight: selected ? .semibold : .medium))
-                        .lineLimit(1)
-                        .fixedSize()
+                    Group {
+                        if compact {
+                            Image(systemName: section.symbol)
+                                .font(.system(size: 13, weight: selected ? .semibold : .medium))
+                        } else {
+                            Text(section.title)
+                                .font(.system(size: 13, weight: selected ? .semibold : .medium))
+                                .lineLimit(1)
+                                .fixedSize()
+                        }
+                    }
                         .foregroundStyle(selected ? TF.Palette.ink : TF.Palette.ink2)
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, compact ? 12 : 16)
                         .frame(height: 28)
                         .background {
                             if selected {
@@ -115,6 +136,8 @@ private struct MacTopBar: View {
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
+                .help(section.title)
+                .accessibilityLabel(section.title)
             }
         }
         .padding(3)
@@ -123,7 +146,7 @@ private struct MacTopBar: View {
 
     /// What's running, at a glance. Click to enter the focus screen.
     @ViewBuilder
-    private var nowPill: some View {
+    private func nowPill(showsTitle: Bool) -> some View {
         let snapshot = controller.snapshot
         if snapshot.mode.isActive {
             Button {
@@ -131,10 +154,12 @@ private struct MacTopBar: View {
             } label: {
                 HStack(spacing: 8) {
                     ModeDot(mode: snapshot.mode)
-                    Text(TFFormat.truncate(snapshot.headline ?? snapshot.mode.label, to: 28))
-                        .font(.system(size: 12.5, weight: .medium))
-                        .foregroundStyle(TF.Palette.ink)
-                        .lineLimit(1)
+                    if showsTitle {
+                        Text(TFFormat.truncate(snapshot.headline ?? snapshot.mode.label, to: 28))
+                            .font(.system(size: 12.5, weight: .medium))
+                            .foregroundStyle(TF.Palette.ink)
+                            .lineLimit(1)
+                    }
                     if let start = snapshot.modeStartedAt {
                         if snapshot.mode == .rest, let end = snapshot.plannedRestEnd {
                             CountdownText(until: end)
@@ -187,7 +212,8 @@ private struct QuickAddOverlay: View {
                         .onExitCommand(perform: close)
                 }
                 .padding(.horizontal, 22)
-                .frame(width: 580, height: 64)
+                .frame(maxWidth: 580)
+                .frame(height: 64)
                 .tfGlass(cornerRadius: 20)
                 .shadow(color: .black.opacity(0.18), radius: 30, x: 0, y: 16)
 
@@ -196,6 +222,7 @@ private struct QuickAddOverlay: View {
                     .foregroundStyle(TF.Palette.ink2)
             }
             .padding(.top, 96)
+            .padding(.horizontal, 16)
         }
         .onAppear { focused = true }
     }
@@ -215,4 +242,9 @@ private struct QuickAddOverlay: View {
     private func close() {
         ui.showQuickAdd = false
     }
+}
+
+enum MacLayout {
+    /// The main window's narrowest width.
+    static let minWidth: CGFloat = 360
 }
