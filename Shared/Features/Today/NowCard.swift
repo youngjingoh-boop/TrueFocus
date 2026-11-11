@@ -38,13 +38,17 @@ struct NowCard: View {
                     .lineLimit(2)
             }
 
-            HStack(alignment: .center, spacing: 12) {
-                timer(for: snapshot)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .foregroundStyle(mode == .rest && snapshot.isRestOverrun(now: Date()) ? TF.Palette.signal : TF.Palette.ink)
-                Spacer(minLength: 8)
-                actions(for: snapshot, tint: tint)
+            // Side by side when there's room; in a narrow window the buttons go under the clock.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .center, spacing: 12) {
+                    clock(for: snapshot, mode: mode)
+                    Spacer(minLength: 8)
+                    actions(for: snapshot, tint: tint)
+                }
+                VStack(alignment: .leading, spacing: 12) {
+                    clock(for: snapshot, mode: mode)
+                    actions(for: snapshot, tint: tint)
+                }
             }
 
             // One box: the main task above, the rest of what you're juggling below.
@@ -58,6 +62,12 @@ struct NowCard: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityHint("Opens the focus screen")
+    }
+
+    private func clock(for snapshot: LiveSnapshot, mode: FlowMode) -> some View {
+        timer(for: snapshot)
+            .lineLimit(1)
+            .foregroundStyle(mode == .rest && snapshot.isRestOverrun(now: Date()) ? TF.Palette.signal : TF.Palette.ink)
     }
 
     private func label(for snapshot: LiveSnapshot) -> String {

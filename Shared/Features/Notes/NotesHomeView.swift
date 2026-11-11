@@ -42,7 +42,7 @@ struct NotesHomeView: View {
         #else
         NavigationSplitView {
             listContent
-                .navigationSplitViewColumnWidth(min: 220, ideal: 270, max: 420)
+                .navigationSplitViewColumnWidth(min: 170, ideal: 270, max: 420)
                 .searchable(text: $search, placement: .sidebar, prompt: "Search")
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) { composeButton }

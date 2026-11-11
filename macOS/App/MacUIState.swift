@@ -15,6 +15,14 @@ enum MacSection: String, CaseIterable, Identifiable {
         case .review: return "Review"
         }
     }
+    /// The tab's icon, for a window too narrow for the names.
+    var symbol: String {
+        switch self {
+        case .today: return "sun.max"
+        case .notes: return "note.text"
+        case .review: return "chart.bar.xaxis"
+        }
+    }
 }
 
 /// Window-level UI state that menu commands and hotkeys also need to reach.
