@@ -5,7 +5,16 @@ import UserNotifications
 
 @MainActor
 final class MacAppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
+    private var zoomKeys: Any?
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // ⌘= zooms in too (the menu item's ⌘+ needs Shift on most keyboards), like a browser.
+        zoomKeys = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            let modifiers = event.modifierFlags.intersection([.command, .option, .control, .shift])
+            guard modifiers == .command, event.charactersIgnoringModifiers == "=" else { return event }
+            TFZoom.shared.step(1)
+            return nil
+        }
         let controller = FocusController.shared
         controller.register(DistractionGuard.shared)
         controller.register(ScrollWatch.shared)

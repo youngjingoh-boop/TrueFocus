@@ -48,9 +48,9 @@ private struct CustomReminderRow: View {
 
         VStack(alignment: .leading, spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(moment.label).font(.body).foregroundStyle(TF.Palette.ink)
+                Text(moment.label).font(.tf(.body)).foregroundStyle(TF.Palette.ink)
                 Text(moment.detail)
-                    .font(.footnote)
+                    .font(.tf(.footnote))
                     .foregroundStyle(TF.Palette.ink2)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -58,7 +58,7 @@ private struct CustomReminderRow: View {
             HStack(spacing: 0) {
                 TextField(moment.label, text: $draft, prompt: Text(builtIn.title).foregroundStyle(TF.Palette.ink3))
                     .textFieldStyle(.plain)
-                    .font(.body)
+                    .font(.tf(.body))
                     .foregroundStyle(TF.Palette.ink)
                     .focused($focused)
                     #if os(iOS)
@@ -74,7 +74,7 @@ private struct CustomReminderRow: View {
                         reset()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 17))
+                            .font(.system(size: TFZoom.pt(17)))
                             .foregroundStyle(TF.Palette.ink3)
                             .frame(width: 44, height: 44)
                             .contentShape(Rectangle())
@@ -113,8 +113,8 @@ private struct CustomReminderRow: View {
         custom[moment] = draft
         let line = Copy(tone: controller.settings.tone, custom: custom).sample(moment, task: Self.sampleTask)
         return VStack(alignment: .leading, spacing: 3) {
-            Text(line.title).font(.headline).foregroundStyle(TF.Palette.ink)
-            Text(line.body).font(.subheadline).foregroundStyle(TF.Palette.ink2)
+            Text(line.title).font(.tf(.headline)).foregroundStyle(TF.Palette.ink)
+            Text(line.body).font(.tf(.subheadline)).foregroundStyle(TF.Palette.ink2)
         }
         .fixedSize(horizontal: false, vertical: true)
         .padding(14)

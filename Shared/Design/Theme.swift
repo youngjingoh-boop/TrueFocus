@@ -101,29 +101,29 @@ enum TF {
 
 extension Font {
     /// The immersive timer. Thin, tabular, enormous.
-    static let tfTimerHero = Font.system(size: 96, weight: .thin).monospacedDigit()
-    static let tfTimer = Font.system(size: 64, weight: .thin).monospacedDigit()
-    static let tfTimerSmall = Font.system(size: 34, weight: .light).monospacedDigit()
+    static var tfTimerHero: Font { Font.system(size: TFZoom.pt(96), weight: .thin).monospacedDigit() }
+    static var tfTimer: Font { Font.system(size: TFZoom.pt(64), weight: .thin).monospacedDigit() }
+    static var tfTimerSmall: Font { Font.system(size: TFZoom.pt(34), weight: .light).monospacedDigit() }
     #if os(iOS)
     // iPhone text follows the reader's Dynamic Type size. At the default size each style
     // lands on the same points as the Mac (34 / 28 / 20 / 12 / 11).
     /// Page titles ("Today").
-    static let tfDisplay = Font.system(.largeTitle, weight: .bold)
+    static var tfDisplay: Font { Font.system(.largeTitle, weight: .bold) }
     /// The day's outcome and the task in focus.
-    static let tfHeadline = Font.system(.title, weight: .semibold)
-    static let tfTitle = Font.system(.title3, weight: .semibold)
+    static var tfHeadline: Font { Font.system(.title, weight: .semibold) }
+    static var tfTitle: Font { Font.system(.title3, weight: .semibold) }
     /// Small caps labels above sections ("NOW", "SAT · OCT 17").
-    static let tfEyebrow = Font.system(.caption2, weight: .semibold)
-    static let tfCaption = Font.system(.caption, weight: .medium).monospacedDigit()
+    static var tfEyebrow: Font { Font.system(.caption2, weight: .semibold) }
+    static var tfCaption: Font { Font.system(.caption, weight: .medium).monospacedDigit() }
     #else
     /// Page titles ("Today").
-    static let tfDisplay = Font.system(size: 34, weight: .bold)
+    static var tfDisplay: Font { Font.system(size: TFZoom.pt(34), weight: .bold) }
     /// The day's outcome and the task in focus.
-    static let tfHeadline = Font.system(size: 28, weight: .semibold)
-    static let tfTitle = Font.system(size: 20, weight: .semibold)
+    static var tfHeadline: Font { Font.system(size: TFZoom.pt(28), weight: .semibold) }
+    static var tfTitle: Font { Font.system(size: TFZoom.pt(20), weight: .semibold) }
     /// Small caps labels above sections ("NOW", "SAT · OCT 17").
-    static let tfEyebrow = Font.system(size: 11, weight: .semibold)
-    static let tfCaption = Font.system(size: 12, weight: .medium).monospacedDigit()
+    static var tfEyebrow: Font { Font.system(size: TFZoom.pt(11), weight: .semibold) }
+    static var tfCaption: Font { Font.system(size: TFZoom.pt(12), weight: .medium).monospacedDigit() }
     #endif
 }
 

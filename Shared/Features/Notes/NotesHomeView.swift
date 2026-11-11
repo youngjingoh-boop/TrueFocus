@@ -90,7 +90,7 @@ struct NotesHomeView: View {
             if TFStore.isTemporary {
                 Label("Notes can't be saved right now. Quit and reopen TruFocus before writing anything you need.",
                       systemImage: "exclamationmark.triangle.fill")
-                    .font(.footnote.weight(.medium))
+                    .font(.tf(.footnote).weight(.medium))
                     .foregroundStyle(TF.Palette.ink)
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -138,7 +138,7 @@ struct NotesHomeView: View {
         }
         if filtered.isEmpty {
             Text("No results for “\(search)”")
-                .font(.subheadline)
+                .font(.tf(.subheadline))
                 .foregroundStyle(TF.Palette.ink2)
         }
     }
@@ -202,14 +202,14 @@ struct NotesHomeView: View {
     private var emptyState: some View {
         VStack(spacing: TF.Space.m) {
             Image(systemName: "square.and.pencil")
-                .font(.system(size: 34, weight: .light))
+                .font(.system(size: TFZoom.pt(34), weight: .light))
                 .foregroundStyle(TF.Palette.ink3)
                 .padding(.bottom, TF.Space.xs)
             Text("Empty your head.")
                 .font(.tfTitle)
                 .foregroundStyle(TF.Palette.ink)
             Text("Brainstorm, plan, and cross things off.")
-                .font(.subheadline)
+                .font(.tf(.subheadline))
                 .foregroundStyle(TF.Palette.ink2)
             Button("New Note", action: compose)
                 .buttonStyle(QuietButtonStyle())
@@ -227,7 +227,7 @@ struct NotesHomeView: View {
                 .font(.tfTitle)
                 .foregroundStyle(TF.Palette.ink2)
             Text("Press ⌘N to start one.")
-                .font(.subheadline)
+                .font(.tf(.subheadline))
                 .foregroundStyle(TF.Palette.ink3)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -298,11 +298,11 @@ struct NoteRow: View {
             HStack(spacing: 6) {
                 if note.isPinned {
                     Image(systemName: "pin.fill")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(.system(size: TFZoom.pt(10), weight: .semibold))
                         .foregroundStyle(TF.Palette.signal)
                 }
                 Text(document.title)
-                    .font(.body.weight(.semibold))
+                    .font(.tf(.body).weight(.semibold))
                     .foregroundStyle(TF.Palette.ink)
                     .lineLimit(1)
             }
@@ -317,7 +317,7 @@ struct NoteRow: View {
                     ChecklistBadge(done: progress.done, total: progress.total)
                 }
             }
-            .font(.subheadline)
+            .font(.tf(.subheadline))
         }
         .padding(.vertical, 3)
         .accessibilityElement(children: .combine)

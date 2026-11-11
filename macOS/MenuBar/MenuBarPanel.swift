@@ -53,7 +53,7 @@ struct MenuBarPanel: View {
             }
             if let outcome = snapshot.outcome {
                 Text(outcome)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: TFZoom.pt(15), weight: .semibold))
                     .foregroundStyle(TF.Palette.ink)
                     .lineLimit(2)
             }
@@ -102,7 +102,7 @@ struct MenuBarPanel: View {
                 .foregroundStyle(TF.Palette.ink2)
                 .help("Quit TruFocus")
             }
-            .font(.system(size: 13, weight: .medium))
+            .font(.system(size: TFZoom.pt(13), weight: .medium))
         }
     }
 }
@@ -117,10 +117,10 @@ private struct DriftRow: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Image(systemName: "scope")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: TFZoom.pt(11), weight: .semibold))
                     .foregroundStyle(drift.verdict == .offTask ? TF.Palette.signalText : TF.Palette.ink3)
                 Text(workspace)
-                    .font(.system(size: 12))
+                    .font(.system(size: TFZoom.pt(12)))
                     .foregroundStyle(TF.Palette.ink2)
                     .lineLimit(1)
                 Spacer(minLength: 4)
@@ -128,7 +128,7 @@ private struct DriftRow: View {
                     drift.editCurrentContract()
                 }
                 .buttonStyle(.plain)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: TFZoom.pt(12), weight: .medium))
                 .foregroundStyle(TF.Palette.signalText)
                 .help("Where this task happens — anything else gets a nudge")
             }
@@ -152,7 +152,7 @@ private struct DriftTodayLine: View {
         let today = DriftGuard.shared.today
         if today.onTask + today.offTask >= 60 {
             Text(line(today))
-                .font(.system(size: 12).monospacedDigit())
+                .font(.system(size: TFZoom.pt(12)).monospacedDigit())
                 .foregroundStyle(TF.Palette.ink3)
                 .lineLimit(1)
         }
@@ -199,18 +199,18 @@ private struct NowSection: View {
             if let start = snapshot.modeStartedAt {
                 ElapsedText(since: start,
                             base: snapshot.mode == .focus ? snapshot.taskFocusBefore : 0,
-                            font: .system(size: 15, weight: .light).monospacedDigit())
+                            font: .system(size: TFZoom.pt(15), weight: .light).monospacedDigit())
                     .foregroundStyle(TF.Palette.ink2)
             }
         }
         Text(snapshot.taskTitle ?? "—")
-            .font(.system(size: 19, weight: .semibold))
+            .font(.system(size: TFZoom.pt(19), weight: .semibold))
             .foregroundStyle(TF.Palette.ink)
             .lineLimit(3)
             .fixedSize(horizontal: false, vertical: true)
         if let crumb = snapshot.breadcrumb {
             Text("↳ \(crumb)")
-                .font(.system(size: 13))
+                .font(.system(size: TFZoom.pt(13)))
                 .foregroundStyle(TF.Palette.ink2)
                 .lineLimit(2)
         }
@@ -275,7 +275,7 @@ private struct NowSection: View {
             Spacer()
         }
         .buttonStyle(.plain)
-        .font(.system(size: 12.5, weight: .medium))
+        .font(.system(size: TFZoom.pt(12.5), weight: .medium))
         .foregroundStyle(TF.Palette.ink2)
     }
 
@@ -294,16 +294,16 @@ private struct NowSection: View {
             ModeLabel(mode: .rest, text: "Break")
             Spacer()
             if let start = snapshot.modeStartedAt {
-                ElapsedText(since: start, font: .system(size: 15, weight: .light).monospacedDigit())
+                ElapsedText(since: start, font: .system(size: TFZoom.pt(15), weight: .light).monospacedDigit())
                     .foregroundStyle(TF.Palette.ink2)
             }
         }
         Text("Rest as long as you like.")
-            .font(.system(size: 19, weight: .semibold))
+            .font(.system(size: TFZoom.pt(19), weight: .semibold))
             .foregroundStyle(TF.Palette.ink)
         if let task = snapshot.nextTaskTitle {
             Text("Back to — \(task)")
-                .font(.system(size: 13))
+                .font(.system(size: TFZoom.pt(13)))
                 .foregroundStyle(TF.Palette.ink2)
                 .lineLimit(2)
         }
@@ -322,16 +322,16 @@ private struct NowSection: View {
             ModeLabel(mode: .rest, text: "Rest")
             Spacer()
             if let end = snapshot.plannedRestEnd {
-                CountdownText(until: end, font: .system(size: 15, weight: .light).monospacedDigit())
+                CountdownText(until: end, font: .system(size: TFZoom.pt(15), weight: .light).monospacedDigit())
                     .foregroundStyle(TF.Palette.ink2)
             }
         }
         Text("Breathe. Then go.")
-            .font(.system(size: 19, weight: .semibold))
+            .font(.system(size: TFZoom.pt(19), weight: .semibold))
             .foregroundStyle(TF.Palette.ink)
         if let next = snapshot.nextTaskTitle {
             Text("Next — \(next)")
-                .font(.system(size: 13))
+                .font(.system(size: TFZoom.pt(13)))
                 .foregroundStyle(TF.Palette.ink2)
                 .lineLimit(2)
         }
@@ -349,7 +349,7 @@ private struct NowSection: View {
         if snapshot.dayEnded {
             ModeLabel(mode: .idle, text: "Shut down")
             Text("Done for today.")
-                .font(.system(size: 19, weight: .semibold))
+                .font(.system(size: TFZoom.pt(19), weight: .semibold))
                 .foregroundStyle(TF.Palette.ink)
             if controller.settings.macDriftGuard {
                 DriftTodayLine()
@@ -361,16 +361,16 @@ private struct NowSection: View {
                 ModeLabel(mode: .idle, text: "Paused")
                 Spacer()
                 Text(TFFormat.clock(snapshot.taskFocusBefore))
-                    .font(.system(size: 15, weight: .light).monospacedDigit())
+                    .font(.system(size: TFZoom.pt(15), weight: .light).monospacedDigit())
                     .foregroundStyle(TF.Palette.ink3)
             }
             Text(title)
-                .font(.system(size: 19, weight: .semibold))
+                .font(.system(size: TFZoom.pt(19), weight: .semibold))
                 .foregroundStyle(TF.Palette.ink)
                 .lineLimit(3)
             if let crumb = snapshot.breadcrumb {
                 Text("↳ \(crumb)")
-                    .font(.system(size: 13))
+                    .font(.system(size: TFZoom.pt(13)))
                     .foregroundStyle(TF.Palette.ink2)
                     .lineLimit(2)
             }
@@ -400,7 +400,7 @@ private struct NowSection: View {
         } else if let next = snapshot.nextTaskTitle {
             ModeLabel(mode: .idle, text: "Up next")
             Text(next)
-                .font(.system(size: 19, weight: .semibold))
+                .font(.system(size: TFZoom.pt(19), weight: .semibold))
                 .foregroundStyle(TF.Palette.ink)
                 .lineLimit(3)
             Button {
@@ -412,11 +412,11 @@ private struct NowSection: View {
         } else if let waiting = controller.longestWaiting {
             ModeLabel(mode: .idle, text: "All waiting")
             Text(waiting.title)
-                .font(.system(size: 19, weight: .semibold))
+                .font(.system(size: TFZoom.pt(19), weight: .semibold))
                 .foregroundStyle(TF.Palette.ink)
                 .lineLimit(3)
             Text("Everything left is waiting on someone. Nudge it, or add something new below.")
-                .font(.system(size: 13))
+                .font(.system(size: TFZoom.pt(13)))
                 .foregroundStyle(TF.Palette.ink2)
                 .fixedSize(horizontal: false, vertical: true)
             Button {
@@ -428,7 +428,7 @@ private struct NowSection: View {
         } else if snapshot.doneToday > 0 {
             ModeLabel(mode: .rest, text: "Cleared")
             Text("\(snapshot.doneToday) done. That's the day.")
-                .font(.system(size: 19, weight: .semibold))
+                .font(.system(size: TFZoom.pt(19), weight: .semibold))
                 .foregroundStyle(TF.Palette.ink)
             Button {
                 controller.endDay()
@@ -439,7 +439,7 @@ private struct NowSection: View {
         } else {
             ModeLabel(mode: .idle, text: "Today")
             Text("Empty your head. Plan the day.")
-                .font(.system(size: 19, weight: .semibold))
+                .font(.system(size: TFZoom.pt(19), weight: .semibold))
                 .foregroundStyle(TF.Palette.ink)
             Button("Plan today") {
                 MacUIState.shared.section = .today
@@ -489,7 +489,7 @@ private struct UpNextList: View {
                         HStack(spacing: 4) {
                             Text(expanded ? "Show less" : "+\(more) more")
                             Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.system(size: TFZoom.pt(9), weight: .bold))
                         }
                         .frame(minHeight: 28)
                         .contentShape(Rectangle())
@@ -517,7 +517,7 @@ private struct UpNextRow: View {
                 controller.toggleDone(task)
             }
             Text(task.title)
-                .font(.system(size: 13.5))
+                .font(.system(size: TFZoom.pt(13.5)))
                 .foregroundStyle(TF.Palette.ink)
                 .lineLimit(1)
             Spacer(minLength: 6)
@@ -527,7 +527,7 @@ private struct UpNextRow: View {
                         withAnimation(TF.Motion.snappy) { _ = controller.juggle(task) }
                     } label: {
                         Image(systemName: "square.stack.3d.up")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.system(size: TFZoom.pt(11), weight: .semibold))
                             .foregroundStyle(TF.Palette.ink2)
                             .frame(width: 24, height: 24)
                             .contentShape(Rectangle())
@@ -536,7 +536,7 @@ private struct UpNextRow: View {
                     .help("Juggle this alongside the current task")
                 }
                 Image(systemName: "bolt.fill")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(.system(size: TFZoom.pt(10), weight: .bold))
                     .foregroundStyle(TF.Palette.signal)
             }
         }
@@ -559,11 +559,11 @@ private struct QuickAddField: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "plus")
-                .font(.system(size: 11, weight: .bold))
+                .font(.system(size: TFZoom.pt(11), weight: .bold))
                 .foregroundStyle(TF.Palette.ink3)
             TextField("Add a task", text: $text)
                 .textFieldStyle(.plain)
-                .font(.system(size: 13.5))
+                .font(.system(size: TFZoom.pt(13.5)))
                 .onSubmit {
                     let title = text.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !title.isEmpty else { return }

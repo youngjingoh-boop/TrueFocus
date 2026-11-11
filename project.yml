@@ -110,6 +110,7 @@ targets:
       - path: Shared/LiveActivity
       - path: Shared/Intents/FlowIntents.swift
       - path: Shared/Design/Theme.swift
+      - path: Shared/Design/Zoom.swift
       - path: PrivacyManifests/Extensions/PrivacyInfo.xcprivacy
         buildPhase: resources
     dependencies:

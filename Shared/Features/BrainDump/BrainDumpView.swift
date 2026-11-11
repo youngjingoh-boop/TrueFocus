@@ -152,20 +152,20 @@ struct BrainDumpView: View {
                 .font(.tfDisplay)
                 .foregroundStyle(TF.Palette.ink)
             Text("Everything on your mind. No order.")
-                .font(.body)
+                .font(.tf(.body))
                 .foregroundStyle(TF.Palette.ink2)
                 .fixedSize(horizontal: false, vertical: true)
             ZStack(alignment: .topLeading) {
                 if dump.isEmpty {
                     Text("reply to Sam about the term sheet\nfix onboarding bug\nrecord the demo…")
-                        .font(.body)
+                        .font(.tf(.body))
                         .foregroundStyle(TF.Palette.ink3)
                         .padding(.top, 8)
                         .padding(.leading, 5)
                         .allowsHitTesting(false)
                 }
                 TextEditor(text: $dump)
-                    .font(.body)
+                    .font(.tf(.body))
                     .foregroundStyle(TF.Palette.ink)
                     .scrollContentBackground(.hidden)
                     .focused($dumpFocused)
@@ -173,7 +173,7 @@ struct BrainDumpView: View {
             .padding(.top, 8)
             Toggle(isOn: $saveToNotes) {
                 Label("Also keep it in Notes", systemImage: "note.text")
-                    .font(.subheadline)
+                    .font(.tf(.subheadline))
                     .foregroundStyle(TF.Palette.ink2)
             }
             .toggleStyle(.switch)
@@ -193,7 +193,7 @@ struct BrainDumpView: View {
                 Text(asWritten ? "Every line, as you wrote it. Untick what isn't today."
                      : TaskExtractor.usesOnDeviceModel ? "Sorted on-device. Untick what isn't today."
                      : "Untick what isn't today.")
-                    .font(.body)
+                    .font(.tf(.body))
                     .foregroundStyle(TF.Palette.ink2)
                 Spacer(minLength: 12)
                 if !candidates.isEmpty {
@@ -203,13 +203,13 @@ struct BrainDumpView: View {
                         for index in candidates.indices { candidates[index].keep = !allKept }
                     }
                     .buttonStyle(.plain)
-                    .font(.body.weight(.medium))
+                    .font(.tf(.body).weight(.medium))
                     .foregroundStyle(TF.Palette.signal)
                 }
             }
             if candidates.isEmpty {
                 Text("Nothing new in there — it's all on the plan already.")
-                    .font(.body)
+                    .font(.tf(.body))
                     .foregroundStyle(TF.Palette.ink3)
                     .padding(.top, TF.Space.l)
             }
@@ -223,7 +223,7 @@ struct BrainDumpView: View {
                             }
                             .padding(.top, 1)
                             TextField("Task", text: $candidate.title, axis: .vertical)
-                                .font(.body)
+                                .font(.tf(.body))
                                 .textFieldStyle(.plain)
                                 .foregroundStyle(candidate.keep ? TF.Palette.ink : TF.Palette.ink3)
                         }
@@ -243,7 +243,7 @@ struct BrainDumpView: View {
                 .font(.tfDisplay)
                 .foregroundStyle(TF.Palette.ink)
             Text("If only one thing happens today, what makes it a good day?")
-                .font(.body)
+                .font(.tf(.body))
                 .foregroundStyle(TF.Palette.ink2)
             TextField("Today is a win if…", text: $outcome, axis: .vertical)
                 .font(.tfHeadline)
@@ -260,7 +260,7 @@ struct BrainDumpView: View {
                             outcome = title
                         } label: {
                             Text(title)
-                                .font(.system(size: 15, weight: outcome == title ? .semibold : .regular))
+                                .font(.system(size: TFZoom.pt(15), weight: outcome == title ? .semibold : .regular))
                                 .foregroundStyle(outcome == title ? TF.Palette.onSignal : TF.Palette.ink)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 9)

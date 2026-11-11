@@ -49,8 +49,8 @@ struct FlowSettingsView<Extra: View>: View {
             }
             let sample = Copy(settings: controller.settings).restOver(level: 3, next: "Investor update")
             VStack(alignment: .leading, spacing: 3) {
-                Text(sample.title).font(.headline).foregroundStyle(TF.Palette.ink)
-                Text(sample.body).font(.subheadline).foregroundStyle(TF.Palette.ink2)
+                Text(sample.title).font(.tf(.headline)).foregroundStyle(TF.Palette.ink)
+                Text(sample.body).font(.tf(.subheadline)).foregroundStyle(TF.Palette.ink2)
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -65,7 +65,7 @@ struct FlowSettingsView<Extra: View>: View {
             controller.updateSettings { $0.tone = tone }
         } label: {
             VStack(spacing: 2) {
-                Text(tone.label).font(.system(size: 15, weight: selected ? .semibold : .regular))
+                Text(tone.label).font(.system(size: TFZoom.pt(15), weight: selected ? .semibold : .regular))
                 Text(tone.note)
                     .font(.tfCaption)
                     .opacity(0.7)
@@ -130,7 +130,7 @@ struct FlowSettingsView<Extra: View>: View {
             controller.updateSettings { $0.doomScroll = config }
         } label: {
             VStack(spacing: 2) {
-                Text(title).font(.system(size: 15, weight: selected ? .semibold : .regular))
+                Text(title).font(.system(size: TFZoom.pt(15), weight: selected ? .semibold : .regular))
                 Text("\(config.burstStrokes) swipes/min").font(.tfCaption).opacity(0.7)
             }
             .foregroundStyle(selected ? TF.Palette.paper : TF.Palette.ink)
@@ -199,7 +199,7 @@ struct SettingsSection<Content: View>: View {
             }
             if let footnote {
                 Text(footnote)
-                    .font(.footnote)
+                    .font(.tf(.footnote))
                     .foregroundStyle(TF.Palette.ink3)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -215,9 +215,9 @@ struct ToggleRow: View {
     var body: some View {
         Toggle(isOn: $isOn) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.body).foregroundStyle(TF.Palette.ink)
+                Text(title).font(.tf(.body)).foregroundStyle(TF.Palette.ink)
                 if let subtitle {
-                    Text(subtitle).font(.footnote).foregroundStyle(TF.Palette.ink2)
+                    Text(subtitle).font(.tf(.footnote)).foregroundStyle(TF.Palette.ink2)
                 }
             }
         }
@@ -234,10 +234,10 @@ struct StepperRow: View {
 
     var body: some View {
         HStack {
-            Text(title).font(.body).foregroundStyle(TF.Palette.ink)
+            Text(title).font(.tf(.body)).foregroundStyle(TF.Palette.ink)
             Spacer()
             Text(unit.isEmpty ? "\(value)" : "\(value) \(unit)")
-                .font(.body.monospacedDigit())
+                .font(.tf(.body).monospacedDigit())
                 .foregroundStyle(TF.Palette.ink2)
                 .contentTransition(.numericText())
             Stepper("", value: $value, in: range)
@@ -256,10 +256,10 @@ struct SliderRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(title).font(.body).foregroundStyle(TF.Palette.ink)
+                Text(title).font(.tf(.body)).foregroundStyle(TF.Palette.ink)
                 Spacer()
                 Text(format(value))
-                    .font(.body.monospacedDigit())
+                    .font(.tf(.body).monospacedDigit())
                     .foregroundStyle(TF.Palette.ink2)
             }
             Slider(value: $value, in: range, step: step)

@@ -33,7 +33,7 @@ struct NowCard: View {
 
             if let crumb = snapshot.breadcrumb, mode.isWorking || snapshot.isPaused {
                 Text("↳ \(crumb)")
-                    .font(.subheadline)
+                    .font(.tf(.subheadline))
                     .foregroundStyle(TF.Palette.ink2)
                     .lineLimit(2)
             }

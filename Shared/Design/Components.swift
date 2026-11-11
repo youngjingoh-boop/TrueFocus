@@ -32,12 +32,12 @@ struct CheckCircle: View {
                     .scaleEffect(isOn ? 1 : 0.2)
                     .opacity(isOn ? 1 : 0)
                 Image(systemName: "checkmark")
-                    .font(.system(size: size * 0.45, weight: .bold))
+                    .font(.system(size: TFZoom.pt(size * 0.45), weight: .bold))
                     .foregroundStyle(TF.Palette.onSignal)
                     .scaleEffect(isOn ? 1 : 0.4)
                     .opacity(isOn ? 1 : 0)
             }
-            .frame(width: size, height: size)
+            .frame(width: TFZoom.pt(size), height: TFZoom.pt(size))
             // Crossing off sends a ring out from the circle, once.
             .background(
                 Circle()
@@ -104,7 +104,7 @@ struct ModeDot: View {
         let pulsing = mode.isWorking && !reduceMotion
         Circle()
             .fill(TF.tint(for: mode))
-            .frame(width: size, height: size)
+            .frame(width: TFZoom.pt(size), height: TFZoom.pt(size))
             .overlay {
                 if pulsing {
                     // Ease-out: fast out of the dot, slow fade at the edge.
@@ -210,7 +210,7 @@ struct StatTile: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(value)
-                .font(.system(size: 26, weight: .semibold).monospacedDigit())
+                .font(.system(size: TFZoom.pt(26), weight: .semibold).monospacedDigit())
                 .foregroundStyle(TF.Palette.ink)
                 .contentTransition(.numericText())
             Text(label).tfEyebrowStyle()
@@ -228,7 +228,7 @@ struct PrimaryButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 17, weight: .semibold))
+            .font(.system(size: TFZoom.pt(17), weight: .semibold))
             .foregroundStyle(foreground)
             // A label never wraps inside a capsule; it shrinks a little first.
             .lineLimit(1)
@@ -249,7 +249,7 @@ struct QuietButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 15, weight: .medium))
+            .font(.system(size: TFZoom.pt(15), weight: .medium))
             .foregroundStyle(foreground)
             .lineLimit(1)
             .minimumScaleFactor(0.8)
@@ -270,9 +270,9 @@ struct OrbButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: size * 0.34, weight: .semibold))
+            .font(.system(size: TFZoom.pt(size * 0.34), weight: .semibold))
             .foregroundStyle(filled ? TF.Palette.onSignal : tint)
-            .frame(width: size, height: size)
+            .frame(width: TFZoom.pt(size), height: TFZoom.pt(size))
             .background(
                 Circle().fill(filled ? tint : tint.opacity(0.12))
             )
@@ -388,7 +388,7 @@ struct TFMark: View {
                     .frame(width: 34 * u, height: 34 * u)
             }
         }
-        .frame(width: size, height: size)
+        .frame(width: TFZoom.pt(size), height: TFZoom.pt(size))
         .accessibilityHidden(true)
     }
 }
@@ -409,7 +409,7 @@ struct TFMarkBadge: View {
                 TFMark(size: size * 0.8, onDark: true)
             }
         }
-        .frame(width: size, height: size)
+        .frame(width: TFZoom.pt(size), height: TFZoom.pt(size))
         .accessibilityHidden(true)
     }
 }
