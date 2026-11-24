@@ -47,6 +47,7 @@ struct TrueFocusMacApp: App {
 struct FlowCommands: Commands {
     let controller: FocusController
     let ui: MacUIState
+    private var zoom: TFZoom { TFZoom.shared }
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
@@ -95,6 +96,19 @@ struct FlowCommands: Commands {
                 .keyboardShortcut("2", modifiers: .command)
             Button("Review") { show(.review) }
                 .keyboardShortcut("3", modifiers: .command)
+
+            Divider()
+
+            // ⌘= works as well as ⌘+ (MacAppDelegate), like a browser.
+            Button("Zoom In") { TFZoom.shared.step(1) }
+                .keyboardShortcut("+", modifiers: .command)
+                .disabled(!zoom.canZoomIn)
+            Button("Zoom Out") { TFZoom.shared.step(-1) }
+                .keyboardShortcut("-", modifiers: .command)
+                .disabled(!zoom.canZoomOut)
+            Button("Actual Size") { TFZoom.shared.step(0) }
+                .keyboardShortcut("0", modifiers: .command)
+                .disabled(zoom.scale == 1)
         }
     }
 

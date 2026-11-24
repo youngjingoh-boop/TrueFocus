@@ -12,7 +12,7 @@ struct SoundSettingsSection: View {
                       isOn: controller.binding(\.soundEffects))
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("Focus music").font(.body).foregroundStyle(TF.Palette.ink)
+                Text("Focus music").font(.tf(.body)).foregroundStyle(TF.Palette.ink)
                 VStack(spacing: 0) {
                     ForEach(FocusMusic.allCases, id: \.self) { choice in
                         MusicChoiceRow(choice: choice, selected: controller.settings.focusMusic == choice) {
@@ -48,17 +48,17 @@ private struct MusicChoiceRow: View {
         Button(action: action) {
             HStack(spacing: 12) {
                 Image(systemName: symbol)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: TFZoom.pt(15), weight: .semibold))
                     .foregroundStyle(selected ? TF.Palette.signal : TF.Palette.ink3)
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(choice.title).font(.body.weight(selected ? .semibold : .regular)).foregroundStyle(TF.Palette.ink)
-                    Text(choice.subtitle).font(.footnote).foregroundStyle(TF.Palette.ink2)
+                    Text(choice.title).font(.tf(.body).weight(selected ? .semibold : .regular)).foregroundStyle(TF.Palette.ink)
+                    Text(choice.subtitle).font(.tf(.footnote)).foregroundStyle(TF.Palette.ink2)
                 }
                 Spacer()
                 if selected {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: TFZoom.pt(13), weight: .bold))
                         .foregroundStyle(TF.Palette.signal)
                 }
             }
@@ -92,10 +92,10 @@ struct MusicQuickButton: View {
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: current == .off ? "speaker.slash" : "waveform")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.system(size: TFZoom.pt(11), weight: .bold))
                     .symbolEffect(.variableColor.iterative, isActive: current != .off && controller.mode == .focus)
                 Text(current == .off ? "Music" : current.title)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: TFZoom.pt(12), weight: .semibold))
             }
             .foregroundStyle(current == .off ? (onDark ? TF.Palette.nightInk2 : TF.Palette.ink3) : TF.Palette.signal)
             .padding(.horizontal, 10)

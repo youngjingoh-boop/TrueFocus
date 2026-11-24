@@ -37,7 +37,7 @@ struct SyncSettingsSection: View {
             }
             if let message {
                 Text(message)
-                    .font(.footnote)
+                    .font(.tf(.footnote))
                     .foregroundStyle(TF.Palette.ink2)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -61,7 +61,7 @@ struct SyncSettingsSection: View {
     private var disabled: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Off on this device. Turn it on to keep your plan, notes and timeline in step on your iPhone and Mac.")
-                .font(.body)
+                .font(.tf(.body))
                 .foregroundStyle(TF.Palette.ink)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: 8) {
@@ -89,7 +89,7 @@ struct SyncSettingsSection: View {
             if let tag = sync.spaceTag {
                 // Linked devices show the same id; a different one means they aren't linked.
                 Text("Sync ID \(tag) · the same on every linked device")
-                    .font(.footnote.monospacedDigit())
+                    .font(.tf(.footnote).monospacedDigit())
                     .foregroundStyle(TF.Palette.ink3)
                     .textSelection(.enabled)
             }
@@ -133,7 +133,7 @@ struct SyncSettingsSection: View {
                 .fill(statusColor)
                 .frame(width: 8, height: 8)
             Text(statusText)
-                .font(.body)
+                .font(.tf(.body))
                 .foregroundStyle(TF.Palette.ink)
                 .lineLimit(2)
             Spacer()
@@ -142,7 +142,7 @@ struct SyncSettingsSection: View {
                 Task { await sync.syncNow() }
             } label: {
                 Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.system(size: TFZoom.pt(15), weight: .medium))
                     .foregroundStyle(TF.Palette.ink2)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
@@ -179,11 +179,11 @@ struct SyncSettingsSection: View {
         VStack(alignment: .leading, spacing: 10) {
             if let joined {
                 Text("Does the other device show \(joined.match)?")
-                    .font(.headline)
+                    .font(.tf(.headline))
                     .foregroundStyle(TF.Palette.ink)
                 matchNumber(joined.match)
                 Text("If the numbers differ, cancel: something is between your devices.")
-                    .font(.subheadline)
+                    .font(.tf(.subheadline))
                     .foregroundStyle(TF.Palette.ink2)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 8) {
@@ -195,12 +195,12 @@ struct SyncSettingsSection: View {
                 .disabled(working)
             } else {
                 Text(spaced(link.code.code))
-                    .font(.system(size: 40, weight: .semibold, design: .rounded).monospacedDigit())
+                    .font(.system(size: TFZoom.pt(40), weight: .semibold, design: .rounded).monospacedDigit())
                     .foregroundStyle(TF.Palette.ink)
                     .textSelection(.enabled)
                     .accessibilityLabel("Code \(link.code.code.map(String.init).joined(separator: " "))")
                 Text("On the other device: Settings › Sync › Enter a code. Works for 10 minutes.")
-                    .font(.subheadline)
+                    .font(.tf(.subheadline))
                     .foregroundStyle(TF.Palette.ink2)
                     .fixedSize(horizontal: false, vertical: true)
                 Button("Cancel") { endLink() }
@@ -215,7 +215,7 @@ struct SyncSettingsSection: View {
 
     private func matchNumber(_ match: String) -> some View {
         Text(match.map(String.init).joined(separator: " "))
-            .font(.system(size: 40, weight: .semibold, design: .rounded).monospacedDigit())
+            .font(.system(size: TFZoom.pt(40), weight: .semibold, design: .rounded).monospacedDigit())
             .foregroundStyle(TF.Palette.ink)
             .accessibilityLabel("Match number \(match.map(String.init).joined(separator: " "))")
     }
@@ -290,7 +290,7 @@ struct SyncSettingsSection: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 TextField("6-digit code", text: $entry)
-                    .font(.system(size: 22, weight: .medium, design: .rounded).monospacedDigit())
+                    .font(.system(size: TFZoom.pt(22), weight: .medium, design: .rounded).monospacedDigit())
                     .textFieldStyle(.plain)
                     .focused($entryFocused)
                     #if os(iOS)
@@ -310,7 +310,7 @@ struct SyncSettingsSection: View {
                     .disabled(entry.count != 6 || working)
             }
             Text("This device joins the other one and turns sync on. Its tasks and notes are merged in.")
-                .font(.footnote)
+                .font(.tf(.footnote))
                 .foregroundStyle(TF.Palette.ink3)
             Button("Cancel") {
                 entering = false
@@ -324,16 +324,16 @@ struct SyncSettingsSection: View {
         VStack(alignment: .leading, spacing: 10) {
             if let joinMatch {
                 Text("Check the other device shows")
-                    .font(.headline)
+                    .font(.tf(.headline))
                     .foregroundStyle(TF.Palette.ink)
                 matchNumber(joinMatch)
                 Text("Then tap They match there. If it shows a different number, cancel.")
-                    .font(.subheadline)
+                    .font(.tf(.subheadline))
                     .foregroundStyle(TF.Palette.ink2)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 Text("Waiting for the other device…")
-                    .font(.headline)
+                    .font(.tf(.headline))
                     .foregroundStyle(TF.Palette.ink)
             }
             HStack(spacing: 8) {

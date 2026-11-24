@@ -173,7 +173,7 @@ struct NoteEditorView: View {
                 Image(systemName: "checkmark.circle.fill").foregroundStyle(TF.Palette.signal)
                 Text(toast)
             }
-            .font(.subheadline.weight(.medium))
+            .font(.tf(.subheadline).weight(.medium))
             .foregroundStyle(TF.Palette.paper)
             .padding(.horizontal, 16)
             .padding(.vertical, 11)

@@ -80,6 +80,8 @@ final class NoteTextCoordinator: NSObject, UITextViewDelegate, UIGestureRecogniz
         wire(textView)
         NotificationCenter.default.addObserver(self, selector: #selector(textScaleChanged),
                                                name: .tfNoteTextScaleChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(textScaleChanged),
+                                               name: .tfZoomChanged, object: nil)
         return textView
     }
 
@@ -331,6 +333,8 @@ final class NoteTextCoordinator: NSObject, NSTextViewDelegate {
         wire(textView)
         NotificationCenter.default.addObserver(self, selector: #selector(textScaleChanged),
                                                name: .tfNoteTextScaleChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(textScaleChanged),
+                                               name: .tfZoomChanged, object: nil)
         return scrollView
     }
 

@@ -152,7 +152,7 @@ private struct WakeUpView: View {
                 .padding(.bottom, 36)
 
                 Text(content.title)
-                    .font(.system(size: 92, weight: .thin))
+                    .font(.system(size: TFZoom.pt(92), weight: .thin))
                     .tracking(-1.5)
                     .foregroundStyle(TF.Palette.nightInk)
                     .multilineTextAlignment(.center)
@@ -160,7 +160,7 @@ private struct WakeUpView: View {
                     .minimumScaleFactor(0.5)
 
                 Text(content.message)
-                    .font(.system(size: 22, weight: .regular))
+                    .font(.system(size: TFZoom.pt(22), weight: .regular))
                     .foregroundStyle(TF.Palette.nightInk2)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 680)
@@ -172,7 +172,7 @@ private struct WakeUpView: View {
                             Text(label).tfEyebrowStyle(TF.Palette.nightInk2)
                         }
                         Text(task)
-                            .font(.system(size: 30, weight: .semibold))
+                            .font(.system(size: TFZoom.pt(30), weight: .semibold))
                             .foregroundStyle(TF.Palette.nightInk)
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
@@ -293,11 +293,11 @@ private struct HUDToastView: View {
             ModeDot(mode: mode == .idle ? .focus : mode, size: 9)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: TFZoom.pt(14), weight: .semibold))
                     .foregroundStyle(TF.Palette.ink)
                 if let message, !message.isEmpty {
                     Text(message)
-                        .font(.system(size: 12.5))
+                        .font(.system(size: TFZoom.pt(12.5)))
                         .foregroundStyle(TF.Palette.ink2)
                         .lineLimit(2)
                 }

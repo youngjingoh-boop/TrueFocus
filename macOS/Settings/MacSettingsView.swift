@@ -52,7 +52,7 @@ private struct ShortcutRow: View {
             Text(action)
             Spacer()
             Text(keys)
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .font(.system(size: TFZoom.pt(12), weight: .semibold, design: .rounded))
                 .foregroundStyle(TF.Palette.ink2)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
@@ -71,7 +71,7 @@ private struct GuardTab: View {
             Section {
                 Toggle("Shield distracting apps while I work", isOn: controller.binding(\.shieldDuringFocus))
                 Text("During focus and think time, opening a shielded app hides it again and reminds you what you're on. Nothing is quit or changed, and shields drop the moment you stop.")
-                    .font(.callout)
+                    .font(.tf(.callout))
                     .foregroundStyle(TF.Palette.ink2)
             }
 
@@ -100,7 +100,7 @@ private struct GuardTab: View {
             Section("Feed apps off a task") {
                 Toggle("Remind me to get out of feed apps", isOn: controller.binding(\.macWatchNativeScrolling))
                 Text("Off a task, after the time you set under Flow, a reminder asks whether you still need the app (or, with Lock me out instead, you're booted out of a binge). While a feed app is in front TruFocus only counts time and scroll gestures. It never reads the screen, what you type, or anything in other apps.")
-                    .font(.callout)
+                    .font(.tf(.callout))
                     .foregroundStyle(TF.Palette.ink2)
             }
 
@@ -147,7 +147,7 @@ private struct DriftGuardSection: View {
         Section("Drift guard") {
             Toggle("Nudge me when I drift off the task", isOn: controller.binding(\.macDriftGuard))
             Text("If something unrelated holds the front for a minute or two (longer in the first five minutes), a small card asks if you want to head back. Tap Part of the task and TruFocus remembers that app or site for the task. Mail and chat get about four minutes; calls and time away from the Mac never count. The browser extension adds the site and tab title.")
-                .font(.callout)
+                .font(.tf(.callout))
                 .foregroundStyle(TF.Palette.ink2)
             if controller.settings.macDriftGuard {
                 Toggle("Ask where each task happens when it starts", isOn: controller.binding(\.macAskTaskWorkspace))
@@ -156,7 +156,7 @@ private struct DriftGuardSection: View {
                 Text(DriftJudge.shared.isAvailable
                      ? "Apple Intelligence reads the app name, site and title — nothing else — on this Mac, and decides whether it fits the task. It also suggests topic words when a task starts."
                      : "Needs Apple Intelligence. Without it, the rules decide on their own.")
-                    .font(.callout)
+                    .font(.tf(.callout))
                     .foregroundStyle(TF.Palette.ink2)
                 LabeledContent("Window titles") {
                     if canReadTitles {
@@ -167,7 +167,7 @@ private struct DriftGuardSection: View {
                     }
                 }
                 Text("Titles tell a marketing doc from a side project in the same app. macOS asks for Accessibility access; TruFocus only reads the front window's title.")
-                    .font(.callout)
+                    .font(.tf(.callout))
                     .foregroundStyle(TF.Palette.ink2)
             }
         }
@@ -249,13 +249,13 @@ private struct AdultFilterSection: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("For a system-wide wall, also turn on macOS's own filter:")
-                    .font(.callout)
+                    .font(.tf(.callout))
                 Text("System Settings ▸ Screen Time ▸ Content & Privacy ▸ Store, Web, Siri & Game Center ▸ Access to Web Content ▸ Limit Adult Websites")
-                    .font(.callout)
+                    .font(.tf(.callout))
                     .foregroundStyle(TF.Palette.ink2)
                     .textSelection(.enabled)
                 Text("It works in every browser and app. If you want accountability, ask someone you trust to set the Screen Time passcode.")
-                    .font(.callout)
+                    .font(.tf(.callout))
                     .foregroundStyle(TF.Palette.ink2)
                 Button("Open Screen Time Settings") {
                     if let url = URL(string: "x-apple.systempreferences:com.apple.Screen-Time-Settings.extension") {
@@ -289,7 +289,7 @@ private struct FocusTab: View {
             Section {
                 Toggle("Switch a macOS Focus on while I work", isOn: controller.binding(\.macRunFocusShortcuts))
                 Text("TruFocus runs one shortcut when work starts and another when you go idle or shut down. With Share Across Devices on, your iPhone follows — notifications go quiet on both.")
-                    .font(.callout)
+                    .font(.tf(.callout))
                     .foregroundStyle(TF.Palette.ink2)
             }
 
@@ -297,7 +297,7 @@ private struct FocusTab: View {
                 shortcutField("Turn Focus on", text: controller.binding(\.macFocusOnShortcut), name: settings.macFocusOnShortcut)
                 shortcutField("Turn Focus off", text: controller.binding(\.macFocusOffShortcut), name: settings.macFocusOffShortcut)
                 if let testResult {
-                    Text(testResult).font(.callout).foregroundStyle(TF.Palette.ink2)
+                    Text(testResult).font(.tf(.callout)).foregroundStyle(TF.Palette.ink2)
                 }
             }
 
@@ -338,10 +338,10 @@ private struct FocusTab: View {
     private func step(_ number: Int, _ text: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text("\(number)")
-                .font(.system(size: 11, weight: .bold).monospacedDigit())
+                .font(.system(size: TFZoom.pt(11), weight: .bold).monospacedDigit())
                 .foregroundStyle(TF.Palette.signalText)
                 .frame(width: 14)
-            Text(text).font(.callout)
+            Text(text).font(.tf(.callout))
         }
     }
 }
@@ -360,7 +360,7 @@ private struct BrowserTab: View {
         Form {
             Section("Safari") {
                 Text("Turn on the TruFocus extension and allow it on all websites. It hides Reels and Shorts, keeps Instagram to your messages, boots you out of doom-scrolls, and filters adult sites.")
-                    .font(.callout)
+                    .font(.tf(.callout))
                     .foregroundStyle(TF.Palette.ink2)
                 Button("Open Safari Extension Settings") {
                     let identifier = (Bundle.main.bundleIdentifier ?? "") + ".safari"
@@ -384,10 +384,10 @@ private struct BrowserTab: View {
                     Text("2. Open chrome://extensions and turn on Developer mode.")
                     Text("3. Click Load unpacked and choose the folder that opens.")
                 }
-                .font(.callout)
+                .font(.tf(.callout))
                 Button("Copy Extension Folder", action: copyExtension)
                 if let copyMessage {
-                    Text(copyMessage).font(.callout).foregroundStyle(TF.Palette.ink2)
+                    Text(copyMessage).font(.tf(.callout)).foregroundStyle(TF.Palette.ink2)
                 }
                 LabeledContent("Link to TruFocus") {
                     switch bridgeStatus {
@@ -402,7 +402,7 @@ private struct BrowserTab: View {
                     }
                 }
                 Text("Chrome-family browsers read your current task from TruFocus over a local-only connection on this Mac (127.0.0.1:52525).")
-                    .font(.callout)
+                    .font(.tf(.callout))
                     .foregroundStyle(TF.Palette.ink2)
             }
         }
